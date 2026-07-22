@@ -1,0 +1,515 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: AppShell (toolMan Edition - v2.1)
+ *     - File Name: shell.css
+ *     - Relative Path: shared/css/shell.css
+ *     - Artifact Type: config
+ *     - Version: 2.1.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Layered the
+ *       per-theme vignette token into the canvas washes for stronger
+ *       figure/ground separation, most visibly in Sentinel Obsidian.
+ *     - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Relocated to
+ *       shared/css/ for the toolMan ecosystem. All colors now resolve from
+ *       the house token system (navy/gold, parchment/sentinel themes). Loader
+ *       background and progress bar recolored to the digiSpace identity.
+ *     - 1.0.0 (2025-11-18) [model not recorded] — Initial app shell: sticky
+ *       header, three-column grid, loading screen, responsive breakpoints.
+ *
+ * ✒ Description:
+ *     The structural skeleton every toolMan tool shares: viewport-filling app
+ *     container, sticky glassmorphism header, three-column panel grid with
+ *     collapse states, the branded loading screen, and responsive
+ *     breakpoints. Tools layer their component CSS on top of this shell.
+ *
+ * ✒ Key Features:
+ *     - Full-viewport flex column app container with theme-driven canvas
+ *       color
+ *     - Dossier-paper depth: faint radial washes layered over the canvas via
+ *       the app container's before pseudo-element
+ *     - Sticky header on the house navy gradient with brand logo slot and
+ *       circular icon buttons
+ *     - Gold hairline rule running under the header — the dossier rule
+ *     - Branded gold text selection via the selection pseudo-element
+ *     - Three-column CSS grid with per-side collapse states via data
+ *       attributes
+ *     - Branded loading screen: navy gradient, glass card, pulsing logo,
+ *       animated gold progress bar
+ *     - Toast notification stack with per-type accent borders and slide
+ *       in/out animations
+ *     - Responsive: tablet column squeeze, mobile slide-in side panels,
+ *       small-mobile header shrink
+ *     - Theme-facing colors sourced from shared/css/tokens.css; the loader
+ *       keeps a deliberately fixed navy/gold treatment in both themes
+ *
+ * ✒ Usage Instructions:
+ *     Load via a link tag after reset.css and tokens.css, before panels.css
+ *     and any tool-specific stylesheet. Expects the standard shell markup:
+ *     an .app root containing .app-header and .app-main, with .panel-left,
+ *     .panel-center, and .panel-right inside the main grid. The loading
+ *     screen (.loader-screen) and toast stack (.toast-stack) sit as fixed
+ *     overlays outside the grid.
+ *
+ * ✒ Examples:
+ *     Collapsing the left panel sets data-left-collapsed on the main grid,
+ *     which narrows the first column to the panel-collapsed-width token;
+ *     both sides collapsed leaves the center column dominant.
+ *
+ *     The loading screen paints the loader-bg navy gradient with a glass
+ *     card; the progress bar fills with an identity-gold gradient, and the
+ *     whole screen fades and scales away via the fade-out class.
+ *
+ *     A toast with data-type of error takes a color-danger left border and
+ *     slides in from the right; success, warning, and info map to their
+ *     matching status tokens.
+ *
+ *     Header icon buttons lift two pixels on hover, borrow the header-gold
+ *     color, and glow via the glow-brand token.
+ *
+ *     Under the 768px breakpoint the side panels become absolute slide-ins
+ *     toggled by the data-mobile-open attribute.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/reset.css, shared/css/tokens.css (must load
+ *       before this file)
+ *     - Compatible platforms: all evergreen browsers; backdrop-filter
+ *       degrades gracefully where unsupported
+ *     - Limitations: the loader card and header hover chrome use fixed
+ *       rgba/hex accents by design, so they do not re-tint with theme
+ *       switches; the 100vh app container can sit under dynamic browser
+ *       chrome on some mobile browsers
+ * ----------------------------------------------------------------------------
+ */
+
+/* ===== GLOBAL REFINEMENTS ===== */
+
+/* Branded text selection */
+::selection {
+    background: var(--color-identity-gold);
+    color: var(--navy-deep);
+}
+
+/* ===== APP CONTAINER ===== */
+.app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    background: var(--bg-canvas);
+    color: var(--fg-default);
+    overflow: hidden;
+    transition: opacity var(--transition-slow);
+    position: relative;
+}
+
+/* Dossier-paper depth: faint radial washes layered over the canvas */
+.app::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 80% 60% at 20% -10%, var(--bg-active), transparent 60%),
+        radial-gradient(ellipse 70% 50% at 90% 110%, var(--bg-hover), transparent 55%),
+        var(--vignette);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.app > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* ===== STICKY HEADER ===== */
+.app-header {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-lg);
+
+    /* House header treatment: navy gradient with gold identity */
+    background: var(--header-gradient);
+    border-bottom: var(--border-width) solid var(--border-subtle);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 1px 0 rgba(201, 168, 76, 0.25),
+        var(--shadow-lg);
+
+    z-index: var(--z-header);
+}
+
+/* Gold hairline running under the header — the dossier rule */
+.app-header::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        var(--identity-gold) 15%,
+        var(--identity-gold) 85%,
+        transparent 100%);
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+/* Header Left */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.logo-icon {
+    width: 32px;
+    height: 32px;
+    color: var(--header-gold);
+    transition: transform var(--transition-fast);
+}
+
+.logo-icon:hover {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.logo-text {
+    font-size: var(--font-xl);
+    font-weight: var(--font-bold);
+    color: var(--header-text);
+    letter-spacing: -0.02em;
+    cursor: default;
+}
+
+.logo-text .logo-accent {
+    color: var(--header-gold);
+}
+
+.header-tagline {
+    font-size: var(--font-xs);
+    color: var(--header-subtitle);
+    letter-spacing: 0.04em;
+}
+
+/* Header Right */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.icon-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.06);
+    border: var(--border-width) solid rgba(255, 255, 255, 0.12);
+    color: var(--header-subtitle);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--header-gold);
+    color: var(--header-gold);
+    transform: translateY(-2px);
+    box-shadow: var(--glow-brand);
+}
+
+.icon-btn:active {
+    transform: translateY(0);
+}
+
+/* ===== MAIN CONTENT AREA ===== */
+.app-main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(400px, 2fr) minmax(280px, 1fr);
+    gap: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+/* When left panel is collapsed */
+.app-main[data-left-collapsed="true"] {
+    grid-template-columns: var(--panel-collapsed-width) minmax(400px, 2fr) minmax(280px, 1fr);
+}
+
+/* When right panel is collapsed */
+.app-main[data-right-collapsed="true"] {
+    grid-template-columns: minmax(280px, 1fr) minmax(400px, 2fr) var(--panel-collapsed-width);
+}
+
+/* When both panels are collapsed */
+.app-main[data-left-collapsed="true"][data-right-collapsed="true"] {
+    grid-template-columns: var(--panel-collapsed-width) minmax(400px, 2fr) var(--panel-collapsed-width);
+}
+
+/* ===== RESPONSIVE BREAKPOINTS ===== */
+
+/* Tablet */
+@media (max-width: 1024px) {
+    .app-main {
+        grid-template-columns: 240px minmax(300px, 2fr) 240px;
+    }
+
+    .header-left .logo-text {
+        display: none;
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .app-header {
+        padding: 0 var(--space-md);
+    }
+
+    .app-main {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+    }
+
+    /* Stack panels on mobile */
+    .panel-left,
+    .panel-right {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 280px;
+        z-index: var(--z-panel);
+        transform: translateX(-100%);
+        transition: transform var(--transition-base);
+    }
+
+    .panel-left[data-mobile-open="true"] {
+        transform: translateX(0);
+    }
+
+    .panel-right {
+        left: auto;
+        right: 0;
+        transform: translateX(100%);
+    }
+
+    .panel-right[data-mobile-open="true"] {
+        transform: translateX(0);
+    }
+
+    .panel-center {
+        grid-column: 1;
+        width: 100%;
+    }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+    .app-header {
+        height: 56px;
+    }
+
+    .icon-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .panel-left,
+    .panel-right {
+        width: 100%;
+    }
+}
+
+/* ===== LOADING SCREEN ===== */
+.loader-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: var(--loader-bg);
+    z-index: var(--z-loader);
+
+    transition: opacity var(--transition-slow), transform var(--transition-slow);
+}
+
+.loader-screen.fade-out {
+    opacity: 0;
+    transform: scale(1.05);
+    pointer-events: none;
+}
+
+.loader-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-lg);
+    padding: var(--space-3xl);
+
+    /* Glass card on navy — fixed dark treatment in both themes */
+    background: rgba(15, 26, 51, 0.55);
+    border: var(--border-width) solid rgba(201, 168, 76, 0.25);
+    border-radius: var(--radius-xl);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-2xl);
+
+    min-width: 400px;
+    text-align: center;
+}
+
+.loader-logo {
+    width: 80px;
+    height: 80px;
+    color: var(--identity-gold);
+}
+
+.loader-logo svg,
+.loader-logo img {
+    width: 100%;
+    height: 100%;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.loader-title {
+    font-size: var(--font-3xl);
+    font-weight: var(--font-bold);
+    color: #F5F0E8;
+    letter-spacing: -0.02em;
+}
+
+.loader-title .logo-accent {
+    color: var(--identity-gold);
+}
+
+.loader-tagline {
+    font-size: var(--font-base);
+    color: #A0B0C0;
+    margin-top: calc(-1 * var(--space-md));
+}
+
+.loader-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(160, 176, 192, 0.2);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    position: relative;
+}
+
+.loader-progress {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, var(--identity-gold), #E8C878);
+    border-radius: var(--radius-full);
+    transition: width var(--transition-base);
+    box-shadow: 0 0 12px rgba(201, 168, 76, 0.5);
+}
+
+.loader-status {
+    font-size: var(--font-sm);
+    color: #A0B0C0;
+    min-height: 1.5em;
+    transition: opacity var(--transition-fast);
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.05);
+    }
+}
+
+/* Loader mobile */
+@media (max-width: 480px) {
+    .loader-card {
+        min-width: 90%;
+        padding: var(--space-xl);
+    }
+
+    .loader-logo {
+        width: 60px;
+        height: 60px;
+    }
+
+    .loader-title {
+        font-size: var(--font-2xl);
+    }
+}
+
+/* ===== TOAST NOTIFICATIONS ===== */
+.toast-stack {
+    position: fixed;
+    bottom: var(--space-lg);
+    right: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    z-index: var(--z-modal);
+    pointer-events: none;
+    max-width: min(360px, calc(100vw - 2 * var(--space-lg)));
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-default);
+    border-left: 3px solid var(--color-brand);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+
+    color: var(--fg-default);
+    font-size: var(--font-sm);
+    pointer-events: auto;
+
+    animation: toastIn var(--transition-base) forwards;
+}
+
+.toast[data-type="success"] { border-left-color: var(--color-success); }
+.toast[data-type="error"]   { border-left-color: var(--color-danger); }
+.toast[data-type="warning"] { border-left-color: var(--color-warning); }
+.toast[data-type="info"]    { border-left-color: var(--color-info); }
+
+.toast.toast-out {
+    animation: toastOut var(--transition-base) forwards;
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(24px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(24px); }
+}

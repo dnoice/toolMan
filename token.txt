@@ -1,0 +1,141 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: HousePalette (toolMan Edition - v1.0)
+ *     - File Name: token.txt
+ *     - Relative Path: token.txt
+ *     - Artifact Type: data
+ *     - Version: 1.0.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     The canonical digiSpace house palette reference: brand anchors plus the
+ *     Parchment Dossier (light) and Sentinel Obsidian (dark) theme values.
+ *     This file is the SOURCE for shared/css/tokens.css — if the palette ever
+ *     changes, change it here first, then propagate to tokens.css. It is a
+ *     pure reference and is never loaded by any page.
+ *
+ * ✒ Key Features:
+ *     - Brand anchors: theme-independent navy/gold identity colors
+ *     - Parchment Dossier: full light-theme token set (default on :root)
+ *     - Sentinel Obsidian: full dark-theme token set under data-theme
+ *     - Complete semantic ranges: backgrounds, borders, foregrounds, status
+ *       colors, header treatment, and callout washes per theme
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: None (reference data; consumed by humans, not pages)
+ *     - Compatible platforms: any text editor; values are standard CSS
+ *     - Propagation target: shared/css/tokens.css (house palette layer)
+ * ----------------------------------------------------------------------------
+ */
+
+:root {
+  /* brand anchors — theme-independent identity */
+  --identity-gold: #C9A84C;
+  --gold-ink: #856313;
+  --ui-gold: #8B6914;
+  --navy: #1B2A4A;
+  --navy-deep: #0F1A33;
+  --slate: #3D4F5F;
+}
+
+/* ── Parchment Dossier (light) ─────────────────────── */
+[data-theme="parchment"],
+:root {
+  color-scheme: light;
+  --bg-canvas: #F5F0E8;
+  --bg-surface: #FAF7F2;
+  --bg-surface-alt: #EFE9DE;
+  --bg-elevated: #FFFFFF;
+  --bg-hover: rgba(139,115,78,0.06);
+  --bg-active: rgba(139,115,78,0.10);
+  --bg-input: #FFFFFF;
+  --bg-card: #FAF7F0;
+  --bg-tag: #EDE8DC;
+  --bg-overlay: rgba(62,47,30,0.5);
+  --bg-wash: rgba(245,240,232,0.92);
+  --border-default: #D4C9B5;
+  --border-muted: #E8E0D2;
+  --border-subtle: rgba(139,115,78,0.08);
+  --fg-default: #2C2418;
+  --fg-body: #3D3D3D;
+  --fg-muted: #6B5D4F;
+  --fg-secondary: #4A4A4A;
+  --fg-subtle: #9C8E7C;
+  --fg-meta: #8B7B6B;
+  --fg-on-emphasis: #FAF7F2;
+  --fg-inverse: #FAF7F2;
+  --color-success: #3D7A45;
+  --color-danger: #8B2D2D;
+  --color-warning: #856313;
+  --color-info: #4A6FA5;
+  --color-accent: #6B4C8A;
+  --color-critical: #B22222;
+  --color-link: #4A6FA5;
+  --color-math: #A02B93;
+  --color-brand: #8B6914;
+  --color-brand-emphasis: #A67C1A;
+  --color-identity-gold: #C9A84C;
+  --color-gold-ink: #856313;
+  --header-gradient: linear-gradient(135deg,#1B2A4A 0%,#2A3D5F 60%,#3D4F5F 100%);
+  --header-gold: #C9A84C;
+  --header-text: #F5F0E8;
+  --header-subtitle: #A0B0C0;
+  --wash-note: #E9EDF3;
+  --wash-tip: #ECEFF1;
+  --wash-warning: #F7F0DA;
+  --wash-danger: #F4EAEA;
+  --wash-critical: #F9E8E8;
+}
+
+/* ── Sentinel Obsidian (dark) ─────────────────────── */
+[data-theme="sentinel"] {
+  color-scheme: dark;
+  --bg-canvas: #0E1014;
+  --bg-surface: #141820;
+  --bg-surface-alt: #1A1F28;
+  --bg-elevated: #222833;
+  --bg-hover: rgba(212,177,92,0.07);
+  --bg-active: rgba(212,177,92,0.12);
+  --bg-input: #0E1014;
+  --bg-card: #141820;
+  --bg-tag: #222833;
+  --bg-overlay: rgba(4,6,10,0.78);
+  --bg-wash: rgba(14,16,20,0.88);
+  --border-default: #2E3540;
+  --border-muted: #22272F;
+  --border-subtle: rgba(212,177,92,0.10);
+  --fg-default: #E8DFCC;
+  --fg-body: #CFC5B0;
+  --fg-muted: #8E8676;
+  --fg-secondary: #B5AC99;
+  --fg-subtle: #6B6454;
+  --fg-meta: #8E8676;
+  --fg-on-emphasis: #0E1014;
+  --fg-inverse: #0E1014;
+  --color-success: #5FB573;
+  --color-danger: #CC6449;
+  --color-warning: #D4B15C;
+  --color-info: #7FB6E0;
+  --color-accent: #C89AAB;
+  --color-critical: #D94E3A;
+  --color-link: #7FB6E0;
+  --color-math: #C77FBC;
+  --color-brand: #D4B15C;
+  --color-brand-emphasis: #E8C878;
+  --color-identity-gold: #D4B15C;
+  --color-gold-ink: #E8DFCC;
+  --header-gradient: linear-gradient(135deg,#0E1014 0%,#141820 60%,#1A1F28 100%);
+  --header-gold: #D4B15C;
+  --header-text: #E8DFCC;
+  --header-subtitle: #8E8676;
+  --wash-note: rgba(127,182,224,0.10);
+  --wash-tip: rgba(181,172,153,0.10);
+  --wash-warning: rgba(212,177,92,0.12);
+  --wash-danger: rgba(204,100,73,0.14);
+  --wash-critical: rgba(217,78,58,0.16);
+}

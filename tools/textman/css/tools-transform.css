@@ -1,0 +1,67 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: TransformPaneStyles (textMan Edition - v1.0)
+ *     - File Name: tools-transform.css
+ *     - Relative Path: tools/textman/css/tools-transform.css
+ *     - Artifact Type: config
+ *     - Version: 1.0.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Transform pane specifics layered on the shared tool-button grid from
+ *     sidebar-right.css: scope hint text and the applied-flash feedback that
+ *     confirms a transform ran. Everything else the pane shows comes from
+ *     the shared grid and button classes.
+ *
+ * ✒ Key Features:
+ *     - transform-hint: small italic scope line ("acts on selection or
+ *       whole document") above the button grid
+ *     - flash-applied: 450ms brand border-and-glow flash on the pressed
+ *       button after a transform fires (transformFlash keyframes)
+ *     - Inherits grid, sheen, and press states from sidebar-right.css
+ *
+ * ✒ Usage Instructions:
+ *     Loaded via a link tag in tools/textman/index.html, after the shared
+ *     layer (reset.css, tokens.css, shell.css, panels.css). Layers on
+ *     sidebar-right.css's tool-action-btn grid, so sidebar-right.css must
+ *     load first (it does — index.html loads it two lines earlier).
+ *     js/ui/tools-transform.js toggles the flash-applied class.
+ *
+ * ✒ Examples:
+ *     The transform-hint sits above the grid as a quiet italic line telling
+ *     the user whether actions apply to the selection or the whole
+ *     document.
+ *
+ *     When the user clicks a transform such as UPPERCASE, script adds
+ *     flash-applied to that tool-action-btn: its border flashes brand gold
+ *     with a glow, then eases back to the muted border over 450ms.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: tools/textman/css/sidebar-right.css (tool-action-btn
+ *       grid, loads first) and shared/css/tokens.css (--glow-brand, color
+ *       and spacing tokens)
+ *     - Compatible platforms: all evergreen browsers
+ * ----------------------------------------------------------------------------
+ */
+
+.transform-hint {
+    margin-bottom: var(--space-sm);
+    font-size: var(--font-xs);
+    color: var(--fg-subtle);
+    font-style: italic;
+}
+
+/* Brief confirmation flash after applying a transform */
+.tool-action-btn.flash-applied {
+    animation: transformFlash 450ms ease;
+}
+
+@keyframes transformFlash {
+    0%   { border-color: var(--color-brand); box-shadow: var(--glow-brand); }
+    100% { border-color: var(--border-muted); box-shadow: none; }
+}

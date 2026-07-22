@@ -1,0 +1,355 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: ModalStyles (textMan Edition - v1.0)
+ *     - File Name: modals.css
+ *     - Relative Path: tools/textman/css/modals.css
+ *     - Artifact Type: config
+ *     - Version: 1.0.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Styles for textMan's dialog system: blurred backdrop, glass modal
+ *     panels with the navy/gold header treatment, entrance animations, form
+ *     layouts, the help modal's definition lists and kbd chips, the
+ *     settings radio groups, and the diff modal's row styling.
+ *
+ * ✒ Key Features:
+ *     - modal-backdrop: fixed overlay wash with 6px saturated blur; the
+ *       is-open class flips it to flex and fades it in (backdropIn)
+ *     - modal-panel: glass panel capped at min(560px, 100%) wide and
+ *       min(85vh, 720px) tall, layered hairline-plus-2xl shadows, spring
+ *       scale-in entrance (modalIn with the bounce transition)
+ *     - modal-header: house navy/gold gradient with a gold hairline
+ *       pseudo-element beneath and a gold modal-title
+ *     - modal-close button that rotates 90 degrees on hover
+ *     - modal-body: scrollable with the thin token-styled scrollbar
+ *     - modal-footer: right-aligned action row on an alt surface
+ *     - radio-group settings control: bordered radio-label chips, selected
+ *       state via :has(input:checked), brand accent-color on the radio
+ *     - Help modal: uppercase brand help-section headings, two-column
+ *       help-list definition grid, and kbd key chips with a thickened
+ *       bottom border
+ *     - Diff modal: mono diff-output with diff-add / diff-del / diff-ctx
+ *       row washes; deletions struck through with a color-mix-faded line
+ *     - Responsive: below 480px the backdrop padding tightens, the panel
+ *       may fill 92vh, and the help list collapses to one column
+ *
+ * ✒ Usage Instructions:
+ *     Loaded via a link tag in tools/textman/index.html, after the shared
+ *     layer (reset.css, tokens.css, shell.css, panels.css); it is the last
+ *     textMan stylesheet. tokens.css supplies every custom property used
+ *     here (z-index scale, header gradient, washes, shadows); panels.css
+ *     supplies the form controls that appear inside modal bodies.
+ *     js/ui/modals.js toggles the is-open class to show and hide dialogs.
+ *
+ * ✒ Examples:
+ *     Opening any dialog adds is-open to the modal-backdrop: the page
+ *     behind blurs and dims while the modal-panel springs in with a slight
+ *     scale-and-rise. The panel's header carries the navy/gold gradient, a
+ *     gold title, and a faded gold hairline along its bottom edge.
+ *
+ *     Hovering the modal-close button rotates its glyph 90 degrees on a
+ *     faint white wash.
+ *
+ *     In Settings, each theme choice is a radio-label chip; the checked
+ *     chip gets a brand border, active background, and an inset brand ring
+ *     via :has(input:checked).
+ *
+ *     The Help modal lists shortcuts in a help-list definition grid — the
+ *     term column holds kbd chips like Ctrl and S styled as raised keys —
+ *     under uppercase brand-colored section headings.
+ *
+ *     The Diff modal renders each change as a diff-row: additions on a
+ *     green tip wash, deletions on a danger wash struck through with a
+ *     line faded via color-mix, unchanged context in subtle gray, with a
+ *     diff-summary strip up top.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/tokens.css (z-index, gradient, wash,
+ *       shadow, transition tokens) and shared/css/panels.css (form
+ *       controls used inside modal bodies); behavior driven by
+ *       js/ui/modals.js
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: the radio checked styling relies on :has(), so
+ *       browsers without :has() support lose the selected-chip highlight
+ *       (the accent-colored radio dot still shows); the diff deletion
+ *       strikethrough color uses color-mix() and falls back to solid
+ *       currentColor where unsupported; backdrop blur needs
+ *       backdrop-filter (the -webkit- prefix is included for Safari)
+ * ----------------------------------------------------------------------------
+ */
+
+/* ===== BACKDROP ===== */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+
+    background: var(--bg-overlay);
+    -webkit-backdrop-filter: blur(6px) saturate(120%);
+    backdrop-filter: blur(6px) saturate(120%);
+
+    z-index: var(--z-modal-backdrop);
+}
+
+.modal-backdrop.is-open {
+    display: flex;
+    animation: backdropIn var(--transition-base) forwards;
+}
+
+@keyframes backdropIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ===== MODAL PANEL ===== */
+.modal-panel {
+    display: flex;
+    flex-direction: column;
+    width: min(560px, 100%);
+    max-height: min(85vh, 720px);
+
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow:
+        0 0 0 1px var(--border-subtle),
+        var(--shadow-2xl);
+    overflow: hidden;
+
+    z-index: var(--z-modal);
+    animation: modalIn var(--transition-bounce) forwards;
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.92) translateY(12px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ===== MODAL HEADER — house navy/gold ===== */
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md) var(--space-lg);
+
+    background: var(--header-gradient);
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* Gold hairline under the modal header */
+.modal-header::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent, var(--identity-gold) 20%, var(--identity-gold) 80%, transparent);
+    opacity: 0.5;
+}
+
+.modal-title {
+    font-size: var(--font-lg);
+    font-weight: var(--font-semibold);
+    color: var(--header-gold);
+    letter-spacing: -0.01em;
+}
+
+.modal-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    color: var(--header-subtitle);
+    font-size: var(--font-xl);
+    line-height: 1;
+    transition: all var(--transition-fast);
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--header-text);
+    transform: rotate(90deg);
+}
+
+/* ===== MODAL BODY ===== */
+.modal-body {
+    flex: 1;
+    padding: var(--space-lg);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.help-text {
+    margin-top: var(--space-xs);
+    font-size: var(--font-xs);
+    color: var(--fg-subtle);
+    line-height: var(--leading-normal);
+}
+
+/* ===== MODAL FOOTER ===== */
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+
+    background: var(--bg-surface-alt);
+    border-top: var(--border-width) solid var(--border-muted);
+    flex-shrink: 0;
+}
+
+/* ===== RADIO GROUP (settings) ===== */
+.radio-group {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.radio-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+
+    background: var(--bg-surface);
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-md);
+
+    font-size: var(--font-sm);
+    color: var(--fg-body);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.radio-label:hover {
+    border-color: var(--color-brand);
+}
+
+.radio-label:has(input:checked) {
+    border-color: var(--color-brand);
+    background: var(--bg-active);
+    color: var(--fg-default);
+    box-shadow: inset 0 0 0 1px var(--color-brand);
+}
+
+.radio-label input[type="radio"] {
+    accent-color: var(--color-brand);
+}
+
+/* ===== HELP MODAL ===== */
+.help-section {
+    margin-bottom: var(--space-lg);
+}
+
+.help-section h4 {
+    margin-bottom: var(--space-sm);
+    font-size: var(--font-sm);
+    font-weight: var(--font-semibold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-brand);
+}
+
+.help-list {
+    display: grid;
+    grid-template-columns: minmax(120px, auto) 1fr;
+    gap: var(--space-xs) var(--space-md);
+    align-items: baseline;
+}
+
+.help-list dt {
+    font-size: var(--font-sm);
+    font-weight: var(--font-medium);
+    color: var(--fg-default);
+}
+
+.help-list dd {
+    font-size: var(--font-sm);
+    color: var(--fg-muted);
+    line-height: var(--leading-normal);
+}
+
+kbd {
+    display: inline-block;
+    padding: 1px var(--space-sm);
+    background: var(--bg-tag);
+    border: var(--border-width) solid var(--border-default);
+    border-bottom-width: 2px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--fg-default);
+    white-space: nowrap;
+}
+
+/* ===== DIFF MODAL ===== */
+.diff-output {
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+}
+
+.diff-summary {
+    margin-bottom: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg-surface-alt);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-sans);
+    font-size: var(--font-sm);
+    color: var(--fg-muted);
+}
+
+.diff-row {
+    padding: 1px var(--space-sm);
+    white-space: pre-wrap;
+    word-break: break-all;
+    border-radius: 2px;
+}
+
+.diff-row.diff-add {
+    background: var(--wash-tip);
+    color: var(--color-success);
+}
+
+.diff-row.diff-del {
+    background: var(--wash-danger);
+    color: var(--color-danger);
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+}
+
+.diff-row.diff-ctx {
+    color: var(--fg-subtle);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+    .modal-backdrop {
+        padding: var(--space-sm);
+    }
+
+    .modal-panel {
+        max-height: 92vh;
+    }
+
+    .help-list {
+        grid-template-columns: 1fr;
+    }
+}

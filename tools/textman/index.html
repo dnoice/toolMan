@@ -1,0 +1,838 @@
+<!--
+✒ Metadata
+    - Title: TextManApp (textMan Edition - v2.0)
+    - File Name: index.html
+    - Relative Path: tools/textman/index.html
+    - Artifact Type: other
+    - Version: 2.0.0
+    - Date: 2026-07-22
+    - Update: Wednesday, July 22, 2026
+    - Author: Dennis 'dendogg' Smaltz
+    - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+    - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+
+✒ Changelog:
+    - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Rebuilt for the
+      toolMan ecosystem: relocated to tools/textman/, all asset paths point
+      at shared/, theme switching via data-theme (no theme stylesheets),
+      logos inlined so currentColor theming works, Encoding and Formatting
+      panes implemented (were placeholders), Transform pane expanded to 12
+      operations, Diff modal added, back-to-hub breadcrumb, and every script
+      the page references now actually exists (v1 loaded 13 missing files —
+      the loader never handed off).
+    - 1.0.0 (2025-11-18) [model not recorded] — Initial three-panel layout.
+
+✒ Description:
+    textMan's application page — a live application page, not documentation,
+    hence Artifact Type "other": the three-panel text workspace. Left panel
+    holds templates, snippets, history, favorites, and analytics; center is
+    the editor with live stats and document controls; right panel holds
+    transform, search & replace, prefix/suffix, encoding, and formatting
+    tools. Boots via the shared loader with a guaranteed handoff.
+
+✒ Key Features:
+    - Three-panel collapsible workspace with persisted layout
+    - Editor: undo/redo, file open/drop, diff vs last save, live stats
+    - 12 transforms, regex search & replace, prefix/suffix with preview
+    - Encoding (Base64/URL/HTML) and markdown formatting panes
+    - Five dialogs: settings, help, snippet, template, diff
+
+✒ Usage Instructions:
+    Launch from the hub (../../index.html) or open directly — no build step.
+    The ecosystem kernel (../../shared/js/toolman.js) must stay first in
+    <head>; tool logic loads from ./js/ after the shared libraries.
+
+✒ Other Important Information:
+    - Dependencies: ../../shared/css/*, ../../shared/js/*, ./css/*, ./js/*
+    - Compatible platforms: all evergreen browsers; runs from file:// or any
+      static host
+---------
+-->
+<!DOCTYPE html>
+<html lang="en" data-theme="parchment">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="textMan - Bend text to your will. A powerful text workspace with transformation tools, templates, and snippets. Part of the toolMan ecosystem.">
+    <meta name="author" content="Dennis 'dnoice' Smaltz">
+    <title>textMan – Bend text to your will</title>
+
+    <!-- Favicon (house pen mark) -->
+    <link rel="icon" type="image/svg+xml" href="../../shared/assets/logo-textMan.svg">
+
+    <!-- Ecosystem kernel FIRST: applies saved theme before first paint -->
+    <script src="../../shared/js/toolman.js"></script>
+
+    <!-- Shared Styles -->
+    <link rel="stylesheet" href="../../shared/css/reset.css">
+    <link rel="stylesheet" href="../../shared/css/tokens.css">
+    <link rel="stylesheet" href="../../shared/css/shell.css">
+    <link rel="stylesheet" href="../../shared/css/panels.css">
+
+    <!-- textMan Component Styles -->
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/sidebar-left.css">
+    <link rel="stylesheet" href="css/sidebar-right.css">
+    <link rel="stylesheet" href="css/editor.css">
+    <link rel="stylesheet" href="css/tools-transform.css">
+    <link rel="stylesheet" href="css/tools-search.css">
+    <link rel="stylesheet" href="css/tools-prefix.css">
+    <link rel="stylesheet" href="css/tools-encoding.css">
+    <link rel="stylesheet" href="css/tools-formatting.css">
+    <link rel="stylesheet" href="css/modals.css">
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- LOADING SCREEN -->
+    <!-- ============================================ -->
+    <div id="loader-screen" class="loader-screen" role="status" aria-live="polite">
+        <div class="loader-card">
+            <div class="loader-logo" aria-hidden="true">
+                <svg width="80" height="80" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="m18.858 0.087595c-0.068533 0.080388-0.09085 0.19042-0.059081 0.29118-0.14604 0.11305-0.2958 0.21943-0.44882 0.31982-2.7005 1.5776-6.341 1.7177-9.4146 1.2188-0.088204-0.014314-0.19748 0.035231-0.24406 0.11154-1.7923 2.9363-3.4305 5.9718-5.1226 8.9685-0.047453 0.08404-0.14253 0.09763-0.21229 0.0304l-1.0931-1.0538c-0.069801-0.067202-0.17989-0.064333-0.24598 0.00658-0.23531 0.25231-0.47053 0.5047-0.70595 0.75691-0.066127 0.07084-0.063028 0.1826 0.00692 0.24964 0.1655 0.15857 0.33092 0.31723 0.49641 0.47582 0.069973 0.06703 0.063138 0.16761-0.015209 0.22461l-1.7383 1.2646a0.14992 0.15001 0 0 0-0.0179 0.22735l6.7659 6.7761a0.1511 0.15119 0 0 0 0.2283-0.01685l1.2798-1.7294c0.057647-0.0779 0.15869-0.08431 0.22571-0.01432 0.15848 0.1656 0.31705 0.33111 0.47555 0.49669 0.066989 0.07001 0.17869 0.07309 0.24948 7e-3 0.25204-0.23558 0.50426-0.47095 0.75646-0.70637 0.0708-0.06614 0.07376-0.1763 0.0066-0.2461l-1.0532-1.0939c-0.06721-0.06981-0.054722-0.16741 0.028112-0.21766 2.9399-1.7834 6.0876-3.238 8.9688-5.1164 0.07462-0.04864 0.12447-0.16013 0.11208-0.24869-0.44224-3.1611-0.43973-6.6048 1.2144-9.4194 0.10034-0.15311 0.20644-0.30308 0.31964-0.44908 0.10071 0.031787 0.21068 0.00946 0.29102-0.059117 0.13824-0.1403 0.11286-0.40525-0.07696-0.47005-0.01756-0.005983-0.04255 0.002647-0.05506 0.016694-1.7485 1.964-3.5702 3.8426-5.4854 5.6395-0.0652 0.061164-0.08469 0.17504-0.04962 0.25727 0.21094 0.49455 0.32039 1.1954-0.03807 1.5311-0.43682 0.40498-1.3051 0.37868-1.9979-0.32159-0.68594-0.67621-0.73588-1.5515-0.32141-1.9991 0.3357-0.35894 1.0365-0.24888 1.5303-0.038056 0.08214 0.035075 0.1944 0.014165 0.25389-0.05256 1.7483-1.9609 3.724-3.6958 5.6417-5.4867 0.01281-0.011962 0.02041-0.036746 0.01432-0.054527-0.06503-0.18964-0.32962-0.21472-0.46967-0.076567z" fill="currentColor"/>
+                </svg>
+            </div>
+            <h1 class="loader-title">text<span class="logo-accent">Man</span></h1>
+            <p class="loader-tagline">Bend text to your will</p>
+
+            <div class="loader-bar">
+                <div class="loader-progress" id="loader-progress"></div>
+            </div>
+
+            <p class="loader-status" id="loader-status">Loading your workspace…</p>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MAIN APPLICATION -->
+    <!-- ============================================ -->
+    <div class="app" id="app" style="opacity: 0;">
+
+        <!-- ============================================ -->
+        <!-- STICKY HEADER -->
+        <!-- ============================================ -->
+        <header class="app-header" role="banner">
+            <div class="header-left">
+                <a class="hub-link" href="../../index.html" title="Back to toolMan hub">
+                    <span class="hub-link-arrow" aria-hidden="true">←</span>
+                    <span class="hub-link-label">Hub</span>
+                </a>
+                <svg class="logo-icon" width="32" height="32" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="m18.858 0.087595c-0.068533 0.080388-0.09085 0.19042-0.059081 0.29118-0.14604 0.11305-0.2958 0.21943-0.44882 0.31982-2.7005 1.5776-6.341 1.7177-9.4146 1.2188-0.088204-0.014314-0.19748 0.035231-0.24406 0.11154-1.7923 2.9363-3.4305 5.9718-5.1226 8.9685-0.047453 0.08404-0.14253 0.09763-0.21229 0.0304l-1.0931-1.0538c-0.069801-0.067202-0.17989-0.064333-0.24598 0.00658-0.23531 0.25231-0.47053 0.5047-0.70595 0.75691-0.066127 0.07084-0.063028 0.1826 0.00692 0.24964 0.1655 0.15857 0.33092 0.31723 0.49641 0.47582 0.069973 0.06703 0.063138 0.16761-0.015209 0.22461l-1.7383 1.2646a0.14992 0.15001 0 0 0-0.0179 0.22735l6.7659 6.7761a0.1511 0.15119 0 0 0 0.2283-0.01685l1.2798-1.7294c0.057647-0.0779 0.15869-0.08431 0.22571-0.01432 0.15848 0.1656 0.31705 0.33111 0.47555 0.49669 0.066989 0.07001 0.17869 0.07309 0.24948 7e-3 0.25204-0.23558 0.50426-0.47095 0.75646-0.70637 0.0708-0.06614 0.07376-0.1763 0.0066-0.2461l-1.0532-1.0939c-0.06721-0.06981-0.054722-0.16741 0.028112-0.21766 2.9399-1.7834 6.0876-3.238 8.9688-5.1164 0.07462-0.04864 0.12447-0.16013 0.11208-0.24869-0.44224-3.1611-0.43973-6.6048 1.2144-9.4194 0.10034-0.15311 0.20644-0.30308 0.31964-0.44908 0.10071 0.031787 0.21068 0.00946 0.29102-0.059117 0.13824-0.1403 0.11286-0.40525-0.07696-0.47005-0.01756-0.005983-0.04255 0.002647-0.05506 0.016694-1.7485 1.964-3.5702 3.8426-5.4854 5.6395-0.0652 0.061164-0.08469 0.17504-0.04962 0.25727 0.21094 0.49455 0.32039 1.1954-0.03807 1.5311-0.43682 0.40498-1.3051 0.37868-1.9979-0.32159-0.68594-0.67621-0.73588-1.5515-0.32141-1.9991 0.3357-0.35894 1.0365-0.24888 1.5303-0.038056 0.08214 0.035075 0.1944 0.014165 0.25389-0.05256 1.7483-1.9609 3.724-3.6958 5.6417-5.4867 0.01281-0.011962 0.02041-0.036746 0.01432-0.054527-0.06503-0.18964-0.32962-0.21472-0.46967-0.076567z" fill="currentColor"/>
+                </svg>
+                <span class="logo-text" title="textMan · Bend text to your will">text<span class="logo-accent">Man</span></span>
+            </div>
+
+            <div class="header-right">
+                <button class="icon-btn" id="btn-settings" title="Settings" aria-label="Open settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+
+                <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Toggle parchment/sentinel theme">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+
+                <button class="icon-btn" id="btn-help" title="Help" aria-label="Open help">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- ============================================ -->
+        <!-- MAIN CONTENT (THREE PANELS) -->
+        <!-- ============================================ -->
+        <main class="app-main">
+
+            <!-- ============================================ -->
+            <!-- LEFT PANEL: WORKSPACE -->
+            <!-- ============================================ -->
+            <section class="panel panel-left" id="panel-workspace" data-panel="workspace">
+
+                <header class="panel-header" data-collapsible="true">
+                    <h2 class="panel-title">Workspace</h2>
+                    <button class="collapse-btn" aria-label="Toggle workspace panel" aria-expanded="true">
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                </header>
+
+                <div class="panel-content">
+
+                    <!-- ========== TEMPLATES ========== -->
+                    <div class="tool-section" data-section="templates">
+                        <header class="tool-header">
+                            <h4 class="tool-title">Templates</h4>
+                            <button class="tool-collapse" aria-label="Toggle templates section" aria-expanded="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </header>
+                        <div class="tool-body" data-body="templates">
+                            <div class="template-list" id="template-list">
+                                <!-- Rendered by WorkspaceUI -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== SAVED SNIPPETS ========== -->
+                    <div class="tool-section" data-section="snippets">
+                        <header class="tool-header">
+                            <h4 class="tool-title">Saved Snippets</h4>
+                            <button class="tool-collapse" aria-label="Toggle snippets section" aria-expanded="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </header>
+                        <div class="tool-body" data-body="snippets">
+                            <div class="snippet-list" id="snippet-list">
+                                <!-- Rendered by WorkspaceUI -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== HISTORY ========== -->
+                    <div class="tool-section" data-section="history">
+                        <header class="tool-header">
+                            <h4 class="tool-title">History</h4>
+                            <button class="tool-collapse" aria-label="Toggle history section" aria-expanded="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </header>
+                        <div class="tool-body" data-body="history">
+                            <div class="history-list" id="history-list">
+                                <!-- Rendered by WorkspaceUI -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== FAVORITES ========== -->
+                    <div class="tool-section" data-section="favorites">
+                        <header class="tool-header">
+                            <h4 class="tool-title">Favorites</h4>
+                            <button class="tool-collapse" aria-label="Toggle favorites section" aria-expanded="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </header>
+                        <div class="tool-body" data-body="favorites">
+                            <div class="favorites-list" id="favorites-list">
+                                <!-- Rendered by WorkspaceUI -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== ANALYTICS ========== -->
+                    <div class="tool-section" data-section="analytics">
+                        <header class="tool-header">
+                            <h4 class="tool-title">Analytics</h4>
+                            <button class="tool-collapse" aria-label="Toggle analytics section" aria-expanded="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </header>
+                        <div class="tool-body" data-body="analytics">
+                            <div class="analytics-list" id="analytics-list">
+                                <!-- Rendered by WorkspaceUI -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <footer class="panel-footer">
+                    <span class="footer-left">Workspace</span>
+                    <span class="footer-right" id="workspace-stats">Templates: 0 | Snippets: 0</span>
+                </footer>
+
+            </section>
+
+            <!-- ============================================ -->
+            <!-- CENTER PANEL: EDITOR -->
+            <!-- ============================================ -->
+            <section class="panel panel-center" id="panel-editor" data-panel="editor">
+
+                <header class="panel-header">
+                    <h2 class="panel-title">Editor</h2>
+                </header>
+
+                <div class="panel-content">
+
+                    <!-- Editor Header / Toolbar -->
+                    <div class="editor-header">
+
+                        <div class="editor-tools">
+                            <!-- Reserved for future editor tools -->
+                        </div>
+
+                        <div class="editor-controls">
+                            <button class="control-btn" id="btn-open" title="Open file (or drop one on the editor)" aria-label="Open file">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                            </button>
+
+                            <button class="control-btn" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 7v6h6"></path>
+                                    <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+                                </svg>
+                            </button>
+
+                            <button class="control-btn" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 7v6h-6"></path>
+                                    <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
+                                </svg>
+                            </button>
+
+                            <button class="control-btn" id="btn-diff" title="Diff against last save" aria-label="Show differences">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="9" y1="3" x2="9" y2="21"></line>
+                                </svg>
+                            </button>
+
+                            <button class="control-btn btn-save" id="btn-save" title="Save (Ctrl+S)" aria-label="Save">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                            </button>
+
+                            <!-- Status Indicator -->
+                            <div class="status-indicator" id="save-status" data-status="saved">
+                                <span class="status-dot"></span>
+                                <span class="status-label">Saved</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Editor Main (Textarea + Stats Footer) -->
+                    <div class="editor-main">
+                        <textarea
+                            class="editor-textarea"
+                            id="editor-textarea"
+                            placeholder="Start typing here… (or drop a text file)"
+                            spellcheck="true"
+                            aria-label="Main text editor"
+                        ></textarea>
+
+                        <!-- Stats Footer (viewport-locked) -->
+                        <div class="editor-stats">
+                            <span class="stat-pill" id="stat-words">Words: 0</span>
+                            <span class="stat-pill" id="stat-chars">Characters: 0</span>
+                            <span class="stat-pill" id="stat-read-time">Est. read time: 0 min</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <footer class="panel-footer">
+                    <span class="footer-left">Editor status</span>
+                    <span class="footer-right" id="editor-footer-status">Ready</span>
+                </footer>
+
+            </section>
+
+            <!-- ============================================ -->
+            <!-- RIGHT PANEL: TOOLS -->
+            <!-- ============================================ -->
+            <section class="panel panel-right" id="panel-tools" data-panel="tools">
+
+                <header class="panel-header" data-collapsible="true">
+                    <h2 class="panel-title">Tools</h2>
+                    <button class="collapse-btn" aria-label="Toggle tools panel" aria-expanded="true">
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </header>
+
+                <div class="panel-content">
+
+                    <!-- ========== TRANSFORM ========== -->
+                    <div class="tool-section" data-section="transform">
+                        <header class="tool-header">
+                            <h4 class="tool-title">Transform</h4>
+                            <button class="tool-collapse" aria-label="Toggle transform section" aria-expanded="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </header>
+                        <div class="tool-body" data-body="transform">
+                            <p class="transform-hint">Acts on your selection — or the whole document.</p>
+                            <div class="tool-grid-buttons">
+                                <!-- Case -->
+                                <button class="tool-action-btn" data-transform="uppercase" title="Convert to UPPERCASE">
+                                    <span class="btn-label">UPPERCASE</span>
+                                    <span class="btn-category">Case</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="lowercase" title="Convert to lowercase">
+                                    <span class="btn-label">lowercase</span>
+                                    <span class="btn-category">Case</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="titlecase" title="Convert To Title Case">
+                                    <span class="btn-label">Title Case</span>
+                                    <span class="btn-category">Case</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="sentencecase" title="Convert to Sentence case">
+                                    <span class="btn-label">Sentence case</span>
+                                    <span class="btn-category">Case</span>
+                                </button>
+
+                                <!-- Cleanup -->
+                                <button class="tool-action-btn" data-transform="trim" title="Trim leading/trailing whitespace on every line">
+                                    <span class="btn-label">Trim whitespace</span>
+                                    <span class="btn-category">Clean</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="collapse" title="Collapse repeated spaces to a single space">
+                                    <span class="btn-label">Collapse spaces</span>
+                                    <span class="btn-category">Clean</span>
+                                </button>
+
+                                <!-- Lines -->
+                                <button class="tool-action-btn" data-transform="removeempty" title="Remove empty lines">
+                                    <span class="btn-label">Remove empty lines</span>
+                                    <span class="btn-category">Lines</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="dedupe" title="Remove duplicate lines">
+                                    <span class="btn-label">Deduplicate lines</span>
+                                    <span class="btn-category">Lines</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="reverse-lines" title="Reverse line order">
+                                    <span class="btn-label">Reverse lines</span>
+                                    <span class="btn-category">Lines</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="shuffle" title="Shuffle lines randomly">
+                                    <span class="btn-label">Shuffle lines</span>
+                                    <span class="btn-category">Lines</span>
+                                </button>
+
+                                <!-- Order -->
+                                <button class="tool-action-btn" data-transform="sort-asc" title="Sort lines A to Z (natural order)">
+                                    <span class="btn-label">Sort A → Z</span>
+                                    <span class="btn-category">Order</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="sort-desc" title="Sort lines Z to A (natural order)">
+                                    <span class="btn-label">Sort Z → A</span>
+                                    <span class="btn-category">Order</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== SEARCH & REPLACE ========== -->
+                    <div class="tool-section" data-section="search">
+                        <header class="tool-header">
+                            <h4 class="tool-title">Search & Replace</h4>
+                            <button class="tool-collapse" aria-label="Toggle search section" aria-expanded="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </header>
+                        <div class="tool-body" data-body="search">
+                            <div class="search-container">
+                                <div class="form-group">
+                                    <label for="search-input">Search for</label>
+                                    <input type="text" id="search-input" class="text-input" placeholder="Enter search term" autocomplete="off">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="replace-input">Replace with</label>
+                                    <input type="text" id="replace-input" class="text-input" placeholder="Enter replacement" autocomplete="off">
+                                </div>
+
+                                <div class="form-group options-row">
+                                    <button class="toggle-pill" id="opt-match-case" data-active="false">Match case</button>
+                                    <button class="toggle-pill" id="opt-whole-word" data-active="false">Whole word</button>
+                                    <button class="toggle-pill" id="opt-regex" data-active="false">Regex</button>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="search-scope">Scope</label>
+                                    <select id="search-scope" class="select-input">
+                                        <option value="selection">Selection</option>
+                                        <option value="document" selected>Current document</option>
+                                    </select>
+                                </div>
+
+                                <div class="action-buttons">
+                                    <button class="btn btn-secondary" id="btn-search-prev">Prev</button>
+                                    <button class="btn btn-secondary" id="btn-search-next">Next</button>
+                                    <button class="btn btn-secondary" id="btn-replace-one">Replace</button>
+                                    <button class="btn btn-primary" id="btn-replace-all">Replace all</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== PREFIX / SUFFIX ========== -->
+                    <div class="tool-section" data-section="prefix">
+                        <header class="tool-header">
+                            <h4 class="tool-title">Prefix / Suffix</h4>
+                            <button class="tool-collapse" aria-label="Toggle prefix/suffix section" aria-expanded="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </header>
+                        <div class="tool-body" data-body="prefix">
+                            <div class="prefix-container">
+                                <div class="form-group">
+                                    <label for="prefix-input">Prefix</label>
+                                    <input type="text" id="prefix-input" class="text-input" placeholder="// " autocomplete="off">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="suffix-input">Suffix</label>
+                                    <input type="text" id="suffix-input" class="text-input" placeholder=";" autocomplete="off">
+                                </div>
+
+                                <div class="form-group scope-pills">
+                                    <button class="toggle-pill scope-btn" data-scope="lines" data-active="true">Each line</button>
+                                    <button class="toggle-pill scope-btn" data-scope="selection" data-active="false">Selection</button>
+                                    <button class="toggle-pill scope-btn" data-scope="document" data-active="false">Whole document</button>
+                                </div>
+
+                                <div class="action-buttons">
+                                    <button class="btn btn-secondary" id="btn-prefix-preview">Preview</button>
+                                    <button class="btn btn-primary" id="btn-prefix-apply">Apply</button>
+                                    <button class="btn btn-secondary" id="btn-prefix-clear">Clear</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== ENCODING / DECODING ========== -->
+                    <div class="tool-section" data-section="encoding">
+                        <header class="tool-header">
+                            <h4 class="tool-title">Encoding / Decoding</h4>
+                            <button class="tool-collapse" aria-label="Toggle encoding section" aria-expanded="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </header>
+                        <div class="tool-body" data-body="encoding">
+                            <p class="encoding-hint">UTF-8 safe — emoji and accents survive the round trip.</p>
+                            <div class="tool-grid-buttons">
+                                <button class="tool-action-btn" data-encode="b64-encode" data-encode-dir="encode" title="Encode as Base64">
+                                    <span class="btn-label">Base64 encode</span>
+                                    <span class="btn-category">Encode</span>
+                                </button>
+                                <button class="tool-action-btn" data-encode="b64-decode" data-encode-dir="decode" title="Decode from Base64">
+                                    <span class="btn-label">Base64 decode</span>
+                                    <span class="btn-category">Decode</span>
+                                </button>
+                                <button class="tool-action-btn" data-encode="url-encode" data-encode-dir="encode" title="Percent-encode for URLs">
+                                    <span class="btn-label">URL encode</span>
+                                    <span class="btn-category">Encode</span>
+                                </button>
+                                <button class="tool-action-btn" data-encode="url-decode" data-encode-dir="decode" title="Decode percent-encoding">
+                                    <span class="btn-label">URL decode</span>
+                                    <span class="btn-category">Decode</span>
+                                </button>
+                                <button class="tool-action-btn" data-encode="html-escape" data-encode-dir="encode" title="Escape HTML entities">
+                                    <span class="btn-label">HTML escape</span>
+                                    <span class="btn-category">Encode</span>
+                                </button>
+                                <button class="tool-action-btn" data-encode="html-unescape" data-encode-dir="decode" title="Unescape HTML entities">
+                                    <span class="btn-label">HTML unescape</span>
+                                    <span class="btn-category">Decode</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== TEXT FORMATTING ========== -->
+                    <div class="tool-section" data-section="formatting">
+                        <header class="tool-header">
+                            <h4 class="tool-title">Text Formatting</h4>
+                            <button class="tool-collapse" aria-label="Toggle formatting section" aria-expanded="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </header>
+                        <div class="tool-body" data-body="formatting">
+                            <p class="formatting-hint">Markdown-flavored. Click again to toggle off.</p>
+                            <div class="tool-grid-buttons">
+                                <button class="tool-action-btn" data-format="h1" title="Toggle H1 heading">
+                                    <span class="btn-label"># Heading 1</span>
+                                    <span class="btn-category">Heading</span>
+                                </button>
+                                <button class="tool-action-btn" data-format="h2" title="Toggle H2 heading">
+                                    <span class="btn-label">## Heading 2</span>
+                                    <span class="btn-category">Heading</span>
+                                </button>
+                                <button class="tool-action-btn" data-format="h3" title="Toggle H3 heading">
+                                    <span class="btn-label">### Heading 3</span>
+                                    <span class="btn-category">Heading</span>
+                                </button>
+                                <button class="tool-action-btn" data-format="quote" title="Toggle blockquote">
+                                    <span class="btn-label">&gt; Quote</span>
+                                    <span class="btn-category">Block</span>
+                                </button>
+                                <button class="tool-action-btn" data-format="bullet" title="Toggle bulleted list">
+                                    <span class="btn-label">- Bullet list</span>
+                                    <span class="btn-category">List</span>
+                                </button>
+                                <button class="tool-action-btn" data-format="numbered" title="Toggle numbered list">
+                                    <span class="btn-label">1. Numbered list</span>
+                                    <span class="btn-category">List</span>
+                                </button>
+                                <button class="tool-action-btn" data-format="indent" title="Indent lines by 4 spaces">
+                                    <span class="btn-label">→ Indent</span>
+                                    <span class="btn-category">Indent</span>
+                                </button>
+                                <button class="tool-action-btn" data-format="outdent" title="Outdent lines by up to 4 spaces">
+                                    <span class="btn-label">← Outdent</span>
+                                    <span class="btn-category">Indent</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <footer class="panel-footer">
+                    <span class="footer-left">Tools</span>
+                    <span class="footer-right">5 panes</span>
+                </footer>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODALS -->
+    <!-- ============================================ -->
+
+    <!-- Settings Modal -->
+    <div class="modal-backdrop" id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="modal-panel">
+            <header class="modal-header">
+                <h3 class="modal-title" id="settings-title">Settings</h3>
+                <button class="modal-close" aria-label="Close settings">×</button>
+            </header>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Theme preference</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="theme-pref" value="parchment" checked>
+                            <span>Parchment Dossier (light)</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="theme-pref" value="sentinel">
+                            <span>Sentinel Obsidian (dark)</span>
+                        </label>
+                    </div>
+                    <p class="help-text">Applies across every toolMan tool.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="setting-autosave">Autosave behavior</label>
+                    <select class="select-input" id="setting-autosave">
+                        <option value="immediate">Immediate (on each change)</option>
+                        <option value="debounced" selected>Debounced (after typing pause)</option>
+                        <option value="manual">Manual only (Ctrl+S)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <button class="btn btn-danger" id="btn-reset-workspace">Reset local workspace</button>
+                    <p class="help-text">Clears your document, custom templates, snippets, history, and analytics. Seed templates are kept.</p>
+                </div>
+            </div>
+            <footer class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">Close</button>
+                <button class="btn btn-primary" id="btn-save-settings">Save</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal-backdrop" id="modal-help" role="dialog" aria-modal="true" aria-labelledby="help-title">
+        <div class="modal-panel">
+            <header class="modal-header">
+                <h3 class="modal-title" id="help-title">Help & Shortcuts</h3>
+                <button class="modal-close" aria-label="Close help">×</button>
+            </header>
+            <div class="modal-body">
+                <section class="help-section">
+                    <h4>Layout Overview</h4>
+                    <dl class="help-list">
+                        <dt>Workspace (Left)</dt>
+                        <dd>Manage templates, snippets, history, favorites, and analytics.</dd>
+
+                        <dt>Editor (Center)</dt>
+                        <dd>Your main writing space with live stats and document controls. Drop a text file to open it.</dd>
+
+                        <dt>Tools (Right)</dt>
+                        <dd>Transform, search &amp; replace, prefix/suffix, encode, and format your text. Tools act on your selection, or the whole document when nothing is selected.</dd>
+                    </dl>
+                </section>
+
+                <section class="help-section">
+                    <h4>Keyboard Shortcuts</h4>
+                    <dl class="help-list">
+                        <dt><kbd>Ctrl/Cmd + S</kbd></dt>
+                        <dd>Save document</dd>
+
+                        <dt><kbd>Ctrl/Cmd + Z</kbd></dt>
+                        <dd>Undo</dd>
+
+                        <dt><kbd>Ctrl/Cmd + Y</kbd></dt>
+                        <dd>Redo</dd>
+
+                        <dt><kbd>Ctrl/Cmd + F</kbd></dt>
+                        <dd>Jump to Search &amp; Replace</dd>
+
+                        <dt><kbd>Ctrl/Cmd + ,</kbd></dt>
+                        <dd>Open Settings</dd>
+
+                        <dt><kbd>Esc</kbd></dt>
+                        <dd>Close any open dialog</dd>
+                    </dl>
+                </section>
+            </div>
+            <footer class="modal-footer">
+                <button class="btn btn-primary modal-cancel">Got it</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Save Snippet Modal -->
+    <div class="modal-backdrop" id="modal-save-snippet" role="dialog" aria-modal="true" aria-labelledby="snippet-title">
+        <div class="modal-panel">
+            <header class="modal-header">
+                <h3 class="modal-title" id="snippet-title">Save snippet</h3>
+                <button class="modal-close" aria-label="Close snippet modal">×</button>
+            </header>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="snippet-name">Name</label>
+                    <input type="text" id="snippet-name" class="text-input" placeholder="My useful snippet" autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="snippet-tags">Tags (comma-separated)</label>
+                    <input type="text" id="snippet-tags" class="text-input" placeholder="code, reference, etc." autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="snippet-notes">Notes (optional)</label>
+                    <textarea id="snippet-notes" class="text-input" rows="2" placeholder="Add context or usage notes"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="snippet-content">Snippet content</label>
+                    <textarea id="snippet-content" class="text-input" rows="8" placeholder="The text you want to save"></textarea>
+                </div>
+            </div>
+            <footer class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="btn-confirm-save-snippet">Save snippet</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Create Template Modal -->
+    <div class="modal-backdrop" id="modal-create-template" role="dialog" aria-modal="true" aria-labelledby="template-title">
+        <div class="modal-panel">
+            <header class="modal-header">
+                <h3 class="modal-title" id="template-title">Create template</h3>
+                <button class="modal-close" aria-label="Close template modal">×</button>
+            </header>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="template-name">Template name</label>
+                    <input type="text" id="template-name" class="text-input" placeholder="My template" autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="template-description">Description</label>
+                    <input type="text" id="template-description" class="text-input" placeholder="What is this template for?" autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="template-body">Template body</label>
+                    <textarea id="template-body" class="text-input" rows="12" placeholder="Enter your template structure"></textarea>
+                </div>
+            </div>
+            <footer class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="btn-confirm-create-template">Save template</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Diff Modal -->
+    <div class="modal-backdrop" id="modal-diff" role="dialog" aria-modal="true" aria-labelledby="diff-title">
+        <div class="modal-panel">
+            <header class="modal-header">
+                <h3 class="modal-title" id="diff-title">Changes since last save</h3>
+                <button class="modal-close" aria-label="Close diff modal">×</button>
+            </header>
+            <div class="modal-body">
+                <div class="diff-output" id="diff-output"></div>
+            </div>
+            <footer class="modal-footer">
+                <button class="btn btn-primary modal-cancel">Close</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+
+    <!-- Shared libraries -->
+    <script src="../../shared/js/dom.js"></script>
+    <script src="../../shared/js/storage.js"></script>
+    <script src="../../shared/js/loader.js"></script>
+
+    <!-- textMan core -->
+    <script src="js/state.js"></script>
+
+    <!-- textMan UI -->
+    <script src="js/ui/layout.js"></script>
+    <script src="js/ui/header.js"></script>
+    <script src="js/ui/editor.js"></script>
+    <script src="js/ui/workspace.js"></script>
+    <script src="js/ui/tools-transform.js"></script>
+    <script src="js/ui/tools-search.js"></script>
+    <script src="js/ui/tools-prefix.js"></script>
+    <script src="js/ui/tools-encoding.js"></script>
+    <script src="js/ui/tools-formatting.js"></script>
+    <script src="js/ui/modals.js"></script>
+
+    <!-- Boot -->
+    <script src="js/app.js"></script>
+
+</body>
+</html>

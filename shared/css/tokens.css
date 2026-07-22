@@ -1,0 +1,427 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: DesignTokens (toolMan Edition - v2.1)
+ *     - File Name: tokens.css
+ *     - Relative Path: shared/css/tokens.css
+ *     - Artifact Type: config
+ *     - Version: 2.1.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Added per-theme
+ *       depth tokens (card-gradient, card-inset, card-shadow, card-shadow-
+ *       hover, vignette) so cards and tool sections separate cleanly from the
+ *       canvas — sharpens contrast in Sentinel Obsidian especially.
+ *     - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Replaced the
+ *       original cyan/purple glassmorphism palette with the digiSpace house
+ *       token system (Parchment Dossier light theme + Sentinel Obsidian dark
+ *       theme) sourced from token.txt. Themes now switch via [data-theme] on
+ *       <html> instead of swapping theme stylesheets. Added app-layer tokens
+ *       (glass, panels, buttons, glows) derived from the house palette, plus
+ *       legacy aliases so existing layout CSS keeps resolving. Relocated to
+ *       shared/css/ as the ecosystem-wide design layer for all toolMan tools.
+ *     - 1.0.0 (2025-11-18) [model not recorded] — Initial design system with
+ *       cyan/purple palette, spacing, typography, shadows, and utilities.
+ *
+ * ✒ Description:
+ *     The single source of truth for textMan's visual design system. Defines
+ *     the digiSpace brand anchors, both theme palettes (Parchment Dossier
+ *     light and Sentinel Obsidian dark), and every structural token (spacing,
+ *     typography, sizing, radii, shadows, transitions, z-index) the component
+ *     styles consume. Load this after reset.css and before any layout or
+ *     component stylesheet.
+ *
+ * ✒ Key Features:
+ *     - Brand anchors: theme-independent navy/gold identity colors
+ *     - Two full themes switched by [data-theme="parchment"|"sentinel"]
+ *     - color-scheme declared per theme so native form controls match
+ *     - Semantic status palette per theme: success, danger, warning, info,
+ *       accent, critical, link
+ *     - Header treatment tokens (navy gradient, gold title, subtitle color)
+ *       shared by the shell and panel headers
+ *     - App-layer tokens (glass surfaces, panel chrome, buttons, glows)
+ *       derived per theme from the house palette
+ *     - Depth tokens per theme: card gradient, inset edge highlight, layered
+ *       card shadows, and a canvas vignette for figure/ground separation
+ *     - Legacy alias block maps v1 token names to v2 equivalents
+ *     - Structural scales: spacing, type ramp, radii, shadows, z-index layers
+ *     - Sans and mono font stacks plus weight and line-height steps
+ *     - Motion tokens: fast/base/slow eases plus a bounce cubic-bezier
+ *     - Scrollbar thumb tokens consumed by reset.css
+ *     - Utility classes for glass surfaces, status colors, spacing, and fade
+ *       animations
+ *
+ * ✒ Usage Instructions:
+ *     Load via a link tag on every toolMan page, second in the cascade:
+ *     reset.css first, then tokens.css, then shell.css and any component
+ *     stylesheets. Reference tokens through the var() function. Switch themes
+ *     by setting data-theme="parchment" or data-theme="sentinel" on the html
+ *     element; no stylesheet swap is needed.
+ *
+ * ✒ Examples:
+ *     A primary button fills with the color-brand token and labels itself
+ *     with fg-on-emphasis; a panel header paints the header-gradient with its
+ *     title in header-gold.
+ *
+ *     A glassmorphism surface applies the glass utility class, which combines
+ *     glass-bg, glass-border, glass-blur, and glass-shadow in a single rule.
+ *
+ *     Setting data-theme="sentinel" on the html element flips every palette
+ *     token to the dark Obsidian values while the structural tokens (spacing,
+ *     radii, z-index) stay constant.
+ *
+ *     A toast reads color-success or color-danger for its accent border; an
+ *     element carrying the status-warning class takes the warning text color.
+ *
+ *     Older rules that still reference v1 names such as text-primary or
+ *     bg-app keep resolving through the legacy alias block.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: none (pure CSS custom properties)
+ *     - Compatible platforms: all evergreen browsers (custom properties +
+ *       backdrop-filter; graceful degradation without blur support)
+ *     - Palette source: token.txt (digiSpace house palette reference)
+ *     - Limitations: the glass utility needs backdrop-filter for blur —
+ *       browsers without it render a flat translucent surface; no IE11
+ *       support (custom properties are load-bearing throughout)
+ * ----------------------------------------------------------------------------
+ */
+
+/* ═══════════════════════════════════════════════════════════
+   BRAND ANCHORS — theme-independent identity
+   ═══════════════════════════════════════════════════════════ */
+:root {
+    --identity-gold: #C9A84C;
+    --gold-ink: #856313;
+    --ui-gold: #8B6914;
+    --navy: #1B2A4A;
+    --navy-deep: #0F1A33;
+    --slate: #3D4F5F;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   THEME: PARCHMENT DOSSIER (light)
+   ═══════════════════════════════════════════════════════════ */
+[data-theme="parchment"],
+:root {
+    color-scheme: light;
+
+    /* — house palette — */
+    --bg-canvas: #F5F0E8;
+    --bg-surface: #FAF7F2;
+    --bg-surface-alt: #EFE9DE;
+    --bg-elevated: #FFFFFF;
+    --bg-hover: rgba(139, 115, 78, 0.06);
+    --bg-active: rgba(139, 115, 78, 0.10);
+    --bg-input: #FFFFFF;
+    --bg-card: #FAF7F0;
+    --bg-tag: #EDE8DC;
+    --bg-overlay: rgba(62, 47, 30, 0.5);
+    --bg-wash: rgba(245, 240, 232, 0.92);
+    --border-default: #D4C9B5;
+    --border-muted: #E8E0D2;
+    --border-subtle: rgba(139, 115, 78, 0.08);
+    --fg-default: #2C2418;
+    --fg-body: #3D3D3D;
+    --fg-muted: #6B5D4F;
+    --fg-secondary: #4A4A4A;
+    --fg-subtle: #9C8E7C;
+    --fg-meta: #8B7B6B;
+    --fg-on-emphasis: #FAF7F2;
+    --fg-inverse: #FAF7F2;
+    --color-success: #3D7A45;
+    --color-danger: #8B2D2D;
+    --color-warning: #856313;
+    --color-info: #4A6FA5;
+    --color-accent: #6B4C8A;
+    --color-critical: #B22222;
+    --color-link: #4A6FA5;
+    --color-math: #A02B93;
+    --color-brand: #8B6914;
+    --color-brand-emphasis: #A67C1A;
+    --color-identity-gold: #C9A84C;
+    --color-gold-ink: #856313;
+    --header-gradient: linear-gradient(135deg, #1B2A4A 0%, #2A3D5F 60%, #3D4F5F 100%);
+    --header-gold: #C9A84C;
+    --header-text: #F5F0E8;
+    --header-subtitle: #A0B0C0;
+    --wash-note: #E9EDF3;
+    --wash-tip: #ECEFF1;
+    --wash-warning: #F7F0DA;
+    --wash-danger: #F4EAEA;
+    --wash-critical: #F9E8E8;
+
+    /* — app layer (derived) — */
+    --glass-bg: rgba(250, 247, 242, 0.72);
+    --glass-border: rgba(139, 115, 78, 0.18);
+    --glass-shadow: 0 8px 32px rgba(62, 47, 30, 0.12);
+    --bg-panel: rgba(250, 247, 242, 0.65);
+    --bg-panel-footer: rgba(239, 233, 222, 0.85);
+    --bg-button: rgba(139, 115, 78, 0.08);
+    --bg-button-hover: rgba(139, 115, 78, 0.16);
+    --border-focus: rgba(139, 105, 20, 0.55);
+    --glow-brand: 0 0 20px rgba(201, 168, 76, 0.35);
+    --glow-success: 0 0 20px rgba(61, 122, 69, 0.30);
+    --glow-warning: 0 0 20px rgba(133, 99, 19, 0.30);
+    --glow-danger: 0 0 20px rgba(139, 45, 45, 0.30);
+    --loader-bg: linear-gradient(135deg, #1B2A4A 0%, #0F1A33 100%);
+    --scrollbar-thumb: rgba(139, 115, 78, 0.30);
+    --scrollbar-thumb-hover: rgba(139, 115, 78, 0.45);
+    --card-gradient: linear-gradient(180deg, #FFFFFF 0%, #FAF7F0 100%);
+    --card-inset: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    --card-shadow: 0 1px 2px rgba(62, 47, 30, 0.06), 0 8px 24px rgba(62, 47, 30, 0.10);
+    --card-shadow-hover: 0 2px 4px rgba(62, 47, 30, 0.08), 0 14px 34px rgba(62, 47, 30, 0.16);
+    --vignette: radial-gradient(ellipse 130% 100% at 50% 0%, transparent 55%, rgba(62, 47, 30, 0.07) 100%);
+    --reflection-gradient: linear-gradient(
+        135deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.35) 50%,
+        transparent 70%
+    );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   THEME: SENTINEL OBSIDIAN (dark)
+   ═══════════════════════════════════════════════════════════ */
+[data-theme="sentinel"] {
+    color-scheme: dark;
+
+    /* — house palette — */
+    --bg-canvas: #0E1014;
+    --bg-surface: #141820;
+    --bg-surface-alt: #1A1F28;
+    --bg-elevated: #222833;
+    --bg-hover: rgba(212, 177, 92, 0.07);
+    --bg-active: rgba(212, 177, 92, 0.12);
+    --bg-input: #0E1014;
+    --bg-card: #141820;
+    --bg-tag: #222833;
+    --bg-overlay: rgba(4, 6, 10, 0.78);
+    --bg-wash: rgba(14, 16, 20, 0.88);
+    --border-default: #2E3540;
+    --border-muted: #22272F;
+    --border-subtle: rgba(212, 177, 92, 0.10);
+    --fg-default: #E8DFCC;
+    --fg-body: #CFC5B0;
+    --fg-muted: #8E8676;
+    --fg-secondary: #B5AC99;
+    --fg-subtle: #6B6454;
+    --fg-meta: #8E8676;
+    --fg-on-emphasis: #0E1014;
+    --fg-inverse: #0E1014;
+    --color-success: #5FB573;
+    --color-danger: #CC6449;
+    --color-warning: #D4B15C;
+    --color-info: #7FB6E0;
+    --color-accent: #C89AAB;
+    --color-critical: #D94E3A;
+    --color-link: #7FB6E0;
+    --color-math: #C77FBC;
+    --color-brand: #D4B15C;
+    --color-brand-emphasis: #E8C878;
+    --color-identity-gold: #D4B15C;
+    --color-gold-ink: #E8DFCC;
+    --header-gradient: linear-gradient(135deg, #0E1014 0%, #141820 60%, #1A1F28 100%);
+    --header-gold: #D4B15C;
+    --header-text: #E8DFCC;
+    --header-subtitle: #8E8676;
+    --wash-note: rgba(127, 182, 224, 0.10);
+    --wash-tip: rgba(181, 172, 153, 0.10);
+    --wash-warning: rgba(212, 177, 92, 0.12);
+    --wash-danger: rgba(204, 100, 73, 0.14);
+    --wash-critical: rgba(217, 78, 58, 0.16);
+
+    /* — app layer (derived) — */
+    --glass-bg: rgba(20, 24, 32, 0.55);
+    --glass-border: rgba(212, 177, 92, 0.14);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    --bg-panel: rgba(20, 24, 32, 0.70);
+    --bg-panel-footer: rgba(14, 16, 20, 0.75);
+    --bg-button: rgba(212, 177, 92, 0.08);
+    --bg-button-hover: rgba(212, 177, 92, 0.16);
+    --border-focus: rgba(212, 177, 92, 0.55);
+    --glow-brand: 0 0 20px rgba(212, 177, 92, 0.28);
+    --glow-success: 0 0 20px rgba(95, 181, 115, 0.28);
+    --glow-warning: 0 0 20px rgba(212, 177, 92, 0.28);
+    --glow-danger: 0 0 20px rgba(204, 100, 73, 0.28);
+    --loader-bg: linear-gradient(135deg, #0F1A33 0%, #0E1014 100%);
+    --scrollbar-thumb: rgba(212, 177, 92, 0.22);
+    --scrollbar-thumb-hover: rgba(212, 177, 92, 0.38);
+    --card-gradient: linear-gradient(180deg, #1D232E 0%, #12161E 100%);
+    --card-inset: inset 0 1px 0 rgba(232, 223, 204, 0.07);
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 28px rgba(0, 0, 0, 0.50);
+    --card-shadow-hover: 0 2px 6px rgba(0, 0, 0, 0.55), 0 18px 44px rgba(0, 0, 0, 0.62);
+    --vignette: radial-gradient(ellipse 130% 100% at 50% 0%, transparent 50%, rgba(0, 0, 0, 0.45) 100%);
+    --reflection-gradient: linear-gradient(
+        135deg,
+        transparent 30%,
+        rgba(232, 223, 204, 0.08) 50%,
+        transparent 70%
+    );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LEGACY ALIASES — v1 token names → v2 equivalents
+   (kept so any straggler rules keep resolving)
+   ═══════════════════════════════════════════════════════════ */
+:root {
+    --bg-app: var(--bg-canvas);
+    --text-primary: var(--fg-default);
+    --text-secondary: var(--fg-muted);
+    --text-tertiary: var(--fg-meta);
+    --text-muted: var(--fg-subtle);
+    --color-primary: var(--color-brand);
+    --color-primary-light: var(--color-brand-emphasis);
+    --color-error: var(--color-danger);
+    --border-header: var(--border-subtle);
+    --bg-panel-header: var(--header-gradient);
+    --bg-modal-backdrop: var(--bg-overlay);
+    --bg-modal-panel: var(--bg-elevated);
+    --glow-primary: var(--glow-brand);
+    --glow-error: var(--glow-danger);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STRUCTURE — spacing, type, sizing, radii, shadows, motion
+   ═══════════════════════════════════════════════════════════ */
+:root {
+    /* Spacing */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+    --space-3xl: 64px;
+
+    /* Font families */
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas,
+                 'Courier New', monospace;
+
+    /* Font sizes */
+    --font-xs: 0.75rem;     /* 12px */
+    --font-sm: 0.875rem;    /* 14px */
+    --font-base: 1rem;      /* 16px */
+    --font-lg: 1.125rem;    /* 18px */
+    --font-xl: 1.25rem;     /* 20px */
+    --font-2xl: 1.5rem;     /* 24px */
+    --font-3xl: 1.875rem;   /* 30px */
+    --font-4xl: 2.25rem;    /* 36px */
+
+    /* Font weights */
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+
+    /* Line heights */
+    --leading-tight: 1.25;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.75;
+
+    /* Sizing */
+    --header-height: 64px;
+    --footer-height: 40px;
+    --panel-min-width: 280px;
+    --panel-collapsed-width: 48px;
+
+    /* Borders */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-full: 9999px;
+    --border-width: 1px;
+    --border-width-thick: 2px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.2);
+    --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.25);
+
+    /* Glass blur */
+    --glass-blur: blur(12px);
+
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-base: 250ms ease;
+    --transition-slow: 350ms ease;
+    --transition-bounce: 350ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Z-index layers */
+    --z-base: 0;
+    --z-panel: 10;
+    --z-header: 100;
+    --z-modal-backdrop: 900;
+    --z-modal: 1000;
+    --z-loader: 9999;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════════════════ */
+
+/* Glassmorphism surface */
+.glass {
+    background: var(--glass-bg);
+    border: var(--border-width) solid var(--glass-border);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow);
+}
+
+/* Status colors */
+.status-success { color: var(--color-success); }
+.status-warning { color: var(--color-warning); }
+.status-error { color: var(--color-danger); }
+.status-info { color: var(--color-info); }
+
+/* Text utilities */
+.text-primary { color: var(--fg-default); }
+.text-secondary { color: var(--fg-muted); }
+.text-muted { color: var(--fg-subtle); }
+.font-mono { font-family: var(--font-mono); }
+
+/* Spacing utilities */
+.mb-sm { margin-bottom: var(--space-sm); }
+.mb-md { margin-bottom: var(--space-md); }
+.mb-lg { margin-bottom: var(--space-lg); }
+.mt-sm { margin-top: var(--space-sm); }
+.mt-md { margin-top: var(--space-md); }
+.mt-lg { margin-top: var(--space-lg); }
+
+/* Display utilities */
+.hidden { display: none !important; }
+.visible { display: block !important; }
+
+/* Animation utilities */
+.fade-in { animation: fadeIn var(--transition-base) forwards; }
+.fade-out { animation: fadeOut var(--transition-base) forwards; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; transform: scale(1); }
+    to   { opacity: 0; transform: scale(0.95); }
+}
+
+/* Smooth scrolling */
+.smooth-scroll { scroll-behavior: smooth; }
+
+/* No select */
+.no-select {
+    -webkit-user-select: none;
+    user-select: none;
+}

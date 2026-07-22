@@ -1,0 +1,69 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: EncodingPaneStyles (textMan Edition - v1.0)
+ *     - File Name: tools-encoding.css
+ *     - Relative Path: tools/textman/css/tools-encoding.css
+ *     - Artifact Type: config
+ *     - Version: 1.0.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Encoding/Decoding pane specifics layered on the shared tool-button
+ *     grid: encode/decode direction tinting so encode and decode actions
+ *     read as paired families at a glance. The buttons themselves come
+ *     entirely from sidebar-right.css.
+ *
+ * ✒ Key Features:
+ *     - encoding-hint: small italic guidance line above the button grid
+ *     - Direction tinting via data-encode-dir: encode buttons' category
+ *       captions render brand gold, decode captions render info blue
+ *     - Inherits grid, sheen, and press states from sidebar-right.css
+ *
+ * ✒ Usage Instructions:
+ *     Loaded via a link tag in tools/textman/index.html, after the shared
+ *     layer (reset.css, tokens.css, shell.css, panels.css). Layers on
+ *     sidebar-right.css's tool-action-btn grid, so sidebar-right.css must
+ *     load first (index.html loads it earlier in the same block). Markup
+ *     opts in per button with a data-encode-dir attribute of encode or
+ *     decode.
+ *
+ * ✒ Examples:
+ *     The Base64 Encode button is a tool-action-btn carrying
+ *     data-encode-dir="encode", so its btn-category caption renders brand
+ *     gold; the paired Base64 Decode button carries
+ *     data-encode-dir="decode" and its caption renders info blue —
+ *     scanning the grid, the two directions read as distinct families.
+ *
+ *     The encoding-hint above the grid notes in quiet italics what the
+ *     actions operate on.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: tools/textman/css/sidebar-right.css (tool-action-btn
+ *       grid, loads first) and shared/css/tokens.css (color and spacing
+ *       tokens)
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: buttons without a data-encode-dir attribute fall back
+ *       to the neutral shared caption color
+ * ----------------------------------------------------------------------------
+ */
+
+.encoding-hint {
+    margin-bottom: var(--space-sm);
+    font-size: var(--font-xs);
+    color: var(--fg-subtle);
+    font-style: italic;
+}
+
+/* Direction cues */
+.tool-action-btn[data-encode-dir="encode"] .btn-category {
+    color: var(--color-brand);
+}
+
+.tool-action-btn[data-encode-dir="decode"] .btn-category {
+    color: var(--color-info);
+}

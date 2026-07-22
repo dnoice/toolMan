@@ -1,0 +1,88 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: PrefixPaneStyles (textMan Edition - v1.0)
+ *     - File Name: tools-prefix.css
+ *     - Relative Path: tools/textman/css/tools-prefix.css
+ *     - Artifact Type: config
+ *     - Version: 1.0.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Prefix/Suffix pane specifics: the non-destructive preview box that
+ *     shows the first few lines of the pending result before Apply is
+ *     committed. The pane's inputs and buttons come from the shared panel
+ *     styles; this file only adds the preview surface.
+ *
+ * ✒ Key Features:
+ *     - prefix-preview: dashed-border mono preview surface, pre-wrap with
+ *       break-all so long lines never overflow the pane
+ *     - is-visible state reveals the box with the shared fadeIn animation
+ *     - Scrollable at 140px max height with the thin token scrollbar
+ *     - preview-note: quiet italic line for truncation notes on long
+ *       previews
+ *
+ * ✒ Usage Instructions:
+ *     Loaded via a link tag in tools/textman/index.html, after the shared
+ *     layer (reset.css, tokens.css, shell.css, panels.css). panels.css
+ *     supplies the pane's inputs and buttons; the fadeIn keyframes used by
+ *     is-visible are defined in shared/css/tokens.css.
+ *     js/ui/tools-prefix.js fills the preview text and toggles is-visible.
+ *
+ * ✒ Examples:
+ *     As the user types a prefix, script renders the first few resulting
+ *     lines into prefix-preview and adds is-visible; the box fades in as a
+ *     dashed mono surface beneath the inputs.
+ *
+ *     When the document has more lines than the preview shows, a
+ *     preview-note line such as "…and 240 more lines" renders in quiet
+ *     italics at the bottom of the box.
+ *
+ *     Previews taller than 140px scroll inside the box with a thin
+ *     token-colored scrollbar rather than growing the pane.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/panels.css (pane inputs/buttons, loads
+ *       first) and shared/css/tokens.css (fadeIn keyframes, all tokens)
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: the reveal animation breaks if tokens.css's fadeIn
+ *       keyframes are ever removed or renamed
+ * ----------------------------------------------------------------------------
+ */
+
+.prefix-preview {
+    display: none;
+    margin-top: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+
+    background: var(--bg-surface-alt);
+    border: var(--border-width) dashed var(--border-default);
+    border-radius: var(--radius-sm);
+
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--fg-body);
+    line-height: var(--leading-normal);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 140px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.prefix-preview.is-visible {
+    display: block;
+    animation: fadeIn var(--transition-base) forwards;
+}
+
+.prefix-preview .preview-note {
+    display: block;
+    margin-top: var(--space-xs);
+    color: var(--fg-subtle);
+    font-style: italic;
+}

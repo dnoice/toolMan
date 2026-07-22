@@ -1,0 +1,287 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: EditorStyles (textMan Edition - v1.0)
+ *     - File Name: editor.css
+ *     - Relative Path: tools/textman/css/editor.css
+ *     - Artifact Type: config
+ *     - Version: 1.0.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Styles for textMan's center panel: the editor toolbar with document
+ *     controls, the live save-status chip, the writing surface itself, and
+ *     the viewport-locked stats footer. The writing surface gets the refined
+ *     treatment — gold caret, inset paper depth, and a focus glow that
+ *     breathes.
+ *
+ * ✒ Key Features:
+ *     - editor-header toolbar: flex row with editor-tools and
+ *       editor-controls button clusters
+ *     - control-btn: 36px soft-square glass buttons with hover lift, active
+ *       press scale (0.96), and a 0.35-opacity disabled state
+ *     - btn-save variant tints success green on hover
+ *     - status-indicator save chip with a glowing status-dot driven by
+ *       data-status: saved (green), saving (amber + statusPulse animation),
+ *       dirty (red)
+ *     - editor-main flex column that owns the remaining viewport height
+ *     - editor-textarea writing surface: mono type, brand-gold caret, inset
+ *       paper shadow, tab-size 4, italic placeholder, thin token scrollbar
+ *     - Focus state: focus border plus a 3px active ring and brand glow
+ *       layered over the inset depth
+ *     - drag-over state: dashed brand border and ring while a file is
+ *       dragged over the textarea
+ *     - editor-stats footer of stat-pill chips in mono with hover lift
+ *     - Responsive: below 768px, tighter padding and the status chip's text
+ *       label hides, leaving only the dot
+ *
+ * ✒ Usage Instructions:
+ *     Loaded via a link tag in tools/textman/index.html, after the shared
+ *     layer (reset.css, tokens.css, shell.css, panels.css) and the sidebar
+ *     stylesheets. No build step — plain CSS. State classes and data
+ *     attributes (data-status, drag-over, disabled) are toggled by
+ *     js/ui/editor.js; this file only defines their appearance.
+ *
+ * ✒ Examples:
+ *     The Undo control is a control-btn that lifts 1px on hover and presses
+ *     with a 0.96 scale; when history is empty it is disabled and dims to
+ *     0.35 opacity with a not-allowed cursor.
+ *
+ *     While a save is in flight the status-indicator carries
+ *     data-status="saving": the dot turns amber and pulses on a 1-second
+ *     cycle. Unsaved edits set data-status="dirty" and the dot glows red.
+ *
+ *     Focusing the editor-textarea swaps its border to the focus color and
+ *     adds the layered ring-plus-glow shadow; the caret renders in brand
+ *     gold.
+ *
+ *     Dragging a text file over the editor adds the drag-over class,
+ *     switching the border to dashed brand with a 4px ring until drop.
+ *
+ *     A stat-pill in the footer reads something like "1,532 words" in mono
+ *     and lifts with a small shadow on hover.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/reset.css, tokens.css, shell.css,
+ *       panels.css (all load first in index.html); behavior driven by
+ *       js/ui/editor.js
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: scrollbar styling uses scrollbar-width /
+ *       scrollbar-color, so WebKit browsers without those properties fall
+ *       back to any global WebKit scrollbar rules in the shared layer
+ * ----------------------------------------------------------------------------
+ */
+
+/* ===== EDITOR HEADER / TOOLBAR ===== */
+.editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+
+    background: var(--bg-surface);
+    border-bottom: var(--border-width) solid var(--border-muted);
+    flex-shrink: 0;
+}
+
+.editor-tools,
+.editor-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+/* Control buttons — soft squares with press feedback */
+.control-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: var(--border-width) solid transparent;
+    color: var(--fg-muted);
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.control-btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--border-default);
+    color: var(--color-brand);
+    transform: translateY(-1px);
+}
+
+.control-btn:active:not(:disabled) {
+    transform: translateY(0) scale(0.96);
+}
+
+.control-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.control-btn.btn-save:hover:not(:disabled) {
+    color: var(--color-success);
+}
+
+/* ===== SAVE STATUS CHIP ===== */
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-left: var(--space-sm);
+    padding: var(--space-xs) var(--space-md);
+
+    background: var(--bg-tag);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-full);
+
+    font-size: var(--font-xs);
+    font-weight: var(--font-medium);
+    color: var(--fg-muted);
+    white-space: nowrap;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    background: var(--color-success);
+    box-shadow: 0 0 8px var(--color-success);
+    transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.status-indicator[data-status="saved"] .status-dot {
+    background: var(--color-success);
+    box-shadow: 0 0 8px var(--color-success);
+}
+
+.status-indicator[data-status="saving"] .status-dot {
+    background: var(--color-warning);
+    box-shadow: 0 0 8px var(--color-warning);
+    animation: statusPulse 1s ease-in-out infinite;
+}
+
+.status-indicator[data-status="dirty"] .status-dot {
+    background: var(--color-danger);
+    box-shadow: 0 0 8px var(--color-danger);
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* ===== EDITOR MAIN ===== */
+.editor-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: var(--space-md);
+    gap: var(--space-md);
+}
+
+.editor-textarea {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    resize: none;
+
+    padding: var(--space-lg);
+
+    background: var(--bg-input);
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
+
+    color: var(--fg-body);
+    caret-color: var(--color-brand);
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    line-height: var(--leading-relaxed);
+    tab-size: 4;
+
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.editor-textarea::placeholder {
+    color: var(--fg-subtle);
+    font-style: italic;
+}
+
+.editor-textarea:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow:
+        inset 0 2px 8px rgba(0, 0, 0, 0.04),
+        0 0 0 3px var(--bg-active),
+        var(--glow-brand);
+}
+
+/* File drag-over state */
+.editor-textarea.drag-over {
+    border-color: var(--color-brand);
+    border-style: dashed;
+    box-shadow: 0 0 0 4px var(--bg-active);
+}
+
+/* ===== STATS FOOTER (viewport-locked) ===== */
+.editor-stats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+}
+
+.stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-md);
+
+    background: var(--bg-tag);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-full);
+
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--fg-meta);
+
+    transition: all var(--transition-fast);
+    cursor: default;
+}
+
+.stat-pill:hover {
+    border-color: var(--color-brand);
+    color: var(--fg-default);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .editor-main {
+        padding: var(--space-sm);
+    }
+
+    .editor-textarea {
+        padding: var(--space-md);
+    }
+
+    .status-indicator .status-label {
+        display: none;
+    }
+}

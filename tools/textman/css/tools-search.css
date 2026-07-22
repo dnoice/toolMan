@@ -1,0 +1,84 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: SearchPaneStyles (textMan Edition - v1.0)
+ *     - File Name: tools-search.css
+ *     - Relative Path: tools/textman/css/tools-search.css
+ *     - Artifact Type: config
+ *     - Version: 1.0.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Search & Replace pane specifics: the live match counter chip, the
+ *     invalid-regex error state on the search field, and a compact
+ *     two-column action button layout. The inputs and buttons themselves
+ *     come from the shared panel styles.
+ *
+ * ✒ Key Features:
+ *     - match-counter: mono pill chip showing occurrence counts in tabular
+ *       numerals; turns brand-colored when data-has-matches is true
+ *     - input-error: danger border and wash ring for invalid regex input
+ *       on the shared text-input
+ *     - Compact 2x2 arrangement of the pane's action-buttons grid
+ *
+ * ✒ Usage Instructions:
+ *     Loaded via a link tag in tools/textman/index.html, after the shared
+ *     layer (reset.css, tokens.css, shell.css, panels.css) and
+ *     sidebar-right.css. panels.css supplies the text-input and
+ *     action-buttons base classes this file modifies; js/ui/tools-search.js
+ *     updates the counter text, data-has-matches, and input-error.
+ *
+ * ✒ Examples:
+ *     While the user types a query, the match-counter chip reads something
+ *     like "3 of 17" in mono tabular numerals; with at least one match,
+ *     data-has-matches="true" tints the chip's border and text brand gold.
+ *
+ *     Entering an invalid pattern in regex mode (say an unclosed bracket)
+ *     adds input-error to the search text-input, giving it a danger-red
+ *     border and a soft danger wash ring.
+ *
+ *     Inside search-container the action-buttons block becomes a
+ *     two-column grid, so Find / Replace / Replace All sit compactly in a
+ *     2x2 arrangement.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/panels.css (text-input, action-buttons
+ *       base) and tools/textman/css/sidebar-right.css (pane shell), both
+ *       load first; tokens.css for wash and color tokens
+ *     - Compatible platforms: all evergreen browsers
+ * ----------------------------------------------------------------------------
+ */
+
+.search-container .action-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+}
+
+/* Live match counter */
+.match-counter {
+    display: inline-block;
+    margin-bottom: var(--space-sm);
+    padding: 2px var(--space-sm);
+    background: var(--bg-tag);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--fg-meta);
+    font-variant-numeric: tabular-nums;
+}
+
+.match-counter[data-has-matches="true"] {
+    border-color: var(--color-brand);
+    color: var(--color-brand);
+}
+
+/* Invalid regex feedback */
+.text-input.input-error {
+    border-color: var(--color-danger);
+    box-shadow: 0 0 0 3px var(--wash-danger);
+}

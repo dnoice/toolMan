@@ -1,0 +1,295 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: HubStyles (toolMan Edition - v1.1)
+ *     - File Name: hub.css
+ *     - Relative Path: shared/css/hub.css
+ *     - Artifact Type: config
+ *     - Version: 1.1.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Tool cards now
+ *       ride the theme depth tokens (card gradient, inset edge highlight,
+ *       layered shadows, stronger hover elevation) for real figure/ground
+ *       contrast on the Sentinel canvas; icon tiles gain a hairline border.
+ *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial hub
+ *       styles: hero, tool card grid, live/coming-soon states, footer.
+ *
+ * ✒ Description:
+ *     Styles for the toolMan hub — the ecosystem's landing page and launcher.
+ *     Renders the hero banner and the responsive grid of tool cards (live
+ *     tools link through; future tools show as "coming soon"). Loads on top
+ *     of reset.css, tokens.css, and shell.css.
+ *
+ * ✒ Key Features:
+ *     - Scrollable hub canvas (overrides the app shell's locked viewport)
+ *     - Hero section with the house wordmark and tagline
+ *     - Responsive auto-fill tool card grid
+ *     - Live cards: gold accent, lift + glow on hover, launch affordance
+ *     - Coming-soon cards: dimmed, non-interactive, labeled status chip
+ *     - Hub footer with the house signature
+ *
+ * ✒ Usage Instructions:
+ *     Load via a link tag on the hub page only, after reset.css, tokens.css,
+ *     and shell.css. The page body carries the hub-body class to unlock
+ *     document scrolling, and the hub-main region holds the hero, the
+ *     tool-grid of tool-card entries, and the hub-footer. Card state is
+ *     driven by the data-status attribute (live or soon).
+ *
+ * ✒ Examples:
+ *     Every tool card carries a three-pixel gold top rule fading out of
+ *     color-identity-gold — the dossier accent.
+ *
+ *     A live card (data-status of live) lifts four pixels on hover or
+ *     focus-within, borrows a color-brand border, and glows via glow-brand;
+ *     its launch label widens its arrow gap and brightens to
+ *     color-brand-emphasis.
+ *
+ *     A coming-soon card dims to sixty percent opacity with an fg-subtle
+ *     icon and a neutral bg-tag status chip; a live card's chip sits on the
+ *     wash-tip surface in color-success.
+ *
+ *     The hub footer signature renders in the mono font stack colored
+ *     color-identity-gold.
+ *
+ *     Under the 480px breakpoint the card grid collapses to a single column
+ *     and the hub title steps down one size on the type ramp.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/reset.css, tokens.css, shell.css
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: the hover lift and launch affordance need a
+ *       hover-capable pointer — touch devices see the static card;
+ *       scrollbar-width/scrollbar-color styling requires modern browsers
+ * ----------------------------------------------------------------------------
+ */
+
+/* Hub allows vertical scroll (unlike tool apps) */
+.hub-body {
+    overflow-y: auto;
+}
+
+.hub-main {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-2xl) var(--space-lg);
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* ===== HERO ===== */
+.hub-hero {
+    text-align: center;
+    margin-bottom: var(--space-2xl);
+    max-width: 640px;
+}
+
+.hub-hero .hero-logo {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto var(--space-md);
+    color: var(--color-identity-gold);
+}
+
+.hub-title {
+    font-size: var(--font-4xl);
+    font-weight: var(--font-bold);
+    color: var(--fg-default);
+    letter-spacing: -0.02em;
+}
+
+.hub-title .logo-accent {
+    color: var(--color-brand);
+}
+
+.hub-tagline {
+    margin-top: var(--space-sm);
+    font-size: var(--font-lg);
+    color: var(--fg-muted);
+}
+
+.hub-subtitle {
+    margin-top: var(--space-xs);
+    font-size: var(--font-sm);
+    color: var(--fg-subtle);
+}
+
+/* ===== TOOL GRID ===== */
+.tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-lg);
+    width: 100%;
+    max-width: 960px;
+}
+
+.tool-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+
+    background: var(--card-gradient);
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-inset), var(--card-shadow);
+
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Gold top rule — the dossier accent */
+.tool-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-identity-gold), transparent 70%);
+    opacity: 0.7;
+}
+
+.tool-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.tool-card-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: var(--bg-tag);
+    border: var(--border-width) solid var(--border-muted);
+    color: var(--color-brand);
+}
+
+.tool-card-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.tool-card-name {
+    font-size: var(--font-xl);
+    font-weight: var(--font-bold);
+    color: var(--fg-default);
+    letter-spacing: -0.01em;
+}
+
+.tool-card-name .logo-accent {
+    color: var(--color-brand);
+}
+
+.tool-card-desc {
+    font-size: var(--font-sm);
+    color: var(--fg-muted);
+    line-height: var(--leading-normal);
+    flex: 1;
+}
+
+.tool-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.tool-card-status {
+    font-size: var(--font-xs);
+    font-weight: var(--font-medium);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px var(--space-sm);
+    border-radius: var(--radius-full);
+}
+
+/* Live tool cards */
+.tool-card[data-status="live"] {
+    cursor: pointer;
+}
+
+.tool-card[data-status="live"]:hover,
+.tool-card[data-status="live"]:focus-within {
+    transform: translateY(-4px);
+    border-color: var(--color-brand);
+    box-shadow: var(--card-inset), var(--card-shadow-hover), var(--glow-brand);
+}
+
+.tool-card[data-status="live"] .tool-card-status {
+    background: var(--wash-tip);
+    color: var(--color-success);
+}
+
+.tool-card-launch {
+    font-size: var(--font-sm);
+    font-weight: var(--font-semibold);
+    color: var(--color-brand);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    transition: gap var(--transition-fast);
+}
+
+.tool-card[data-status="live"]:hover .tool-card-launch {
+    gap: var(--space-sm);
+    color: var(--color-brand-emphasis);
+}
+
+/* Coming-soon cards */
+.tool-card[data-status="soon"] {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.tool-card[data-status="soon"] .tool-card-status {
+    background: var(--bg-tag);
+    color: var(--fg-subtle);
+}
+
+.tool-card[data-status="soon"] .tool-card-icon {
+    color: var(--fg-subtle);
+}
+
+/* ===== HUB FOOTER ===== */
+.hub-footer {
+    margin-top: var(--space-3xl);
+    padding: var(--space-lg) 0;
+    text-align: center;
+    font-size: var(--font-xs);
+    color: var(--fg-subtle);
+}
+
+.hub-footer .signature {
+    font-family: var(--font-mono);
+    color: var(--color-identity-gold);
+    letter-spacing: 0.02em;
+    margin-top: var(--space-xs);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+    .hub-main {
+        padding: var(--space-lg) var(--space-md);
+    }
+
+    .hub-title {
+        font-size: var(--font-3xl);
+    }
+
+    .tool-grid {
+        grid-template-columns: 1fr;
+    }
+}

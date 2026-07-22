@@ -1,0 +1,63 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: FormattingPaneStyles (textMan Edition - v1.0)
+ *     - File Name: tools-formatting.css
+ *     - Relative Path: tools/textman/css/tools-formatting.css
+ *     - Artifact Type: config
+ *     - Version: 1.0.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Text Formatting pane specifics layered on the shared tool-button
+ *     grid: literal-preview labels for heading/list buttons rendered in
+ *     mono type so each button shows the markup it produces. The buttons
+ *     themselves come entirely from sidebar-right.css.
+ *
+ * ✒ Key Features:
+ *     - formatting-hint: small italic guidance line above the button grid
+ *     - Mono btn-label variant for markup-literal buttons (#, ##, -, 1.),
+ *       opted in per button via the data-format attribute
+ *     - Inherits grid, sheen, and press states from sidebar-right.css
+ *
+ * ✒ Usage Instructions:
+ *     Loaded via a link tag in tools/textman/index.html, after the shared
+ *     layer (reset.css, tokens.css, shell.css, panels.css). Layers on
+ *     sidebar-right.css's tool-action-btn grid, so sidebar-right.css must
+ *     load first (index.html loads it earlier in the same block). Markup
+ *     opts in per button with a data-format attribute.
+ *
+ * ✒ Examples:
+ *     The H1 button is a tool-action-btn carrying data-format, so its
+ *     btn-label "#" renders in mono type — the button literally shows the
+ *     markup it inserts. The bullet-list and numbered-list buttons do the
+ *     same with "-" and "1." labels.
+ *
+ *     The formatting-hint above the grid notes in quiet italics what the
+ *     actions operate on.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: tools/textman/css/sidebar-right.css (tool-action-btn
+ *       grid, loads first) and shared/css/tokens.css (--font-mono, spacing
+ *       and color tokens)
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: buttons without a data-format attribute keep the
+ *       shared sans label style
+ * ----------------------------------------------------------------------------
+ */
+
+.formatting-hint {
+    margin-bottom: var(--space-sm);
+    font-size: var(--font-xs);
+    color: var(--fg-subtle);
+    font-style: italic;
+}
+
+/* Markup-literal labels read best in mono */
+.tool-action-btn[data-format] .btn-label {
+    font-family: var(--font-mono);
+}

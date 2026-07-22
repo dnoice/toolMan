@@ -1,0 +1,26 @@
+# ==============================================================================
+# ✒ Metadata
+#     - Title: GitAttributes (toolMan Edition - v1.0)
+#     - File Name: .gitattributes
+#     - Relative Path: .gitattributes
+#     - Artifact Type: config
+#     - Version: 1.0.0
+#     - Date: 2026-07-22
+#     - Update: Wednesday, July 22, 2026
+#     - Author: Dennis 'dendogg' Smaltz
+#     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+#     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+#
+# ✒ Description:
+#     Line-ending policy for the toolMan ecosystem: every text file is stored
+#     and checked out as LF on all platforms, keeping the UTF-8 headers (and
+#     the house signature glyphs) byte-stable across Windows, macOS, and
+#     Linux checkouts.
+# ==============================================================================
+
+* text=auto eol=lf
+
+# Binary assets (none yet — future-proofing)
+*.png binary
+*.jpg binary
+*.woff2 binary

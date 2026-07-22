@@ -1,0 +1,596 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: PanelSystem (toolMan Edition - v2.1)
+ *     - File Name: panels.css
+ *     - Relative Path: shared/css/panels.css
+ *     - Artifact Type: config
+ *     - Version: 2.1.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Tool sections now
+ *       ride the theme depth tokens (card gradient, inset highlight, layered
+ *       shadows) for sharper contrast; added the manipulate-your-workspace
+ *       drag styling (grab cursor on section headers, dashed gold ghost
+ *       state while a section is being dragged).
+ *     - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Relocated to
+ *       shared/css/ for the toolMan ecosystem. Panel headers now wear the
+ *       house navy-gradient with gold titles; tool sections, buttons, form
+ *       controls, and empty states recolored from the token system. Added
+ *       shared form control styles (text-input, select-input, toggle-pill)
+ *       used by every tool pane.
+ *     - 1.0.0 (2025-11-18) [model not recorded] — Initial shared panel
+ *       structure: headers, collapsible sections, footers, buttons.
+ *
+ * ✒ Description:
+ *     The shared chrome for toolMan's three-panel workspaces: panel headers
+ *     with the house navy/gold treatment, collapsible tool sections with
+ *     sheen-on-hover headers, panel footers, button variants, form controls,
+ *     and empty states. Any toolMan tool that uses the panel workspace
+ *     pattern loads this after shell.css.
+ *
+ * ✒ Key Features:
+ *     - Panel base with left/right/center variants and collapse states
+ *     - House-styled panel headers: navy gradient, gold titles, sheen on
+ *       hover
+ *     - Diagonal reflection sweep on panel and tool headers driven by the
+ *       reflection-gradient token
+ *     - Collapsible tool sections with rotating chevrons
+ *     - Panel footers with mono-spaced stat readouts
+ *     - Thin token-colored scrollbars on panel and tool bodies via
+ *       scrollbar-width and scrollbar-color
+ *     - Button variants: primary (gold), secondary (surface), danger
+ *     - Shared form controls: .text-input, .select-input, .toggle-pill,
+ *       .form-group, .action-buttons
+ *     - Input focus treatment: border-focus ring plus a bg-active halo
+ *     - Empty-state pattern for unpopulated panes
+ *     - Responsive squeeze under 768px: shorter headers, auto-height
+ *       sections
+ *
+ * ✒ Usage Instructions:
+ *     Load via a link tag after reset.css, tokens.css, and shell.css — load
+ *     order matters. Expects the shell's panel markup: each .panel contains a
+ *     .panel-header, .panel-content, and optional .panel-footer; side-panel
+ *     content stacks .tool-section blocks, each with a .tool-header and
+ *     .tool-body. Collapse is state-driven through the data-collapsed
+ *     attribute on panels and sections.
+ *
+ * ✒ Examples:
+ *     A panel header renders its title in header-gold over the
+ *     header-gradient navy; hovering sweeps the reflection-gradient sheen
+ *     diagonally across it.
+ *
+ *     Collapsing a tool section sets its data-collapsed attribute, hiding
+ *     the tool body, shrinking the section to its header, and rotating the
+ *     chevron 180 degrees.
+ *
+ *     A primary button fills with color-brand, labels with fg-on-emphasis,
+ *     and lifts with a glow-brand shadow on hover; a danger button deepens
+ *     from color-danger to color-critical.
+ *
+ *     A focused text input swaps its border to the border-focus token and
+ *     shows a three-pixel bg-active halo; a textarea variant switches to the
+ *     mono font stack and resizes vertically.
+ *
+ *     An active toggle pill (data-active) fills gold with glow-brand; an
+ *     inactive one sits on the bg-tag surface in muted text.
+ *
+ *     An unpopulated pane renders the empty-state block: centered title in
+ *     fg-default over explanatory text in fg-muted.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/reset.css, shared/css/tokens.css,
+ *       shared/css/shell.css (load order matters)
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: scrollbar-width/scrollbar-color need modern browsers —
+ *       older WebKit falls back to the ::-webkit-scrollbar rules in
+ *       reset.css; the reflection sweep and hover lifts require a
+ *       hover-capable pointer, so touch devices see the static treatment
+ * ----------------------------------------------------------------------------
+ */
+
+/* ===== PANEL BASE ===== */
+.panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    transition: all var(--transition-base);
+}
+
+/* Panel variants */
+.panel-left,
+.panel-right {
+    background: var(--bg-panel);
+    border: var(--border-width) solid var(--border-muted);
+}
+
+.panel-left {
+    border-right: var(--border-width) solid var(--border-default);
+}
+
+.panel-right {
+    border-left: var(--border-width) solid var(--border-default);
+}
+
+.panel-center {
+    background: transparent;
+    z-index: 1; /* Above side panels */
+}
+
+/* ===== PANEL HEADER ===== */
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    padding: 0 var(--space-lg);
+
+    /* House treatment: navy gradient, gold title */
+    background: var(--header-gradient);
+    border-bottom: var(--border-width) solid var(--border-subtle);
+
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    flex-shrink: 0;
+}
+
+/* Diagonal reflection effect on hover */
+.panel-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: var(--reflection-gradient);
+    opacity: 0;
+    transform: translateX(-100%) rotate(45deg);
+    transition: all var(--transition-slow);
+    pointer-events: none;
+}
+
+.panel-header:hover::before {
+    opacity: 1;
+    transform: translateX(100%) rotate(45deg);
+}
+
+.panel-title {
+    font-size: var(--font-lg);
+    font-weight: var(--font-semibold);
+    color: var(--header-gold);
+    letter-spacing: -0.01em;
+}
+
+/* Collapse button (only on side panels) */
+.collapse-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: var(--border-width) solid transparent;
+    color: var(--header-subtitle);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.collapse-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--header-gold);
+}
+
+.collapse-btn .chevron {
+    transition: transform var(--transition-base);
+}
+
+/* Rotate chevron when collapsed */
+.panel[data-collapsed="true"] .collapse-btn .chevron {
+    transform: rotate(180deg);
+}
+
+/* ===== PANEL CONTENT ===== */
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--space-md);
+
+    /* Custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* Hide content when panel is collapsed */
+.panel[data-collapsed="true"] .panel-content {
+    display: none;
+}
+
+/* Side panel content uses vertical flex layout */
+.panel-left .panel-content,
+.panel-right .panel-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    padding: var(--space-md);
+}
+
+/* Center panel content has no gap */
+.panel-center .panel-content {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ===== PANEL FOOTER ===== */
+.panel-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--footer-height);
+    padding: 0 var(--space-lg);
+
+    background: var(--bg-panel-footer);
+    border-top: var(--border-width) solid var(--border-muted);
+
+    font-size: var(--font-xs);
+    color: var(--fg-meta);
+    flex-shrink: 0;
+}
+
+.footer-left,
+.footer-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.footer-right {
+    font-family: var(--font-mono);
+}
+
+/* Hide footer when panel is collapsed */
+.panel[data-collapsed="true"] .panel-footer {
+    display: none;
+}
+
+/* ===== TOOL SECTIONS (in side panels) ===== */
+.tool-section {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0; /* Allow flex children to shrink */
+
+    background: var(--card-gradient);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+
+    box-shadow: var(--card-inset), var(--card-shadow);
+    transition: all var(--transition-fast);
+}
+
+.tool-section:hover {
+    border-color: var(--border-focus);
+    box-shadow: var(--card-inset), var(--card-shadow-hover);
+}
+
+/* ===== SECTION DRAG & DROP (manipulate your workspace) ===== */
+.tool-header {
+    cursor: grab;
+}
+
+.tool-header:active {
+    cursor: grabbing;
+}
+
+.tool-section.dragging {
+    opacity: 0.55;
+    border-style: dashed;
+    border-color: var(--color-brand);
+    box-shadow: var(--glow-brand);
+}
+
+/* ===== TOOL HEADER ===== */
+.tool-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md);
+
+    background: var(--bg-surface-alt);
+    border-bottom: var(--border-width) solid var(--border-muted);
+
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Diagonal reflection on hover */
+.tool-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: var(--reflection-gradient);
+    opacity: 0;
+    transform: translateX(-100%) rotate(45deg);
+    transition: all var(--transition-slow);
+    pointer-events: none;
+}
+
+.tool-header:hover::before {
+    opacity: 1;
+    transform: translateX(100%) rotate(45deg);
+}
+
+.tool-title {
+    font-size: var(--font-sm);
+    font-weight: var(--font-semibold);
+    color: var(--fg-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: color var(--transition-fast);
+}
+
+.tool-header:hover .tool-title {
+    color: var(--color-brand);
+}
+
+.tool-collapse {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--fg-subtle);
+    transition: all var(--transition-fast);
+}
+
+.tool-collapse:hover {
+    background: var(--bg-hover);
+    color: var(--color-brand);
+}
+
+.tool-collapse .chevron {
+    transition: transform var(--transition-base);
+}
+
+/* Rotate chevron when section is collapsed */
+.tool-section[data-collapsed="true"] .tool-collapse .chevron {
+    transform: rotate(-180deg);
+}
+
+/* ===== TOOL BODY ===== */
+.tool-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--space-md);
+
+    /* Custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* Hide body when section is collapsed */
+.tool-section[data-collapsed="true"] .tool-body {
+    display: none;
+}
+
+/* When collapsed, reduce section height */
+.tool-section[data-collapsed="true"] {
+    flex: 0 0 auto;
+    min-height: 0;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    padding: var(--space-xl);
+    text-align: center;
+    min-height: 200px;
+}
+
+.empty-title {
+    font-size: var(--font-base);
+    font-weight: var(--font-semibold);
+    color: var(--fg-default);
+}
+
+.empty-text {
+    font-size: var(--font-sm);
+    color: var(--fg-muted);
+    line-height: var(--leading-relaxed);
+    max-width: 300px;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+
+    font-size: var(--font-sm);
+    font-weight: var(--font-medium);
+
+    border-radius: var(--radius-md);
+    border: var(--border-width) solid transparent;
+
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Primary button — house gold */
+.btn-primary {
+    background: var(--color-brand);
+    color: var(--fg-on-emphasis);
+    border-color: var(--color-brand);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--color-brand-emphasis);
+    border-color: var(--color-brand-emphasis);
+    transform: translateY(-1px);
+    box-shadow: var(--glow-brand);
+}
+
+/* Secondary button */
+.btn-secondary {
+    background: var(--bg-button);
+    color: var(--fg-default);
+    border-color: var(--border-default);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--bg-button-hover);
+    border-color: var(--color-brand);
+    transform: translateY(-1px);
+}
+
+/* Danger button */
+.btn-danger {
+    background: var(--color-danger);
+    color: var(--fg-inverse);
+    border-color: var(--color-danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: var(--color-critical);
+    transform: translateY(-1px);
+    box-shadow: var(--glow-danger);
+}
+
+/* ===== FORM CONTROLS (shared across tool panes) ===== */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+}
+
+.form-group label {
+    font-size: var(--font-xs);
+    font-weight: var(--font-medium);
+    color: var(--fg-muted);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.text-input,
+.select-input {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg-input);
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--fg-default);
+    font-size: var(--font-sm);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.text-input::placeholder {
+    color: var(--fg-subtle);
+}
+
+.text-input:focus,
+.select-input:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--bg-active);
+    outline: none;
+}
+
+textarea.text-input {
+    resize: vertical;
+    min-height: 60px;
+    font-family: var(--font-mono);
+    line-height: var(--leading-normal);
+}
+
+/* Toggle pills (option switches) */
+.toggle-pill {
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-full);
+    border: var(--border-width) solid var(--border-default);
+    background: var(--bg-tag);
+    color: var(--fg-muted);
+    font-size: var(--font-xs);
+    font-weight: var(--font-medium);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.toggle-pill:hover {
+    border-color: var(--color-brand);
+    color: var(--fg-default);
+}
+
+.toggle-pill[data-active="true"] {
+    background: var(--color-brand);
+    border-color: var(--color-brand);
+    color: var(--fg-on-emphasis);
+    box-shadow: var(--glow-brand);
+}
+
+.options-row,
+.scope-pills {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+/* Action button rows */
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.action-buttons .btn {
+    flex: 1 1 auto;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .panel-header {
+        height: 48px;
+        padding: 0 var(--space-md);
+    }
+
+    .panel-title {
+        font-size: var(--font-base);
+    }
+
+    .tool-section {
+        flex: 0 0 auto;
+    }
+}

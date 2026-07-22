@@ -1,0 +1,146 @@
+<!--
+✒ Metadata
+    - Title: HubPage (toolMan Edition - v1.1)
+    - File Name: index.html
+    - Relative Path: index.html
+    - Artifact Type: other
+    - Version: 1.1.0
+    - Date: 2026-07-22
+    - Update: Wednesday, July 22, 2026
+    - Author: Dennis 'dendogg' Smaltz
+    - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+    - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+
+✒ Changelog:
+    - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Replaced the
+      fountain-pen mark (textMan's identity) with the placeholder toolbox
+      mark (logo-toolMan.svg) in the loader, header, hero, and favicon.
+    - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial hub page:
+      loading screen, registry-driven tool grid, theme toggle.
+
+✒ Description:
+    The toolMan ecosystem's front door — a live application page, not
+    documentation, hence Artifact Type "other". Shows the branded loading
+    screen, then a launcher grid of every tool in the TOOLMAN registry — live
+    tools (textMan) link through; future tools (colorMan, mathMan, convertMan,
+    devMan) appear as coming-soon cards. Theme choice persists ecosystem-wide.
+
+✒ Key Features:
+    - Branded loading screen with fail-safe handoff
+    - Tool grid rendered from the shared registry (shared/js/toolman.js)
+    - Ecosystem-wide parchment/sentinel theme toggle
+    - Keyboard-accessible cards (live cards are real links)
+
+✒ Usage Instructions:
+    Open directly in a browser (file:// works) or serve the repository
+    statically, then click a tool card to launch it. The ecosystem kernel
+    (shared/js/toolman.js) must stay first in <head> so the saved theme
+    applies before first paint.
+
+✒ Other Important Information:
+    - Dependencies: shared/css/* and shared/js/* (reset, tokens, shell, hub;
+      toolman, dom, loader, hub)
+    - Compatible platforms: all evergreen browsers; works from file:// and
+      any static host
+---------
+-->
+<!DOCTYPE html>
+<html lang="en" data-theme="parchment">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="toolMan — a growing ecosystem of focused, beautiful browser tools. textMan, colorMan, mathMan, and more.">
+    <meta name="author" content="Dennis 'dnoice' Smaltz">
+    <title>toolMan – One workshop, many tools</title>
+
+    <!-- Favicon (toolMan placeholder mark) -->
+    <link rel="icon" type="image/svg+xml" href="shared/assets/logo-toolMan.svg">
+
+    <!-- Ecosystem kernel FIRST: applies saved theme before first paint -->
+    <script src="shared/js/toolman.js"></script>
+
+    <!-- Shared styles -->
+    <link rel="stylesheet" href="shared/css/reset.css">
+    <link rel="stylesheet" href="shared/css/tokens.css">
+    <link rel="stylesheet" href="shared/css/shell.css">
+    <link rel="stylesheet" href="shared/css/hub.css">
+</head>
+<body class="hub-body">
+
+    <!-- ============================================ -->
+    <!-- LOADING SCREEN -->
+    <!-- ============================================ -->
+    <div id="loader-screen" class="loader-screen" role="status" aria-live="polite">
+        <div class="loader-card">
+            <div class="loader-logo" aria-hidden="true">
+                <svg width="80" height="80" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="8.5" width="18" height="11.5" rx="1.5"/><path d="M3 13.5h18M8.5 8.5V7a3.5 3.5 0 0 1 7 0v1.5M10 13.5v2.5h4v-2.5"/>
+                </svg>
+            </div>
+            <h1 class="loader-title">tool<span class="logo-accent">Man</span></h1>
+            <p class="loader-tagline">One workshop, many tools</p>
+
+            <div class="loader-bar">
+                <div class="loader-progress" id="loader-progress"></div>
+            </div>
+
+            <p class="loader-status" id="loader-status">Opening the workshop…</p>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- HUB -->
+    <!-- ============================================ -->
+    <div class="app" id="app" style="opacity: 0;">
+
+        <header class="app-header" role="banner">
+            <div class="header-left">
+                <svg class="logo-icon" width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="8.5" width="18" height="11.5" rx="1.5"/><path d="M3 13.5h18M8.5 8.5V7a3.5 3.5 0 0 1 7 0v1.5M10 13.5v2.5h4v-2.5"/>
+                </svg>
+                <span class="logo-text" title="toolMan · One workshop, many tools">tool<span class="logo-accent">Man</span></span>
+            </div>
+
+            <div class="header-right">
+                <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Toggle parchment/sentinel theme">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="hub-main">
+            <section class="hub-hero">
+                <div class="hero-logo" aria-hidden="true">
+                    <svg width="72" height="72" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="8.5" width="18" height="11.5" rx="1.5"/><path d="M3 13.5h18M8.5 8.5V7a3.5 3.5 0 0 1 7 0v1.5M10 13.5v2.5h4v-2.5"/>
+                    </svg>
+                </div>
+                <h1 class="hub-title">tool<span class="logo-accent">Man</span></h1>
+                <p class="hub-tagline">One workshop, many tools.</p>
+                <p class="hub-subtitle">Focused, beautiful browser tools — no accounts, no servers, your data stays local.</p>
+            </section>
+
+            <section class="tool-grid" id="tool-grid" aria-label="Available tools">
+                <!-- Cards rendered from the TOOLMAN registry by shared/js/hub.js -->
+                <noscript><p>toolMan needs JavaScript to render the tool launcher.</p></noscript>
+            </section>
+
+            <footer class="hub-footer">
+                <p>Crafted by Dennis 'dendogg' Smaltz</p>
+                <p class="signature">︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!</p>
+            </footer>
+        </main>
+
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SCRIPTS -->
+    <!-- ============================================ -->
+    <script src="shared/js/dom.js"></script>
+    <script src="shared/js/loader.js"></script>
+    <script src="shared/js/hub.js"></script>
+
+</body>
+</html>

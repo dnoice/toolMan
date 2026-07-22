@@ -1,0 +1,315 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: WorkspaceSidebarStyles (textMan Edition - v1.0)
+ *     - File Name: sidebar-left.css
+ *     - Relative Path: tools/textman/css/sidebar-left.css
+ *     - Artifact Type: config
+ *     - Version: 1.0.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Styles for the left Workspace panel's content: template cards, saved
+ *     snippet cards with tag chips, history timeline entries, favorites, and
+ *     the analytics stat blocks. Cards share the dossier treatment — gold left
+ *     rule, layered hover lift, and refined action rows.
+ *
+ * ✒ Key Features:
+ *     - workspace-card base: gold gradient left rule (pseudo-element) that
+ *       brightens on hover, plus 2px hover lift and medium shadow
+ *     - card-title-row layout with ellipsis-truncated card-title
+ *     - card-desc body text and mono card-preview clamped to about 3 lines
+ *     - card-actions row of quiet card-btn chips with hover lift; a
+ *       card-btn-danger variant tints red for destructive actions
+ *     - fav-btn favorite star: scales up on hover, renders gold with a
+ *       filled SVG when data-active is true
+ *     - tag-row / tag-chip pill chips for snippet metadata
+ *     - section-actions centered footer row (e.g. the New Template button)
+ *     - history-entry timeline rows with a dot marker colored by data-type
+ *       (save = success green, transform = brand, template = info,
+ *       snippet = accent)
+ *     - history-desc plus mono history-time relative timestamp
+ *     - analytics-grid two-column stat blocks: stat-value in mono tabular
+ *       numerals, uppercase letter-spaced stat-label
+ *
+ * ✒ Usage Instructions:
+ *     Loaded via a link tag in tools/textman/index.html, after the shared
+ *     layer (reset.css, tokens.css, shell.css, panels.css) and after
+ *     header.css. No build step — plain CSS. panels.css supplies the panel
+ *     shell these cards live inside; tokens.css supplies every custom
+ *     property referenced here (colors, spacing, radii, shadows,
+ *     transitions).
+ *
+ * ✒ Examples:
+ *     A snippet card uses workspace-card with a card-title-row holding the
+ *     card-title and a fav-btn star; when the star carries
+ *     data-active="true" it renders gold with its SVG filled.
+ *
+ *     A template card pairs a card-desc summary with a mono card-preview of
+ *     the template body, capped at roughly three lines.
+ *
+ *     The card-actions row holds card-btn chips like Insert and Copy; a
+ *     Delete chip adds card-btn-danger so its hover reads danger red.
+ *
+ *     A history entry with data-type="save" gets a success-green timeline
+ *     dot; a transform entry's dot is brand-colored. Each pairs a
+ *     history-desc line with a small mono history-time stamp.
+ *
+ *     The Analytics section lays stat-block tiles in a two-column
+ *     analytics-grid; each shows a brand-colored mono stat-value over an
+ *     uppercase stat-label, and lifts slightly on hover.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/panels.css (panel shell, loads first) and
+ *       shared/css/tokens.css (all custom properties used here)
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: card-preview clamping is a max-height crop (3.2em),
+ *       not a line-clamp — the last visible line can be cut mid-glyph
+ * ----------------------------------------------------------------------------
+ */
+
+/* ===== SHARED CARD BASE ===== */
+.workspace-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+
+    transition: all var(--transition-fast);
+}
+
+/* Gold rule down the left edge */
+.workspace-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--color-identity-gold), transparent 85%);
+    opacity: 0.5;
+    transition: opacity var(--transition-fast);
+}
+
+.workspace-card:hover {
+    border-color: var(--border-focus);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.workspace-card:hover::before {
+    opacity: 1;
+}
+
+.card-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.card-title {
+    font-size: var(--font-sm);
+    font-weight: var(--font-semibold);
+    color: var(--fg-default);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.card-desc {
+    font-size: var(--font-xs);
+    color: var(--fg-muted);
+    line-height: var(--leading-normal);
+}
+
+.card-preview {
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--fg-subtle);
+    background: var(--bg-surface-alt);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs) var(--space-sm);
+    max-height: 3.2em;
+    overflow: hidden;
+}
+
+/* Card action row */
+.card-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.card-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+
+    font-size: var(--font-xs);
+    font-weight: var(--font-medium);
+    color: var(--fg-muted);
+
+    background: var(--bg-tag);
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-sm);
+
+    transition: all var(--transition-fast);
+}
+
+.card-btn:hover {
+    color: var(--color-brand);
+    border-color: var(--color-brand);
+    transform: translateY(-1px);
+}
+
+.card-btn.card-btn-danger:hover {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+/* Favorite star */
+.fav-btn {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    color: var(--fg-subtle);
+    flex-shrink: 0;
+    transition: all var(--transition-fast);
+}
+
+.fav-btn:hover {
+    color: var(--color-identity-gold);
+    transform: scale(1.15);
+}
+
+.fav-btn[data-active="true"] {
+    color: var(--color-identity-gold);
+}
+
+.fav-btn[data-active="true"] svg {
+    fill: currentColor;
+}
+
+/* ===== TAG CHIPS ===== */
+.tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.tag-chip {
+    padding: 1px var(--space-sm);
+    background: var(--bg-tag);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-full);
+    font-size: 0.6875rem;
+    color: var(--fg-meta);
+    letter-spacing: 0.02em;
+}
+
+/* ===== SECTION ACTION FOOT (e.g. "New template") ===== */
+.section-actions {
+    display: flex;
+    justify-content: center;
+    padding-top: var(--space-sm);
+}
+
+/* ===== HISTORY TIMELINE ===== */
+.history-entry {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-lg);
+    margin-bottom: var(--space-xs);
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.history-entry:hover {
+    background: var(--bg-hover);
+}
+
+/* Timeline marker */
+.history-entry::before {
+    content: '';
+    position: absolute;
+    left: var(--space-sm);
+    top: 14px;
+    width: 7px;
+    height: 7px;
+    border-radius: var(--radius-full);
+    background: var(--fg-subtle);
+}
+
+.history-entry[data-type="save"]::before      { background: var(--color-success); }
+.history-entry[data-type="transform"]::before { background: var(--color-brand); }
+.history-entry[data-type="template"]::before  { background: var(--color-info); }
+.history-entry[data-type="snippet"]::before   { background: var(--color-accent); }
+
+.history-desc {
+    font-size: var(--font-xs);
+    color: var(--fg-body);
+}
+
+.history-time {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--fg-subtle);
+}
+
+/* ===== ANALYTICS ===== */
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+}
+
+.stat-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-md);
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.stat-block:hover {
+    border-color: var(--border-focus);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-value {
+    font-family: var(--font-mono);
+    font-size: var(--font-xl);
+    font-weight: var(--font-bold);
+    color: var(--color-brand);
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+    font-size: 0.6875rem;
+    color: var(--fg-meta);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}

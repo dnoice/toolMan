@@ -1,0 +1,29 @@
+<!--
+✒ Metadata
+    - Title: ToolManLogo (toolMan Edition - v0.1)
+    - File Name: logo-toolMan.svg
+    - Relative Path: shared/assets/logo-toolMan.svg
+    - Artifact Type: data
+    - Version: 0.1.0
+    - Date: 2026-07-22
+    - Update: Wednesday, July 22, 2026
+    - Author: Dennis 'dendogg' Smaltz
+    - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+    - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+
+✒ Description:
+    PLACEHOLDER mark for the toolMan hub — a simple line-art toolbox drawn
+    with currentColor so it inherits theme colors. Deliberately versioned
+    0.1.0: a proper toolMan identity mark will replace it. The fountain-pen
+    mark (logo-textMan.svg) belongs to textMan alone.
+
+✒ Other Important Information:
+    - Dependencies: none (inline-able SVG, stroke-based, currentColor)
+    - Compatible platforms: all evergreen browsers
+    - Limitations: placeholder art — replace before any public release
+---------
+-->
+<svg width="40" height="40" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="8.5" width="18" height="11.5" rx="1.5"/>
+    <path d="M3 13.5h18M8.5 8.5V7a3.5 3.5 0 0 1 7 0v1.5M10 13.5v2.5h4v-2.5"/>
+</svg>

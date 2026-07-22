@@ -1,0 +1,111 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: HeaderStyles (textMan Edition - v1.0)
+ *     - File Name: header.css
+ *     - Relative Path: tools/textman/css/header.css
+ *     - Artifact Type: config
+ *     - Version: 1.0.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     textMan-specific header refinements layered over the shared app-header:
+ *     the back-to-hub breadcrumb link, the wordmark hover ink underline, and
+ *     small-screen tweaks. The structural header itself lives in
+ *     shared/css/shell.css — this file only decorates it.
+ *
+ * ✒ Key Features:
+ *     - Back-to-hub link with slide-on-hover arrow (hub-link / hub-link-arrow)
+ *     - Wordmark underline ink animation on hover (logo-text gold gradient)
+ *     - Mobile: breadcrumb label hidden below 480px, collapsing to icon-only
+ *
+ * ✒ Usage Instructions:
+ *     Loaded via a link tag in tools/textman/index.html, after the shared
+ *     layer (reset.css, tokens.css, shell.css, panels.css). It is the first
+ *     of the textMan-local stylesheets. No build step — plain CSS. Requires
+ *     shell.css to have rendered the structural app-header first; this file
+ *     assumes the --header-* and spacing/transition tokens are defined.
+ *
+ * ✒ Examples:
+ *     The breadcrumb anchor uses hub-link and contains a hub-link-arrow span
+ *     plus a hub-link-label span; on hover the whole link tints gold on a
+ *     faint white wash and the arrow slides 3px left.
+ *
+ *     The wordmark uses logo-text; hovering it scales in a 2px gold-gradient
+ *     underline from the left edge via a pseudo-element.
+ *
+ *     Below 480px viewport width the hub-link-label is display:none, so the
+ *     breadcrumb collapses to the arrow icon alone.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/shell.css (structural header, --header-*
+ *       tokens) and shared/css/tokens.css (spacing, radius, font,
+ *       transition tokens) — both load first in index.html
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: purely decorative layer; without shell.css the classes
+ *       here style nothing meaningful
+ * ----------------------------------------------------------------------------
+ */
+
+/* ===== BACK TO HUB LINK ===== */
+.hub-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-right: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+
+    border-radius: var(--radius-md);
+    color: var(--header-subtitle);
+    font-size: var(--font-xs);
+    font-weight: var(--font-medium);
+    letter-spacing: 0.03em;
+
+    transition: all var(--transition-fast);
+}
+
+.hub-link .hub-link-arrow {
+    transition: transform var(--transition-fast);
+}
+
+.hub-link:hover {
+    color: var(--header-gold);
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.hub-link:hover .hub-link-arrow {
+    transform: translateX(-3px);
+}
+
+/* ===== WORDMARK INK UNDERLINE ===== */
+.logo-text {
+    position: relative;
+}
+
+.logo-text::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--header-gold), transparent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--transition-base);
+}
+
+.logo-text:hover::after {
+    transform: scaleX(1);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+    .hub-link .hub-link-label {
+        display: none;
+    }
+}

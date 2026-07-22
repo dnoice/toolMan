@@ -1,0 +1,37 @@
+# ==============================================================================
+# ✒ Metadata
+#     - Title: GitIgnore (toolMan Edition - v1.0)
+#     - File Name: .gitignore
+#     - Relative Path: .gitignore
+#     - Artifact Type: config
+#     - Version: 1.0.0
+#     - Date: 2026-07-22
+#     - Update: Wednesday, July 22, 2026
+#     - Author: Dennis 'dendogg' Smaltz
+#     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+#     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+#
+# ✒ Description:
+#     Git ignore patterns for the toolMan ecosystem. The project is pure
+#     static HTML/CSS/JS with no build step, so this mostly excludes OS and
+#     editor litter, plus tooling artifacts if node_modules ever appears for
+#     local testing.
+# ==============================================================================
+
+# Node tooling (only ever used ad hoc for testing — never committed)
+node_modules/
+package.json
+package-lock.json
+
+# OS litter
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor litter
+.vscode/*.local.json
+.idea/
+
+# Logs and temp
+*.log
+*.tmp

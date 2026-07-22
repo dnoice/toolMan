@@ -1,0 +1,167 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: ToolsSidebarStyles (textMan Edition - v1.0)
+ *     - File Name: sidebar-right.css
+ *     - Relative Path: tools/textman/css/sidebar-right.css
+ *     - Artifact Type: config
+ *     - Version: 1.0.0
+ *     - Date: 2026-07-22
+ *     - Update: Wednesday, July 22, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Right Tools panel shell refinements shared by every tool pane: the
+ *     common tool-button grid used by Transform / Encoding / Formatting, and
+ *     result feedback styling. Pane-specific styles live in their own
+ *     tools-*.css files, which layer on the classes defined here.
+ *
+ * ✒ Key Features:
+ *     - tool-grid-buttons: shared two-column button grid
+ *     - tool-action-btn: left-aligned glass buttons stacking a btn-label
+ *       over an uppercase btn-category hint
+ *     - Gold sheen sweep: a gradient pseudo-element translates across the
+ *       button face on hover
+ *     - Hover lift with brand border and medium shadow; active press
+ *       feedback scales to 0.97
+ *     - tool-feedback: inline result strip driven by data-state, with
+ *       success / error / info washes and a matching 3px left rule
+ *
+ * ✒ Usage Instructions:
+ *     Loaded via a link tag in tools/textman/index.html, after the shared
+ *     layer (reset.css, tokens.css, shell.css, panels.css). Must load
+ *     BEFORE the pane files that extend it: tools-transform.css,
+ *     tools-encoding.css, and tools-formatting.css all layer additional
+ *     rules on the tool-action-btn grid defined here, and
+ *     tools-search.css reuses the pane shell alongside it.
+ *
+ * ✒ Examples:
+ *     A Transform pane button is a tool-action-btn holding a btn-label such
+ *     as UPPERCASE over a btn-category caption such as CASE; hovering
+ *     sweeps the gold sheen across the face and tints the category brand.
+ *
+ *     Pressing any tool button momentarily scales it to 0.97 for tactile
+ *     press feedback.
+ *
+ *     After a tool runs, script sets the tool-feedback element's data-state
+ *     to success, error, or info; the strip becomes visible with the
+ *     matching wash background, text color, and left rule. With no
+ *     data-state set it stays display none.
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/panels.css (panel shell, loads first) and
+ *       shared/css/tokens.css (color, wash, spacing, shadow, transition
+ *       tokens)
+ *     - Depended on by: tools-transform.css, tools-encoding.css,
+ *       tools-formatting.css (they extend tool-action-btn)
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: the sheen sweep uses a hard-coded gold rgba value
+ *       (201, 168, 76) rather than a token
+ * ----------------------------------------------------------------------------
+ */
+
+/* ===== SHARED TOOL BUTTON GRID ===== */
+.tool-grid-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+}
+
+.tool-action-btn {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: var(--space-sm) var(--space-md);
+
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+
+    text-align: left;
+    transition: all var(--transition-fast);
+}
+
+/* Gold sheen sweep on hover */
+.tool-action-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        110deg,
+        transparent 30%,
+        rgba(201, 168, 76, 0.12) 50%,
+        transparent 70%
+    );
+    transform: translateX(-100%);
+    transition: transform var(--transition-slow);
+    pointer-events: none;
+}
+
+.tool-action-btn:hover {
+    border-color: var(--color-brand);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.tool-action-btn:hover::before {
+    transform: translateX(100%);
+}
+
+.tool-action-btn:active {
+    transform: translateY(0) scale(0.97);
+}
+
+.tool-action-btn .btn-label {
+    font-size: var(--font-xs);
+    font-weight: var(--font-semibold);
+    color: var(--fg-default);
+}
+
+.tool-action-btn .btn-category {
+    font-size: 0.625rem;
+    font-weight: var(--font-medium);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-subtle);
+    transition: color var(--transition-fast);
+}
+
+.tool-action-btn:hover .btn-category {
+    color: var(--color-brand);
+}
+
+/* ===== TOOL FEEDBACK STRIP ===== */
+.tool-feedback {
+    display: none;
+    margin-top: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+}
+
+.tool-feedback[data-state="success"] {
+    display: block;
+    background: var(--wash-tip);
+    color: var(--color-success);
+    border-left: 3px solid var(--color-success);
+}
+
+.tool-feedback[data-state="error"] {
+    display: block;
+    background: var(--wash-danger);
+    color: var(--color-danger);
+    border-left: 3px solid var(--color-danger);
+}
+
+.tool-feedback[data-state="info"] {
+    display: block;
+    background: var(--wash-note);
+    color: var(--color-info);
+    border-left: 3px solid var(--color-info);
+}
