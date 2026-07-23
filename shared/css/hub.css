@@ -5,7 +5,7 @@
  *     - File Name: hub.css
  *     - Relative Path: shared/css/hub.css
  *     - Artifact Type: config
- *     - Version: 1.1.0
+ *     - Version: 1.1.1
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,8 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.1.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the
+ *       tool-card transition:all to named properties (motion-polish pass).
  *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Tool cards now
  *       ride the theme depth tokens (card gradient, inset edge highlight,
  *       layered shadows, stronger hover elevation) for real figure/ground
@@ -142,7 +144,9 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--card-inset), var(--card-shadow);
 
-    transition: all var(--transition-base);
+    transition: border-color var(--transition-base),
+                transform var(--transition-base),
+                box-shadow var(--transition-base);
     position: relative;
     overflow: hidden;
 }

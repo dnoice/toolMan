@@ -5,12 +5,19 @@
  *     - File Name: sidebar-right.css
  *     - Relative Path: tools/textman/css/sidebar-right.css
  *     - Artifact Type: config
- *     - Version: 1.0.0
+ *     - Version: 1.0.1
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.0.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the
+ *       tool-action-btn transition:all to named properties (motion-polish
+ *       pass).
+ *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial tools
+ *       sidebar styles.
  *
  * ✒ Description:
  *     Right Tools panel shell refinements shared by every tool pane: the
@@ -83,7 +90,9 @@
     overflow: hidden;
 
     text-align: left;
-    transition: all var(--transition-fast);
+    transition: border-color var(--transition-fast),
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
 }
 
 /* Gold sheen sweep on hover */

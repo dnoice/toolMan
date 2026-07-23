@@ -5,7 +5,7 @@
  *     - File Name: shell.css
  *     - Relative Path: shared/css/shell.css
  *     - Artifact Type: config
- *     - Version: 2.2.0
+ *     - Version: 2.2.1
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,9 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.2.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the
+ *       header icon buttons' transition:all to the named properties that
+ *       actually animate (motion-polish pass).
  *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Viewport-fit
  *       hardening (audit findings F1/F2): 100dvh fallbacks on the app frame
  *       and loader so dynamic-chrome mobile browsers never clip the bottom
@@ -226,7 +229,11 @@
     background: rgba(255, 255, 255, 0.06);
     border: var(--border-width) solid rgba(255, 255, 255, 0.12);
     color: var(--header-subtitle);
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast),
+                background-color var(--transition-fast),
+                border-color var(--transition-fast),
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
     cursor: pointer;
 }
 

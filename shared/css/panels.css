@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: PanelSystem (toolMan Edition - v2.3)
+ *     - Title: PanelSystem (toolMan Edition - v2.4)
  *     - File Name: panels.css
  *     - Relative Path: shared/css/panels.css
  *     - Artifact Type: config
- *     - Version: 2.3.0
+ *     - Version: 2.4.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,12 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.4.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Glitch-free sheen
+ *       (owner complaint #2): the reflection sweep is now a one-shot
+ *       sheenSweep keyframe played on hover-in — leaving mid-sweep snaps it
+ *       invisible instead of replaying it backwards; suppressed on dragging
+ *       sections. Narrowed every transition:all in the hot paths to named
+ *       properties.
  *     - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Accordion pane
  *       sizing: sections are grid rows (header auto + body 0fr↔1fr) with an
  *       animated reveal; the open section takes the sidebar's remaining
@@ -114,7 +120,8 @@
     height: 100%;
     overflow: hidden;
     position: relative;
-    transition: all var(--transition-base);
+    /* No blanket transition — mobile slide-ins transition transform via
+       shell.css; nothing else here needs animating. */
 }
 
 /* Panel variants */
@@ -155,7 +162,9 @@
     flex-shrink: 0;
 }
 
-/* Diagonal reflection effect on hover */
+/* Diagonal reflection sweep — a ONE-SHOT animation on hover-in.
+   Leaving mid-sweep cancels to the invisible rest state instantly;
+   there is no reverse pass and nothing to jitter on rapid re-hovers. */
 .panel-header::before {
     content: '';
     position: absolute;
@@ -166,13 +175,18 @@
     background: var(--reflection-gradient);
     opacity: 0;
     transform: translateX(-100%) rotate(45deg);
-    transition: all var(--transition-slow);
     pointer-events: none;
 }
 
 .panel-header:hover::before {
-    opacity: 1;
-    transform: translateX(100%) rotate(45deg);
+    animation: sheenSweep 650ms ease forwards;
+}
+
+@keyframes sheenSweep {
+    0%   { opacity: 0; transform: translateX(-100%) rotate(45deg); }
+    12%  { opacity: 1; }
+    88%  { opacity: 1; }
+    100% { opacity: 0; transform: translateX(100%) rotate(45deg); }
 }
 
 .panel-title {
@@ -193,7 +207,9 @@
     background: transparent;
     border: var(--border-width) solid transparent;
     color: var(--header-subtitle);
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast),
+                background-color var(--transition-fast),
+                border-color var(--transition-fast);
     cursor: pointer;
 }
 
@@ -371,7 +387,7 @@
     user-select: none;
 }
 
-/* Diagonal reflection on hover */
+/* Diagonal reflection sweep — same one-shot treatment as panel headers */
 .tool-header::before {
     content: '';
     position: absolute;
@@ -382,13 +398,16 @@
     background: var(--reflection-gradient);
     opacity: 0;
     transform: translateX(-100%) rotate(45deg);
-    transition: all var(--transition-slow);
     pointer-events: none;
 }
 
 .tool-header:hover::before {
-    opacity: 1;
-    transform: translateX(100%) rotate(45deg);
+    animation: sheenSweep 650ms ease forwards;
+}
+
+/* No sheen theatrics while a section is being dragged */
+.tool-section.dragging .tool-header::before {
+    animation: none;
 }
 
 .tool-title {
@@ -413,7 +432,8 @@
     border-radius: var(--radius-sm);
     background: transparent;
     color: var(--fg-subtle);
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast),
+                background-color var(--transition-fast);
 }
 
 .tool-collapse:hover {
@@ -502,7 +522,11 @@
     border: var(--border-width) solid transparent;
 
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast),
+                background-color var(--transition-fast),
+                border-color var(--transition-fast),
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
     white-space: nowrap;
 }
 
@@ -606,7 +630,10 @@ textarea.text-input {
     color: var(--fg-muted);
     font-size: var(--font-xs);
     font-weight: var(--font-medium);
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast),
+                background-color var(--transition-fast),
+                border-color var(--transition-fast),
+                box-shadow var(--transition-fast);
     cursor: pointer;
     white-space: nowrap;
 }

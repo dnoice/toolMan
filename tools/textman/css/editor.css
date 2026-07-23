@@ -5,12 +5,19 @@
  *     - File Name: editor.css
  *     - Relative Path: tools/textman/css/editor.css
  *     - Artifact Type: config
- *     - Version: 1.0.0
+ *     - Version: 1.0.1
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.0.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the
+ *       control-button and stat-pill transition:all declarations to named
+ *       properties (motion-polish pass).
+ *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial editor
+ *       styles.
  *
  * ✒ Description:
  *     Styles for textMan's center panel: the editor toolbar with document
@@ -107,7 +114,10 @@
     background: transparent;
     border: var(--border-width) solid transparent;
     color: var(--fg-muted);
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast),
+                background-color var(--transition-fast),
+                border-color var(--transition-fast),
+                transform var(--transition-fast);
     position: relative;
 }
 
@@ -260,7 +270,10 @@
     font-size: var(--font-xs);
     color: var(--fg-meta);
 
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast),
+                border-color var(--transition-fast),
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
     cursor: default;
 }
 
