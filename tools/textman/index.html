@@ -1,10 +1,10 @@
 <!--
 ✒ Metadata
-    - Title: TextManApp (textMan Edition - v2.1)
+    - Title: TextManApp (textMan Edition - v2.2)
     - File Name: index.html
     - Relative Path: tools/textman/index.html
     - Artifact Type: other
-    - Version: 2.1.0
+    - Version: 2.2.0
     - Date: 2026-07-22
     - Update: Wednesday, July 22, 2026
     - Author: Dennis 'dendogg' Smaltz
@@ -12,6 +12,9 @@
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Mobile reachability
+      (audit finding F5): header gains Workspace/Tools toggle buttons that
+      appear under 768px and drive the slide-in panels via data-mobile-open.
     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Help modal documents
       the new panel-toggle shortcuts (Ctrl/Cmd+[ and Ctrl/Cmd+]) added by the
       collapse-recovery overhaul (audit finding F4).
@@ -128,6 +131,27 @@
             </div>
 
             <div class="header-right">
+                <button class="icon-btn mobile-only" id="btn-mobile-workspace" title="Workspace panel" aria-label="Toggle the Workspace panel" aria-controls="panel-workspace" aria-expanded="false">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                    </svg>
+                </button>
+
+                <button class="icon-btn mobile-only" id="btn-mobile-tools" title="Tools panel" aria-label="Toggle the Tools panel" aria-controls="panel-tools" aria-expanded="false">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="4" y1="21" x2="4" y2="14"></line>
+                        <line x1="4" y1="10" x2="4" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12" y2="3"></line>
+                        <line x1="20" y1="21" x2="20" y2="16"></line>
+                        <line x1="20" y1="12" x2="20" y2="3"></line>
+                        <line x1="1" y1="14" x2="7" y2="14"></line>
+                        <line x1="9" y1="8" x2="15" y2="8"></line>
+                        <line x1="17" y1="16" x2="23" y2="16"></line>
+                    </svg>
+                </button>
+
                 <button class="icon-btn" id="btn-settings" title="Settings" aria-label="Open settings">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>

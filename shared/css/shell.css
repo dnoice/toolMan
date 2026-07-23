@@ -5,7 +5,7 @@
  *     - File Name: shell.css
  *     - Relative Path: shared/css/shell.css
  *     - Artifact Type: config
- *     - Version: 2.2.1
+ *     - Version: 2.3.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,10 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Mobile
+ *       reachability (audit finding F5): .mobile-only header buttons appear
+ *       under 768px, and a .mobile-scrim overlay dims the stage behind a
+ *       slid-in panel and closes it on tap.
  *     - 2.2.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the
  *       header icon buttons' transition:all to the named properties that
  *       actually animate (motion-polish pass).
@@ -249,6 +253,27 @@
     transform: translateY(0);
 }
 
+/* Mobile-only header controls (panel toggles) — hidden on desktop */
+.mobile-only {
+    display: none;
+}
+
+/* Scrim behind a slid-in mobile panel: tap to dismiss */
+.mobile-scrim {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-overlay);
+    z-index: calc(var(--z-panel) - 1);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-base);
+}
+
+.mobile-scrim.is-active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
 /* ===== MAIN CONTENT AREA ===== */
 .app-main {
     flex: 1;
@@ -299,6 +324,10 @@
 @media (max-width: 768px) {
     .app-header {
         padding: 0 var(--space-md);
+    }
+
+    .mobile-only {
+        display: flex;
     }
 
     .app-main {

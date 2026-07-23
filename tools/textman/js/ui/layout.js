@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: LayoutController (textMan Edition - v1.3)
+ *     - Title: LayoutController (textMan Edition - v1.4)
  *     - File Name: layout.js
  *     - Relative Path: tools/textman/js/ui/layout.js
  *     - Artifact Type: script
- *     - Version: 1.3.0
+ *     - Version: 1.4.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,12 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.4.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Mobile
+ *       reachability (audit finding F5): wires the header's mobile toggle
+ *       buttons to data-mobile-open slide-ins (exclusive — opening one
+ *       panel closes the other), injects a tap-to-dismiss scrim, closes on
+ *       Escape (modal-aware), and clears all overlay state when the window
+ *       crosses back to desktop width.
  *     - 1.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Accordion
  *       conversion: section headers now drive State.toggleSection (exclusive
  *       open per sidebar) and applyAccordionState() syncs every section's
@@ -92,6 +98,9 @@
         _dragSection: null,
         _suppressClickUntil: 0,
 
+        _mobileOpen: null,
+        _scrim: null,
+
         init() {
             this.applySectionOrder();
             this.applyAccordionState();
@@ -99,6 +108,7 @@
             this.wirePanelCollapse('panel-tools', 'right');
             this.wireSectionCollapse();
             this.wireSectionDrag();
+            this.wireMobilePanels();
         },
 
         /* ── Panel collapse ─────────────────────────── */
@@ -291,6 +301,48 @@
                 if (y < rect.top + rect.height / 2) return section;
             }
             return null;
+        },
+
+        /* ── Mobile slide-in panels (<768px) ────────── */
+
+        wireMobilePanels() {
+            // Tap-to-dismiss scrim behind a slid-in panel
+            this._scrim = DOM.create('div', { className: 'mobile-scrim' });
+            document.body.appendChild(this._scrim);
+            DOM.on(this._scrim, 'click', () => this.setMobileOpen(null));
+
+            DOM.on('#btn-mobile-workspace', 'click', () => this.toggleMobile('left'));
+            DOM.on('#btn-mobile-tools', 'click', () => this.toggleMobile('right'));
+
+            // Escape closes the open panel — unless a modal owns the key
+            document.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape' || !this._mobileOpen) return;
+                if (window.ModalsUI && ModalsUI.activeModal) return;
+                this.setMobileOpen(null);
+            });
+
+            // Crossing back to desktop width clears the overlay state
+            const mq = window.matchMedia('(min-width: 769px)');
+            const onChange = () => { if (mq.matches) this.setMobileOpen(null); };
+            if (mq.addEventListener) mq.addEventListener('change', onChange);
+            else if (mq.addListener) mq.addListener(onChange);
+        },
+
+        /** Open one side's slide-in ('left'|'right') or close both (null). */
+        setMobileOpen(side) {
+            this._mobileOpen = side;
+
+            DOM.id('panel-workspace')?.setAttribute('data-mobile-open', String(side === 'left'));
+            DOM.id('panel-tools')?.setAttribute('data-mobile-open', String(side === 'right'));
+
+            if (this._scrim) this._scrim.classList.toggle('is-active', side !== null);
+
+            DOM.id('btn-mobile-workspace')?.setAttribute('aria-expanded', String(side === 'left'));
+            DOM.id('btn-mobile-tools')?.setAttribute('aria-expanded', String(side === 'right'));
+        },
+
+        toggleMobile(side) {
+            this.setMobileOpen(this._mobileOpen === side ? null : side);
         },
 
         /** Read the sidebar's DOM order and persist it. */
