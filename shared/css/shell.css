@@ -5,7 +5,7 @@
  *     - File Name: shell.css
  *     - Relative Path: shared/css/shell.css
  *     - Artifact Type: config
- *     - Version: 2.3.0
+ *     - Version: 2.4.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,10 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.4.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Theme toggle now
+ *       shows a moon in the light (parchment) theme and a sun in the dark
+ *       (sentinel) theme, swapped purely by data-theme so it flips the
+ *       instant the theme changes.
  *     - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Mobile
  *       reachability (audit finding F5): .mobile-only header buttons appear
  *       under 768px, and a .mobile-scrim overlay dims the stage behind a
@@ -257,6 +261,14 @@
 .mobile-only {
     display: none;
 }
+
+/* Theme toggle icon: moon in light mode (→ go dark), sun in dark mode
+   (→ go light). Swapped by data-theme so it flips instantly on toggle. */
+.theme-icon-moon { display: block; }
+.theme-icon-sun { display: none; }
+
+[data-theme="sentinel"] .theme-icon-moon { display: none; }
+[data-theme="sentinel"] .theme-icon-sun { display: block; }
 
 /* Scrim behind a slid-in mobile panel: tap to dismiss */
 .mobile-scrim {
