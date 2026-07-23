@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: StateManager (textMan Edition - v2.2)
+ *     - Title: StateManager (textMan Edition - v2.3)
  *     - File Name: state.js
  *     - Relative Path: tools/textman/js/state.js
  *     - Artifact Type: library
- *     - Version: 2.2.0
+ *     - Version: 2.3.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,9 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Editor prefs for
+ *       the QoL batch: editor.docTitle (named document) plus settings
+ *       wordWrap, fontSize, and tabSize, all validated on restore.
  *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Accordion state
  *       model: replaced the ten independent collapsedSections booleans with
  *       ui.openSection (one open section per sidebar, null = all closed),
@@ -106,6 +109,7 @@
 
         editor: {
             content: '',
+            docTitle: 'Untitled',
             lastSaved: null,
             isDirty: false,
             selectionStart: 0,
@@ -271,7 +275,10 @@ High-level description of the feature
 
         settings: {
             autosave: 'debounced', // 'immediate' | 'debounced' | 'manual'
-            autosaveDelay: 1000
+            autosaveDelay: 1000,
+            wordWrap: true,
+            fontSize: 14,          // editor px, clamped 11–22
+            tabSize: 4             // editor tab width, clamped 2–8
         }
     };
 
@@ -286,6 +293,13 @@ High-level description of the feature
         setEditorContent(content) {
             AppState.editor.content = typeof content === 'string' ? content : '';
             AppState.editor.isDirty = true;
+        },
+
+        /** Set the document's title (falls back to 'Untitled' when blank). */
+        setDocTitle(title) {
+            const clean = String(title || '').trim().slice(0, 120);
+            AppState.editor.docTitle = clean || 'Untitled';
+            return AppState.editor.docTitle;
         },
 
         markSaved() {
@@ -508,8 +522,11 @@ High-level description of the feature
         if (!saved || typeof saved !== 'object') return;
 
         if (saved.editor && typeof saved.editor === 'object') {
-            const { content, lastSaved, isDirty } = saved.editor;
+            const { content, docTitle, lastSaved, isDirty } = saved.editor;
             if (typeof content === 'string') AppState.editor.content = content;
+            if (typeof docTitle === 'string' && docTitle.trim()) {
+                AppState.editor.docTitle = docTitle.trim().slice(0, 120);
+            }
             if (typeof lastSaved === 'string' || lastSaved === null) AppState.editor.lastSaved = lastSaved;
             AppState.editor.isDirty = Boolean(isDirty);
         }
@@ -584,13 +601,19 @@ High-level description of the feature
         }
 
         if (saved.settings && typeof saved.settings === 'object') {
-            if (['immediate', 'debounced', 'manual'].includes(saved.settings.autosave)) {
-                AppState.settings.autosave = saved.settings.autosave;
+            const s = saved.settings;
+            if (['immediate', 'debounced', 'manual'].includes(s.autosave)) {
+                AppState.settings.autosave = s.autosave;
             }
-            const delay = Number(saved.settings.autosaveDelay);
+            const delay = Number(s.autosaveDelay);
             if (Number.isFinite(delay) && delay >= 100 && delay <= 60000) {
                 AppState.settings.autosaveDelay = delay;
             }
+            if (typeof s.wordWrap === 'boolean') AppState.settings.wordWrap = s.wordWrap;
+            const fs = Number(s.fontSize);
+            if (Number.isFinite(fs) && fs >= 11 && fs <= 22) AppState.settings.fontSize = fs;
+            const ts = Number(s.tabSize);
+            if (Number.isFinite(ts) && ts >= 2 && ts <= 8) AppState.settings.tabSize = ts;
         }
     }
 

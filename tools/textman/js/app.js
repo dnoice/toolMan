@@ -5,7 +5,7 @@
  *     - File Name: app.js
  *     - Relative Path: tools/textman/js/app.js
  *     - Artifact Type: script
- *     - Version: 2.3.0
+ *     - Version: 2.4.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,9 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.4.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Editor QoL
+ *       shortcuts: Ctrl/Cmd+G go-to-line and Ctrl/Cmd+\ Zen mode (collapse
+ *       both panels; again restores the prior layout).
  *     - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Stamps the
  *       ecosystem last-used record (TOOLMAN.stampLastUsed) during session
  *       tracking, feeding the hub's continue chip and card ordering.
@@ -64,6 +67,7 @@
  *     - Ctrl/Cmd+F → focuses and selects #search-input (not browser find)
  *     - Ctrl/Cmd+, → ModalsUI.open('modal-settings')
  *     - Ctrl/Cmd+[ → LayoutUI.togglePanel('left'); Ctrl/Cmd+] → 'right'
+ *     - Ctrl/Cmd+G → EditorUI.promptGoToLine(); Ctrl/Cmd+\ → Zen mode
  *     - Switching tabs (visibilitychange → hidden) triggers Storage.save()
  *     - Closing with unsaved work → beforeunload warning via editor.isDirty
  *     - App.applyPanelStates(State.get().ui) → re-applies panel/section
@@ -199,6 +203,18 @@
                     }
                 }
 
+                // Ctrl/Cmd + G — go to line
+                if (mod && e.key.toLowerCase() === 'g') {
+                    e.preventDefault();
+                    if (window.EditorUI) EditorUI.promptGoToLine();
+                }
+
+                // Ctrl/Cmd + \ — Zen mode (collapse both panels / restore)
+                if (mod && e.key === '\\') {
+                    e.preventDefault();
+                    this.toggleZen();
+                }
+
                 // Escape — handled by ModalsUI's own listener
             });
         },
@@ -221,6 +237,30 @@
                     e.returnValue = '';
                 }
             });
+        },
+
+        /**
+         * Zen mode: collapse both panels for a distraction-free write; a
+         * second invocation restores whatever layout was showing before.
+         */
+        _zenPrev: null,
+
+        toggleZen() {
+            if (!window.LayoutUI) return;
+            const ui = State.get().ui;
+
+            if (this._zenPrev) {
+                // Restore the pre-Zen layout
+                if (ui.leftPanelCollapsed !== this._zenPrev.left) LayoutUI.togglePanel('left');
+                if (ui.rightPanelCollapsed !== this._zenPrev.right) LayoutUI.togglePanel('right');
+                this._zenPrev = null;
+                TOOLMAN.notify('Zen mode off', 'info', 1200);
+            } else {
+                this._zenPrev = { left: ui.leftPanelCollapsed, right: ui.rightPanelCollapsed };
+                if (!ui.leftPanelCollapsed) LayoutUI.togglePanel('left');
+                if (!ui.rightPanelCollapsed) LayoutUI.togglePanel('right');
+                TOOLMAN.notify('Zen mode — Ctrl+\\ to exit', 'info', 1800);
+            }
         },
 
         /** Count this session in analytics + stamp the ecosystem record. */

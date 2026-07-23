@@ -1,16 +1,27 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: EditorEngine (textMan Edition - v1.0)
+ *     - Title: EditorEngine (textMan Edition - v1.1)
  *     - File Name: editor.js
  *     - Relative Path: tools/textman/js/ui/editor.js
  *     - Artifact Type: library
- *     - Version: 1.0.0
+ *     - Version: 1.1.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Editor QoL batch:
+ *       live line/col readout + Go-to-line (Ctrl+G), word-wrap toggle and
+ *       font-size stepper (persisted via settings, applied through
+ *       applyPrefs), selection-aware stats, Download (.txt/.md) and Copy
+ *       All, and caret/scroll restoration after whole-document transforms so
+ *       the viewport no longer jumps to the top.
+ *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial editor
+ *       engine: undo/redo, stats, file open/drop, diff, autosave,
+ *       applyToSelectionOrAll.
  *
  * ✒ Description:
  *     The engine behind textMan's writing surface. Owns the textarea: live
@@ -99,13 +110,52 @@
             this.textarea.value = State.get().editor.content || '';
             this.lastSavedContent = this.textarea.value;
             this.pushSnapshot(true);
+            this.applyPrefs();
             this.updateStats();
+            this.updateCaretPos();
             this.setStatus(State.get().editor.isDirty ? 'dirty' : 'saved');
 
             this.wireInput();
             this.wireToolbar();
+            this.wireDocTitle();
             this.wireFileOpen();
             this.wireDragAndDrop();
+        },
+
+        /* ── Editor preferences (wrap, font size, tab size) ── */
+
+        /** Apply the persisted editor prefs to the textarea + toolbar. */
+        applyPrefs() {
+            const s = State.get().settings;
+            this.textarea.wrap = s.wordWrap ? 'soft' : 'off';
+            this.textarea.style.whiteSpace = s.wordWrap ? 'pre-wrap' : 'pre';
+            this.textarea.style.fontSize = `${s.fontSize}px`;
+            this.textarea.style.tabSize = String(s.tabSize);
+
+            const wrapBtn = DOM.id('btn-wrap');
+            if (wrapBtn) {
+                wrapBtn.setAttribute('data-active', String(s.wordWrap));
+                wrapBtn.setAttribute('aria-pressed', String(s.wordWrap));
+                wrapBtn.title = s.wordWrap ? 'Word wrap: on' : 'Word wrap: off';
+            }
+            const fontLabel = DOM.id('font-size-label');
+            if (fontLabel) fontLabel.textContent = `${s.fontSize}px`;
+        },
+
+        toggleWrap() {
+            const s = State.get().settings;
+            State.updateSettings('wordWrap', !s.wordWrap);
+            this.applyPrefs();
+            Autosave.start(500);
+        },
+
+        stepFontSize(delta) {
+            const s = State.get().settings;
+            const next = Math.min(22, Math.max(11, s.fontSize + delta));
+            if (next === s.fontSize) return;
+            State.updateSettings('fontSize', next);
+            this.applyPrefs();
+            Autosave.start(500);
         },
 
         /* ── Input pipeline ─────────────────────────── */
@@ -114,17 +164,24 @@
             DOM.on(this.textarea, 'input', () => {
                 State.setEditorContent(this.textarea.value);
                 this.updateStats();
+                this.updateCaretPos();
                 this.setStatus('dirty');
                 this.pushSnapshot();
                 this.scheduleAutosave();
             });
 
-            // Track selection for tools that care
-            DOM.on(this.textarea, 'select', () => {
+            // Track selection for tools that care, refresh selection-aware
+            // stats and the line/col readout as the caret/selection moves.
+            const onSelectionMove = () => {
                 const sel = Text.getSelection(this.textarea);
                 State.get().editor.selectionStart = sel.start;
                 State.get().editor.selectionEnd = sel.end;
-            });
+                this.updateStats();
+                this.updateCaretPos();
+            };
+            DOM.on(this.textarea, 'select', onSelectionMove);
+            DOM.on(this.textarea, 'keyup', onSelectionMove);
+            DOM.on(this.textarea, 'click', onSelectionMove);
 
             // Native undo/redo intercepted so our stack stays authoritative
             DOM.on(this.textarea, 'keydown', (e) => {
@@ -139,6 +196,34 @@
                     this.redo();
                 }
             });
+        },
+
+        /* ── Document title (editable, feeds filename + tab) ── */
+
+        wireDocTitle() {
+            const input = DOM.id('doc-title');
+            if (!input) return;
+
+            input.value = State.get().editor.docTitle || 'Untitled';
+            this.syncTabTitle();
+
+            const commit = () => {
+                const next = State.setDocTitle(input.value);
+                input.value = next;
+                this.syncTabTitle();
+                Autosave.start(500);
+            };
+            DOM.on(input, 'change', commit);
+            DOM.on(input, 'keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+            });
+        },
+
+        syncTabTitle() {
+            const t = State.get().editor.docTitle;
+            document.title = t && t !== 'Untitled'
+                ? `${t} — textMan`
+                : 'textMan – Bend text to your will';
         },
 
         scheduleAutosave() {
@@ -204,20 +289,67 @@
 
         updateStats() {
             const value = this.textarea.value;
-            const words = Text.countWords(value);
-            const chars = Text.countChars(value);
+            const docWords = Text.countWords(value);
+            const docChars = Text.countChars(value);
             const readTime = Text.estimateReadTime(value);
+
+            // Selection-aware: when text is selected, stats reflect it and
+            // annotate with the document total (e.g. "Words: 14 / 1,204").
+            const { text: selText, start, end } = Text.getSelection(this.textarea);
+            const hasSel = start !== end;
+            const words = hasSel ? Text.countWords(selText) : docWords;
+            const chars = hasSel ? selText.length : docChars;
+            const suffix = (total) => hasSel ? ` / ${Text.formatNumber(total)}` : '';
 
             const wordsEl = DOM.id('stat-words');
             const charsEl = DOM.id('stat-chars');
             const readEl = DOM.id('stat-read-time');
 
-            if (wordsEl) wordsEl.textContent = `Words: ${Text.formatNumber(words)}`;
-            if (charsEl) charsEl.textContent = `Characters: ${Text.formatNumber(chars)}`;
+            if (wordsEl) wordsEl.textContent = `Words: ${Text.formatNumber(words)}${suffix(docWords)}`;
+            if (charsEl) charsEl.textContent = `Characters: ${Text.formatNumber(chars)}${suffix(docChars)}`;
             if (readEl) readEl.textContent = `Est. read time: ${readTime} min`;
 
-            State.updateAnalytics(words, chars);
+            const stats = DOM.$('.editor-stats');
+            if (stats) stats.setAttribute('data-selecting', String(hasSel));
+
+            State.updateAnalytics(docWords, docChars);
             if (window.WorkspaceUI) WorkspaceUI.renderAnalytics();
+        },
+
+        /* ── Caret position + Go-to-line ────────────────── */
+
+        /** Update the "Ln X, Col Y" readout from the caret offset. */
+        updateCaretPos() {
+            const el = DOM.id('stat-caret');
+            if (!el) return;
+            const pos = this.textarea.selectionStart;
+            const before = this.textarea.value.substring(0, pos);
+            const line = before.split('\n').length;
+            const col = pos - before.lastIndexOf('\n');
+            el.textContent = `Ln ${line}, Col ${col}`;
+        },
+
+        /** Move the caret to the start of a 1-based line and center it. */
+        goToLine(line) {
+            const lines = this.textarea.value.split('\n');
+            const target = Math.min(Math.max(1, line), lines.length);
+            let offset = 0;
+            for (let i = 0; i < target - 1; i++) offset += lines[i].length + 1;
+
+            this.textarea.focus();
+            this.textarea.setSelectionRange(offset, offset);
+            // Approximate vertical centering
+            const lineHeight = parseFloat(getComputedStyle(this.textarea).lineHeight) || 20;
+            this.textarea.scrollTop = Math.max(0, (target - 1) * lineHeight - this.textarea.clientHeight / 2);
+            this.updateCaretPos();
+        },
+
+        promptGoToLine() {
+            const total = this.textarea.value.split('\n').length;
+            const answer = window.prompt(`Go to line (1–${total}):`, '');
+            if (answer === null) return;
+            const n = parseInt(answer, 10);
+            if (Number.isFinite(n)) this.goToLine(n);
         },
 
         /* ── Undo / Redo ────────────────────────────── */
@@ -285,7 +417,41 @@
             DOM.on('#btn-undo', 'click', () => this.undo());
             DOM.on('#btn-redo', 'click', () => this.redo());
             DOM.on('#btn-diff', 'click', () => this.showDiff());
+            DOM.on('#btn-download', 'click', () => this.download());
+            DOM.on('#btn-copy-all', 'click', () => this.copyAll());
+            DOM.on('#btn-wrap', 'click', () => this.toggleWrap());
+            DOM.on('#btn-font-dec', 'click', () => this.stepFontSize(-1));
+            DOM.on('#btn-font-inc', 'click', () => this.stepFontSize(1));
+            DOM.on('#stat-caret', 'click', () => this.promptGoToLine());
             this.updateUndoButtons();
+        },
+
+        /* ── Export: download + copy ────────────────────── */
+
+        /** Download the document as a text file named from the doc title. */
+        download() {
+            const title = (State.get().editor.docTitle || 'untitled').trim();
+            const looksMarkdown = /^#|\n#|^[-*] |\n[-*] /.test(this.textarea.value);
+            const ext = looksMarkdown ? 'md' : 'txt';
+            const safe = title.replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'untitled';
+
+            const blob = new Blob([this.textarea.value], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = DOM.create('a', { attrs: { href: url, download: `${safe}.${ext}` } });
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+
+            State.addHistory({ type: 'save', description: `Downloaded ${safe}.${ext}` });
+            if (window.WorkspaceUI) WorkspaceUI.renderHistory();
+            TOOLMAN.notify(`Downloaded ${safe}.${ext}`, 'success', 1600);
+        },
+
+        async copyAll() {
+            const ok = await DOM.copyText(this.textarea.value);
+            TOOLMAN.notify(ok ? 'Document copied to clipboard' : 'Copy failed',
+                ok ? 'success' : 'error', 1500);
         },
 
         /* ── File open ──────────────────────────────── */
@@ -342,6 +508,13 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 this.setValue(String(e.target.result || ''));
+                // Name the document from the file (drop the extension).
+                const baseName = file.name.replace(/\.[^.]+$/, '');
+                State.setDocTitle(baseName);
+                const titleInput = DOM.id('doc-title');
+                if (titleInput) titleInput.value = State.get().editor.docTitle;
+                this.syncTabTitle();
+
                 State.addHistory({ type: 'save', description: `Opened file: ${file.name}` });
                 if (window.WorkspaceUI) WorkspaceUI.renderHistory();
                 TOOLMAN.notify(`Opened ${file.name}`, 'success', 2000);
@@ -472,16 +645,24 @@
 
             if (typeof result !== 'string' || result === source) return false;
 
+            // Preserve the viewport so a whole-document transform doesn't
+            // yank the user back to the top.
+            const prevScroll = this.textarea.scrollTop;
+
             if (hasSelection) {
                 const value = this.textarea.value;
                 this.textarea.value = value.substring(0, start) + result + value.substring(end);
                 this.textarea.setSelectionRange(start, start + result.length);
             } else {
+                const prevStart = this.textarea.selectionStart;
                 this.textarea.value = result;
-                this.textarea.setSelectionRange(0, 0);
+                // Keep the caret near where it was, clamped to the new length.
+                const caret = Math.min(prevStart, result.length);
+                this.textarea.setSelectionRange(caret, caret);
             }
 
             this.textarea.focus();
+            this.textarea.scrollTop = prevScroll;
             this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
             return true;
         }

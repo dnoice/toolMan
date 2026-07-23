@@ -5,7 +5,7 @@
  *     - File Name: editor.css
  *     - Relative Path: tools/textman/css/editor.css
  *     - Artifact Type: config
- *     - Version: 1.0.1
+ *     - Version: 1.1.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,10 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Editor QoL batch
+ *       styling: editable document-title input, font-size label, toolbar
+ *       divider, word-wrap active state, no-wrap textarea variant, the
+ *       line/col caret pill, and the selection-aware stats accent.
  *     - 1.0.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the
  *       control-button and stat-pill transition:all declarations to named
  *       properties (motion-polish pass).
@@ -103,6 +107,60 @@
     gap: var(--space-xs);
 }
 
+.editor-tools {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Editable document title */
+.doc-title {
+    width: 100%;
+    max-width: 280px;
+    padding: var(--space-xs) var(--space-sm);
+    background: transparent;
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--fg-default);
+    font-size: var(--font-sm);
+    font-weight: var(--font-semibold);
+    text-overflow: ellipsis;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.doc-title::placeholder {
+    color: var(--fg-subtle);
+}
+
+.doc-title:hover {
+    border-color: var(--border-muted);
+}
+
+.doc-title:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    background: var(--bg-input);
+}
+
+/* Font-size readout between the steppers */
+.font-size-label {
+    min-width: 34px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--fg-muted);
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Vertical divider between toolbar groups */
+.control-divider {
+    width: 1px;
+    height: 22px;
+    margin: 0 var(--space-xs);
+    background: var(--border-muted);
+    flex-shrink: 0;
+}
+
 /* Control buttons — soft squares with press feedback */
 .control-btn {
     width: 36px;
@@ -139,6 +197,12 @@
 
 .control-btn.btn-save:hover:not(:disabled) {
     color: var(--color-success);
+}
+
+/* Active toggle state (word wrap) */
+.control-btn[data-active="true"] {
+    color: var(--color-brand);
+    background: var(--bg-active);
 }
 
 /* ===== SAVE STATUS CHIP ===== */
@@ -231,6 +295,12 @@
     font-style: italic;
 }
 
+/* No-wrap variant: horizontal scroll instead of soft wrapping */
+.editor-textarea[wrap="off"] {
+    white-space: pre;
+    overflow-x: auto;
+}
+
 .editor-textarea:focus {
     outline: none;
     border-color: var(--border-focus);
@@ -282,6 +352,18 @@
     color: var(--fg-default);
     transform: translateY(-1px);
     box-shadow: var(--shadow-sm);
+}
+
+/* Caret readout leans on mono numerals and a click affordance */
+.stat-caret {
+    cursor: pointer;
+}
+
+/* When a selection is active, the word/char pills read as "live" */
+.editor-stats[data-selecting="true"] #stat-words,
+.editor-stats[data-selecting="true"] #stat-chars {
+    border-color: var(--color-brand);
+    color: var(--color-brand);
 }
 
 /* ===== RESPONSIVE ===== */
