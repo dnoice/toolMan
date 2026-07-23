@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: HubStyles (toolMan Edition - v1.3)
+ *     - Title: HubStyles (toolMan Edition - v1.4)
  *     - File Name: hub.css
  *     - Relative Path: shared/css/hub.css
  *     - Artifact Type: config
- *     - Version: 1.3.0
+ *     - Version: 1.4.0
  *     - Date: 2026-07-23
  *     - Update: Thursday, July 23, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,14 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.4.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Hub loader orbit
+ *       intro: a pure-CSS sequence (adapted from the FIREWATCH splash) — the
+ *       five tool icons sweep into a 180deg arc around the toolMan mark with
+ *       an elastic fly-in, then breathe as a settled ring while the mark and
+ *       wordmark reveal. Sized (168px radius, 96px mark) and paced to give the
+ *       composition room. Also removed the now-dead .hub-footer .signature
+ *       rule and its docstring references (the footer signature element is
+ *       gone).
  *     - 1.3.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Viewport-fit
  *       landing page: the hub used to overflow on any monitor shorter than
  *       ~1536px tall (the footer and part of the grid pushed off-screen —
@@ -50,7 +58,7 @@
  *     - Responsive auto-fill tool card grid
  *     - Live cards: gold accent, lift + glow on hover, launch affordance
  *     - Coming-soon cards: dimmed, non-interactive, labeled status chip
- *     - Hub footer with the house signature
+ *     - Hub footer with the maker credit and version/GitHub meta line
  *
  * ✒ Usage Instructions:
  *     Load via a link tag on the hub page only, after reset.css, tokens.css,
@@ -71,9 +79,6 @@
  *     A coming-soon card dims to sixty percent opacity with an fg-subtle
  *     icon and a neutral bg-tag status chip; a live card's chip sits on the
  *     wash-tip surface in color-success.
- *
- *     The hub footer signature renders in the mono font stack colored
- *     color-identity-gold.
  *
  *     Under the 480px breakpoint the card grid collapses to a single column
  *     and the hub title steps down one size on the type ramp.
@@ -436,11 +441,237 @@
     text-decoration: underline;
 }
 
-.hub-footer .signature {
-    font-family: var(--font-mono);
-    color: var(--color-identity-gold);
-    letter-spacing: 0.02em;
-    margin-top: var(--space-xs);
+/* ===================================================================
+   HUB LOADER — the tool family sweeps into an arc around the toolMan
+   mark, breathes as a settled ring, then the shared loader beat fades
+   to the landing page. Pure CSS (loader.js still drives progress and
+   the handoff timing). Orbit technique adapted from the FIREWATCH
+   splash: each satellite is placed by rotate → translateY(-radius) →
+   counter-rotate off a zero-size anchor on the mark's center. Fixed
+   navy/gold treatment, matching the loader's theme-independent look.
+   =================================================================== */
+
+/* Transparent stage — the composition floats on the navy loader canvas
+   (no glass card) so the arc can bloom above the mark unclipped. The top
+   padding reserves headroom for that arc. */
+.loader-card--hub {
+    background: none;
+    border: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    min-width: 0;
+    gap: var(--space-lg);
+    padding: 200px var(--space-2xl) var(--space-2xl);
+}
+
+.loader-logo--orbit {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    overflow: visible;
+}
+
+/* Central mark: a soft scale-in, then a steady breathing glow. Overrides
+   the shell's infinite pulse (this selector is more specific). */
+.loader-logo--orbit > .loader-logo-svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 16px rgba(201, 168, 76, 0.38));
+    animation:
+        hubMarkIn 800ms cubic-bezier(0.22, 0.61, 0.36, 1) 250ms both,
+        hubMarkBreath 3800ms ease-in-out 1500ms infinite;
+}
+
+@keyframes hubMarkIn {
+    0%   { opacity: 0; transform: scale(0.55); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes hubMarkBreath {
+    0%, 100% { filter: drop-shadow(0 0 12px rgba(201, 168, 76, 0.30)); }
+    50%      { filter: drop-shadow(0 0 22px rgba(201, 168, 76, 0.55)); }
+}
+
+/* Radial halo behind the mark, pulsing in time with the breath. */
+.loader-logo-halo {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 210px;
+    height: 210px;
+    transform: translate(-50%, -50%);
+    border-radius: var(--radius-full);
+    background: radial-gradient(circle, rgba(201, 168, 76, 0.26) 0%, transparent 70%);
+    opacity: 0;
+    pointer-events: none;
+    animation: hubHaloPulse 3800ms ease-in-out 1500ms infinite;
+}
+
+@keyframes hubHaloPulse {
+    0%, 100% { opacity: 0.12; transform: translate(-50%, -50%) scale(0.9); }
+    50%      { opacity: 0.42; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* Zero-size anchor at the mark's center; satellites orbit around it. */
+.loader-orbit {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.loader-sat {
+    --orbit-radius: 168px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;    /* center the tile on the anchor point */
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+
+    background: rgba(15, 26, 51, 0.55);
+    border: var(--border-width) solid rgba(201, 168, 76, 0.30);
+    color: var(--identity-gold);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+
+    opacity: 0;
+    filter: drop-shadow(0 0 6px rgba(201, 168, 76, 0.25));
+
+    /* (1) elastic sweep in from beyond the ring, (2) a staggered breath
+       once settled so the assembled family reads as alive, not static. */
+    animation:
+        hubSatIn 1600ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+        hubSatBreath 4000ms ease-in-out infinite;
+    animation-delay:
+        calc(350ms + var(--orbit-index) * 90ms),
+        calc(2600ms + var(--orbit-index) * 90ms);
+}
+
+.loader-sat svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* The live tool (textMan) reads a touch brighter at the crown of the arc. */
+.loader-sat--live {
+    border-color: rgba(201, 168, 76, 0.55);
+    color: #E8C878;
+    filter: drop-shadow(0 0 9px rgba(201, 168, 76, 0.45));
+}
+
+@keyframes hubSatIn {
+    /* Off the ring: invisible, well outside, small — flies inward along the
+       radial line toward its arc position (FIREWATCH sp-orbit-cycle values). */
+    0% {
+        opacity: 0;
+        transform: rotate(var(--orbit-angle)) translateY(calc(-1 * var(--orbit-radius) - 80px)) rotate(calc(-1 * var(--orbit-angle))) scale(0.4);
+    }
+    40% {
+        opacity: 1;
+        transform: rotate(var(--orbit-angle)) translateY(calc(-1 * var(--orbit-radius) - 30px)) rotate(calc(-1 * var(--orbit-angle))) scale(0.85);
+    }
+    /* Overshoot slightly past the ring before the elastic curve settles it. */
+    72% {
+        opacity: 1;
+        transform: rotate(var(--orbit-angle)) translateY(calc(-1 * var(--orbit-radius) - 8px)) rotate(calc(-1 * var(--orbit-angle))) scale(1.15);
+    }
+    100% {
+        opacity: 1;
+        transform: rotate(var(--orbit-angle)) translateY(calc(-1 * var(--orbit-radius))) rotate(calc(-1 * var(--orbit-angle))) scale(1);
+    }
+}
+
+@keyframes hubSatBreath {
+    0%, 100% {
+        transform: rotate(var(--orbit-angle)) translateY(calc(-1 * var(--orbit-radius))) rotate(calc(-1 * var(--orbit-angle))) scale(1);
+        filter: drop-shadow(0 0 6px rgba(201, 168, 76, 0.25));
+    }
+    50% {
+        transform: rotate(var(--orbit-angle)) translateY(calc(-1 * var(--orbit-radius))) rotate(calc(-1 * var(--orbit-angle))) scale(1.06);
+        filter: drop-shadow(0 0 11px rgba(201, 168, 76, 0.45));
+    }
+}
+
+/* Wordmark, tagline, then the progress line settle in top-down after the
+   ring has assembled and the mark has landed. */
+.loader-card--hub .loader-title {
+    animation: hubTextIn 700ms ease-out 1500ms both;
+}
+
+.loader-card--hub .loader-tagline {
+    animation: hubTextIn 700ms ease-out 1750ms both;
+}
+
+.loader-card--hub .loader-bar {
+    animation: hubTextIn 700ms ease-out 2050ms both;
+}
+
+@keyframes hubTextIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Tighter ring where the viewport is short or narrow, so the larger arc
+   never bleeds off the top edge. */
+@media (max-height: 760px), (max-width: 520px) {
+    .loader-card--hub {
+        padding-top: 150px;
+    }
+
+    .loader-logo--orbit {
+        width: 76px;
+        height: 76px;
+    }
+
+    .loader-sat {
+        --orbit-radius: 124px;
+        width: 38px;
+        height: 38px;
+        margin: -19px 0 0 -19px;
+    }
+
+    .loader-sat svg {
+        width: 21px;
+        height: 21px;
+    }
+
+    .loader-logo-halo {
+        width: 160px;
+        height: 160px;
+    }
+}
+
+/* Reduced motion: skip the sweep/breath — present the settled arc. */
+@media (prefers-reduced-motion: reduce) {
+    .loader-logo--orbit > .loader-logo-svg,
+    .loader-logo-halo,
+    .loader-card--hub .loader-title,
+    .loader-card--hub .loader-tagline,
+    .loader-sat {
+        animation: none;
+    }
+
+    .loader-logo--orbit > .loader-logo-svg,
+    .loader-card--hub .loader-title,
+    .loader-card--hub .loader-tagline {
+        opacity: 1;
+        transform: none;
+    }
+
+    .loader-logo-halo { opacity: 0.2; }
+
+    .loader-sat {
+        opacity: 1;
+        transform: rotate(var(--orbit-angle)) translateY(calc(-1 * var(--orbit-radius))) rotate(calc(-1 * var(--orbit-angle)));
+    }
 }
 
 /* ===== RESPONSIVE ===== */
@@ -497,10 +728,6 @@
 
     .hub-footer {
         padding: var(--space-sm) 0;
-    }
-
-    .hub-footer .signature {
-        display: none;
     }
 }
 

@@ -1,17 +1,23 @@
 <!--
 ✒ Metadata
-    - Title: HubPage (toolMan Edition - v1.3)
+    - Title: HubPage (toolMan Edition - v1.4)
     - File Name: index.html
     - Relative Path: index.html
     - Artifact Type: other
-    - Version: 1.3.0
-    - Date: 2026-07-22
-    - Update: Wednesday, July 22, 2026
+    - Version: 1.4.0
+    - Date: 2026-07-23
+    - Update: Thursday, July 23, 2026
     - Author: Dennis 'dendogg' Smaltz
     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 1.4.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Hub loader gains the
+      orbit intro: the tool family (colorMan, mathMan, textMan, convertMan,
+      devMan) sweeps into an arc around the central toolMan mark before the
+      landing opens (markup here; animation in hub.css, pacing in loader.js).
+      Also removed the gunslinger signature line from the footer — that mark
+      lives in the file-header docstrings, not as an on-page element.
     - 1.3.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Theme toggle carries
       both sun and moon icons (CSS swaps by data-theme). Card icons come from
       shared/js/hub.js, where textMan now uses its real pen mark.
@@ -78,12 +84,37 @@
     <!-- LOADING SCREEN -->
     <!-- ============================================ -->
     <div id="loader-screen" class="loader-screen" role="status" aria-live="polite">
-        <div class="loader-card">
-            <div class="loader-logo" aria-hidden="true">
-                <svg width="80" height="80" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <div class="loader-card loader-card--hub">
+
+            <!-- Central toolMan mark with the tool family sweeping into an
+                 arc around it, then breathing before the landing opens.
+                 Pure CSS — loader.js keeps the shared progress/handoff beat. -->
+            <div class="loader-logo loader-logo--orbit" aria-hidden="true">
+                <span class="loader-logo-halo"></span>
+
+                <div class="loader-orbit">
+                    <span class="loader-sat" style="--orbit-index: 0; --orbit-angle: 270deg;" title="colorMan">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="12.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="13.5" r="2.5"/><path d="M12 22a10 10 0 1 1 10-10c0 2-1.5 3-3 3h-2a2 2 0 0 0-2 2c0 .5.2 1 .5 1.5.3.5.5 1 .5 1.5 0 1-1 2-4 2z"/></svg>
+                    </span>
+                    <span class="loader-sat" style="--orbit-index: 1; --orbit-angle: 315deg;" title="mathMan">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h6M8 4v6M14 6h5M14 16l5 5M19 16l-5 5M5 17h6"/></svg>
+                    </span>
+                    <span class="loader-sat loader-sat--live" style="--orbit-index: 2; --orbit-angle: 360deg;" title="textMan">
+                        <svg viewBox="0 0 20 20"><path fill="currentColor" d="m18.858 0.087595c-0.068533 0.080388-0.09085 0.19042-0.059081 0.29118-0.14604 0.11305-0.2958 0.21943-0.44882 0.31982-2.7005 1.5776-6.341 1.7177-9.4146 1.2188-0.088204-0.014314-0.19748 0.035231-0.24406 0.11154-1.7923 2.9363-3.4305 5.9718-5.1226 8.9685-0.047453 0.08404-0.14253 0.09763-0.21229 0.0304l-1.0931-1.0538c-0.069801-0.067202-0.17989-0.064333-0.24598 0.00658-0.23531 0.25231-0.47053 0.5047-0.70595 0.75691-0.066127 0.07084-0.063028 0.1826 0.00692 0.24964 0.1655 0.15857 0.33092 0.31723 0.49641 0.47582 0.069973 0.06703 0.063138 0.16761-0.015209 0.22461l-1.7383 1.2646a0.14992 0.15001 0 0 0-0.0179 0.22735l6.7659 6.7761a0.1511 0.15119 0 0 0 0.2283-0.01685l1.2798-1.7294c0.057647-0.0779 0.15869-0.08431 0.22571-0.01432 0.15848 0.1656 0.31705 0.33111 0.47555 0.49669 0.066989 0.07001 0.17869 0.07309 0.24948 7e-3 0.25204-0.23558 0.50426-0.47095 0.75646-0.70637 0.0708-0.06614 0.07376-0.1763 0.0066-0.2461l-1.0532-1.0939c-0.06721-0.06981-0.054722-0.16741 0.028112-0.21766 2.9399-1.7834 6.0876-3.238 8.9688-5.1164 0.07462-0.04864 0.12447-0.16013 0.11208-0.24869-0.44224-3.1611-0.43973-6.6048 1.2144-9.4194 0.10034-0.15311 0.20644-0.30308 0.31964-0.44908 0.10071 0.031787 0.21068 0.00946 0.29102-0.059117 0.13824-0.1403 0.11286-0.40525-0.07696-0.47005-0.01756-0.005983-0.04255 0.002647-0.05506 0.016694-1.7485 1.964-3.5702 3.8426-5.4854 5.6395-0.0652 0.061164-0.08469 0.17504-0.04962 0.25727 0.21094 0.49455 0.32039 1.1954-0.03807 1.5311-0.43682 0.40498-1.3051 0.37868-1.9979-0.32159-0.68594-0.67621-0.73588-1.5515-0.32141-1.9991 0.3357-0.35894 1.0365-0.24888 1.5303-0.038056 0.08214 0.035075 0.1944 0.014165 0.25389-0.05256 1.7483-1.9609 3.724-3.6958 5.6417-5.4867 0.01281-0.011962 0.02041-0.036746 0.01432-0.054527-0.06503-0.18964-0.32962-0.21472-0.46967-0.076567z"/></svg>
+                    </span>
+                    <span class="loader-sat" style="--orbit-index: 3; --orbit-angle: 405deg;" title="convertMan">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg>
+                    </span>
+                    <span class="loader-sat" style="--orbit-index: 4; --orbit-angle: 450deg;" title="devMan">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg>
+                    </span>
+                </div>
+
+                <svg class="loader-logo-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="8.5" width="18" height="11.5" rx="1.5"/><path d="M3 13.5h18M8.5 8.5V7a3.5 3.5 0 0 1 7 0v1.5M10 13.5v2.5h4v-2.5"/>
                 </svg>
             </div>
+
             <h1 class="loader-title">tool<span class="logo-accent">Man</span></h1>
             <p class="loader-tagline">One workshop, many tools</p>
 
@@ -144,7 +175,6 @@
             <footer class="hub-footer">
                 <p>Crafted by Dennis 'dendogg' Smaltz</p>
                 <p class="hub-meta">toolMan v<span id="hub-version"></span> · <a href="https://github.com/dnoice/toolMan" target="_blank" rel="noopener">GitHub</a></p>
-                <p class="signature">︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!</p>
             </footer>
         </main>
 

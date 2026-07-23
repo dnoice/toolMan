@@ -1,18 +1,23 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: LoaderController (toolMan Edition - v2.2)
+ *     - Title: LoaderController (toolMan Edition - v2.3)
  *     - File Name: loader.js
  *     - Relative Path: shared/js/loader.js
  *     - Artifact Type: library
- *     - Version: 2.2.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Version: 2.3.0
+ *     - Date: 2026-07-23
+ *     - Update: Thursday, July 23, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.3.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Deliberate pacing
+ *       for the hub orbit intro: MIN_DISPLAY_MS 3200->4500 and the returning-
+ *       visitor fast path 1200->2400 (so the arc still forms), Ready beat
+ *       450->650, failsafe 8000->9000. Gives the loader sequence room to
+ *       assemble, breathe, and settle before the handoff.
  *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Returning-visitor
  *       fast path: after the first full sequence in a browser session
  *       (sessionStorage 'toolman.loaderSeen'), the minimum display drops to
@@ -35,14 +40,15 @@
  *
  * ✒ Description:
  *     Controls the branded loading screen shared by the hub and every tool.
- *     Runs a deliberate ~3.5-second sequence — paced progress ramp, two
- *     rotating status messages, a held "Ready!" beat — before fading to the
- *     main UI, regardless of how fast boot actually finished. A fail-safe
+ *     Runs a deliberate ~4.5-second sequence — paced progress ramp, rotating
+ *     status messages, a held "Ready!" beat — before fading to the main UI,
+ *     regardless of how fast boot actually finished. On the hub this is the
+ *     window the orbit intro plays in. A fail-safe
  *     timer guarantees the loader always resolves even if initialization
  *     throws; reduced-motion users skip the ceremony and hand off promptly.
  *
  * ✒ Key Features:
- *     - Deliberate pacing: MIN_DISPLAY_MS (3200ms) minimum on-screen time —
+ *     - Deliberate pacing: MIN_DISPLAY_MS (4500ms) minimum on-screen time —
  *       complete() calls arriving early are held, never dropped
  *     - Paced progress ramp: ~90% over ~2.6s, parking until completion
  *     - Rotating status messages every 1600ms with fade transitions
@@ -84,12 +90,12 @@
 (function () {
     'use strict';
 
-    const FAILSAFE_MS = 8000;
-    const MIN_DISPLAY_MS = 3200;      // the deliberate on-screen beat (first visit)
-    const MIN_DISPLAY_FAST_MS = 1200; // returning-visitor fast path
+    const FAILSAFE_MS = 9000;
+    const MIN_DISPLAY_MS = 4500;      // the deliberate on-screen beat (first visit)
+    const MIN_DISPLAY_FAST_MS = 2400; // returning-visitor fast path (arc still forms)
     const SEEN_KEY = 'toolman.loaderSeen';
-    const MESSAGE_CYCLE_MS = 1600;    // two messages land inside the sequence
-    const READY_BEAT_MS = 450;        // how long "Ready!" holds before the fade
+    const MESSAGE_CYCLE_MS = 1600;    // messages land inside the sequence
+    const READY_BEAT_MS = 650;        // how long "Ready!" holds before the fade
 
     /** True once the full sequence has played this browser session. */
     function seenThisSession() {

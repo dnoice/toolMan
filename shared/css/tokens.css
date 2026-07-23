@@ -5,14 +5,18 @@
  *     - File Name: tokens.css
  *     - Relative Path: shared/css/tokens.css
  *     - Artifact Type: config
- *     - Version: 2.1.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Version: 2.1.1
+ *     - Date: 2026-07-23
+ *     - Update: Thursday, July 23, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.1.1 (2026-07-23) [Anthropic - Claude Opus 4.8] — Softened the
+ *       reflection-gradient sheen: lower peak alpha (0.35->0.16 parchment,
+ *       0.08->0.055 sentinel) and a narrower band, so the panel/tool-header
+ *       hover glint glides rather than flashes (pairs with panels.css 2.4.2).
  *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Added per-theme
  *       depth tokens (card-gradient, card-inset, card-shadow, card-shadow-
  *       hover, vignette) so cards and tool sections separate cleanly from the
@@ -179,9 +183,9 @@
     --vignette: radial-gradient(ellipse 130% 100% at 50% 0%, transparent 55%, rgba(62, 47, 30, 0.07) 100%);
     --reflection-gradient: linear-gradient(
         135deg,
-        transparent 30%,
-        rgba(255, 255, 255, 0.35) 50%,
-        transparent 70%
+        transparent 38%,
+        rgba(255, 255, 255, 0.16) 50%,
+        transparent 62%
     );
 }
 
@@ -259,9 +263,9 @@
     --vignette: radial-gradient(ellipse 130% 100% at 50% 0%, transparent 50%, rgba(0, 0, 0, 0.45) 100%);
     --reflection-gradient: linear-gradient(
         135deg,
-        transparent 30%,
-        rgba(232, 223, 204, 0.08) 50%,
-        transparent 70%
+        transparent 38%,
+        rgba(232, 223, 204, 0.055) 50%,
+        transparent 62%
     );
 }
 

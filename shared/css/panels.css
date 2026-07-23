@@ -5,7 +5,7 @@
  *     - File Name: panels.css
  *     - Relative Path: shared/css/panels.css
  *     - Artifact Type: config
- *     - Version: 2.4.1
+ *     - Version: 2.4.2
  *     - Date: 2026-07-23
  *     - Update: Thursday, July 23, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,11 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.4.2 (2026-07-23) [Anthropic - Claude Opus 4.8] — Refined the header
+ *       sheen sweep (owner feedback): a single soft opacity peak at mid-cross
+ *       instead of a bright hold, on a slower 900ms ease-out glide (was
+ *       650ms), so the reflection glides rather than flashes. Pairs with the
+ *       lowered reflection-gradient alpha in tokens.css 2.1.1.
  *     - 2.4.1 (2026-07-23) [Anthropic - Claude Opus 4.8] — Removed the stale
  *       .tool-section { flex: 0 0 auto } override in the <=768px block — a
  *       leftover from the pre-accordion equal-panes layout that fought the
@@ -184,13 +189,14 @@
 }
 
 .panel-header:hover::before {
-    animation: sheenSweep 650ms ease forwards;
+    animation: sheenSweep 900ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
 }
 
+/* A single soft glint: opacity rises to a gentle peak at mid-cross and eases
+   back out — no bright hold, so the highlight glides rather than flashes. */
 @keyframes sheenSweep {
     0%   { opacity: 0; transform: translateX(-100%) rotate(45deg); }
-    12%  { opacity: 1; }
-    88%  { opacity: 1; }
+    50%  { opacity: 1; }
     100% { opacity: 0; transform: translateX(100%) rotate(45deg); }
 }
 
@@ -407,7 +413,7 @@
 }
 
 .tool-header:hover::before {
-    animation: sheenSweep 650ms ease forwards;
+    animation: sheenSweep 900ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
 }
 
 /* No sheen theatrics while a section is being dragged */
