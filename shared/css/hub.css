@@ -1,18 +1,30 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: HubStyles (toolMan Edition - v1.1)
+ *     - Title: HubStyles (toolMan Edition - v1.3)
  *     - File Name: hub.css
  *     - Relative Path: shared/css/hub.css
  *     - Artifact Type: config
- *     - Version: 1.2.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Version: 1.3.0
+ *     - Date: 2026-07-23
+ *     - Update: Thursday, July 23, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.3.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Viewport-fit
+ *       landing page: the hub used to overflow on any monitor shorter than
+ *       ~1536px tall (the footer and part of the grid pushed off-screen —
+ *       126px clipped at 1440x900, 306px at 1280x720). Added a height-keyed
+ *       breakpoint ladder — 900px compresses the hero, 780px tightens card
+ *       density and drops the subtitle, 680px sheds the logo and tagline — so
+ *       the grid and footer stay in view as the viewport shrinks, while a tall
+ *       reference monitor keeps the full spacing. The footer now anchors to
+ *       the viewport bottom (margin-top:auto, collapsing to 0 under overflow),
+ *       and the base main/hero paddings dropped 2xl->xl. Verified 0 overflow
+ *       from 2560x1440 down to 1024x600. (Also folds in the earlier search-
+ *       field shrink at <=480 from the media-query pass.)
  *     - 1.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Hub QoL batch:
  *       header tool-search field, continue chip, card overlay launch link
  *       (cards are now articles), pin/reset card actions, stored-data and
@@ -82,11 +94,12 @@
 
 .hub-main {
     flex: 1;
-    overflow-y: auto;
+    min-height: 0;          /* let the flex track govern height, never grow past it */
+    overflow-y: auto;       /* safety valve below the shortest breakpoint */
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: var(--space-2xl) var(--space-lg);
+    padding: var(--space-xl) var(--space-lg);
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) transparent;
 }
@@ -116,7 +129,7 @@
 /* ===== HERO ===== */
 .hub-hero {
     text-align: center;
-    margin-bottom: var(--space-2xl);
+    margin-bottom: var(--space-xl);
     max-width: 640px;
 }
 
@@ -401,8 +414,9 @@
 
 /* ===== HUB FOOTER ===== */
 .hub-footer {
-    margin-top: var(--space-3xl);
-    padding: var(--space-lg) 0;
+    margin-top: auto;       /* anchor to the bottom of the viewport; collapses to
+                               0 when content overflows, so it never adds height */
+    padding: var(--space-md) 0;
     text-align: center;
     font-size: var(--font-xs);
     color: var(--fg-subtle);
@@ -430,9 +444,94 @@
 }
 
 /* ===== RESPONSIVE ===== */
+
+/* Height ladder — the big monitor (tall viewport) is the design reference with
+   full spacing; as the viewport gets shorter we progressively reclaim vertical
+   room (hero → card density → footer) so the grid and footer are never pushed
+   off-screen. overflow-y:auto on .hub-main is the last-resort scroll below the
+   shortest tier. Longhand padding sides so the width query below composes with
+   these without either resetting the other. */
+@media (max-height: 900px) {
+    .hub-main {
+        padding-top: var(--space-lg);
+        padding-bottom: var(--space-lg);
+    }
+
+    .hub-hero {
+        margin-bottom: var(--space-lg);
+    }
+
+    .hub-hero .hero-logo {
+        width: 60px;
+        height: 60px;
+        margin-bottom: var(--space-sm);
+    }
+
+    .hub-title {
+        font-size: var(--font-3xl);
+    }
+
+    .continue-slot {
+        margin-top: var(--space-md);
+    }
+}
+
+@media (max-height: 780px) {
+    .hub-hero .hero-logo {
+        width: 52px;
+        height: 52px;
+    }
+
+    .hub-subtitle {
+        display: none;      /* least load-bearing hero line goes first */
+    }
+
+    .tool-grid {
+        gap: var(--space-md);
+    }
+
+    .tool-card {
+        padding: var(--space-md);
+        gap: var(--space-sm);
+    }
+
+    .hub-footer {
+        padding: var(--space-sm) 0;
+    }
+
+    .hub-footer .signature {
+        display: none;
+    }
+}
+
+@media (max-height: 680px) {
+    .hub-hero {
+        margin-bottom: var(--space-md);
+    }
+
+    .hub-hero .hero-logo {
+        display: none;      /* on the shortest laptops, drop the mark entirely */
+    }
+
+    .hub-tagline {
+        display: none;
+    }
+
+    .hub-title {
+        font-size: var(--font-2xl);
+    }
+
+    .continue-slot {
+        margin-top: var(--space-sm);
+    }
+}
+
+/* Width ladder — narrow viewports (phones). Uses longhand horizontal padding so
+   it stacks cleanly with the height tiers' vertical padding. */
 @media (max-width: 480px) {
     .hub-main {
-        padding: var(--space-lg) var(--space-md);
+        padding-left: var(--space-md);
+        padding-right: var(--space-md);
     }
 
     .hub-title {
@@ -441,5 +540,12 @@
 
     .tool-grid {
         grid-template-columns: 1fr;
+    }
+
+    /* Let the search field give up width instead of crowding the toggle */
+    .tool-search {
+        width: auto;
+        flex: 1 1 auto;
+        min-width: 0;
     }
 }

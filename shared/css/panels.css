@@ -5,14 +5,19 @@
  *     - File Name: panels.css
  *     - Relative Path: shared/css/panels.css
  *     - Artifact Type: config
- *     - Version: 2.4.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Version: 2.4.1
+ *     - Date: 2026-07-23
+ *     - Update: Thursday, July 23, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.4.1 (2026-07-23) [Anthropic - Claude Opus 4.8] — Removed the stale
+ *       .tool-section { flex: 0 0 auto } override in the <=768px block — a
+ *       leftover from the pre-accordion equal-panes layout that fought the
+ *       accordion's own sizing (open = 1 1 auto, collapsed = 0 0 auto) on
+ *       mobile. The accordion now governs pane height at every width.
  *     - 2.4.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Glitch-free sheen
  *       (owner complaint #2): the reflection sweep is now a one-shot
  *       sheenSweep keyframe played on hover-in — leaving mid-sweep snaps it
@@ -679,7 +684,7 @@ textarea.text-input {
         font-size: var(--font-base);
     }
 
-    .tool-section {
-        flex: 0 0 auto;
-    }
+    /* NOTE: no .tool-section flex override here — the accordion's own
+       flex rules (open = 1 1 auto, collapsed = 0 0 auto) must govern
+       sizing at every width so the open pane fills and scrolls. */
 }

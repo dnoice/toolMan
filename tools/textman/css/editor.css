@@ -1,18 +1,26 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: EditorStyles (textMan Edition - v1.0)
+ *     - Title: EditorStyles (textMan Edition - v1.2)
  *     - File Name: editor.css
  *     - Relative Path: tools/textman/css/editor.css
  *     - Artifact Type: config
- *     - Version: 1.1.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Version: 1.2.0
+ *     - Date: 2026-07-23
+ *     - Update: Thursday, July 23, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.2.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Toolbar overflow
+ *       hardening: the dense toolbar (title + font stepper + wrap + seven doc
+ *       controls + status) was clipping Save off-canvas between ~480-1100px.
+ *       Now overflow-x:auto is the fallback and the title shrinks first
+ *       (min-width:0), while a responsive ladder sheds the secondary controls
+ *       — font stepper, wrap toggle, divider, and "Saved" label at <=1024; the
+ *       document title at <=480 — so the essential controls (open, download,
+ *       copy, undo, redo, diff, save) always fit.
  *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Editor QoL batch
  *       styling: editable document-title input, font-size label, toolbar
  *       divider, word-wrap active state, no-wrap textarea variant, the
@@ -98,6 +106,17 @@
     background: var(--bg-surface);
     border-bottom: var(--border-width) solid var(--border-muted);
     flex-shrink: 0;
+
+    /* Dense toolbar: scroll horizontally when it can't fit rather than
+       clip controls off-canvas or steal vertical height from the editor. */
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* The controls keep their size; the title container absorbs the squeeze. */
+.editor-controls {
+    flex-shrink: 0;
 }
 
 .editor-tools,
@@ -108,13 +127,14 @@
 }
 
 .editor-tools {
-    flex: 1;
-    min-width: 0;
+    flex: 1 1 auto;
+    min-width: 0; /* allow the title to shrink below its content width */
 }
 
 /* Editable document title */
 .doc-title {
     width: 100%;
+    min-width: 0; /* shrinks first when the toolbar runs short on room */
     max-width: 280px;
     padding: var(--space-xs) var(--space-sm);
     background: transparent;
@@ -366,7 +386,27 @@
     color: var(--color-brand);
 }
 
-/* ===== RESPONSIVE ===== */
+/* ===== RESPONSIVE =====
+   The editor toolbar is dense (title + font stepper + wrap + 7 doc controls
+   + status). As width shrinks, shed the genuinely-secondary controls so the
+   essential set (open/download/copy/undo/redo/diff/save) fits WITHOUT
+   horizontal scroll; overflow-x:auto on .editor-header remains the fallback
+   for anything that still doesn't fit. Font size and wrap stay available on
+   desktop, where there's room. */
+
+/* Tablet: drop the font stepper, wrap toggle, divider, and the "Saved"
+   label (the status dot still shows). */
+@media (max-width: 1024px) {
+    #btn-font-dec,
+    #btn-font-inc,
+    .font-size-label,
+    #btn-wrap,
+    .control-divider,
+    .status-indicator .status-label {
+        display: none;
+    }
+}
+
 @media (max-width: 768px) {
     .editor-main {
         padding: var(--space-sm);
@@ -375,8 +415,12 @@
     .editor-textarea {
         padding: var(--space-md);
     }
+}
 
-    .status-indicator .status-label {
+/* Phones: hide the document title too — the toolbar is then just the
+   seven core controls plus the status dot. */
+@media (max-width: 480px) {
+    .doc-title {
         display: none;
     }
 }
