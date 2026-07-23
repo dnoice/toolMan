@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: AppShell (toolMan Edition - v2.1)
+ *     - Title: AppShell (toolMan Edition - v2.2)
  *     - File Name: shell.css
  *     - Relative Path: shared/css/shell.css
  *     - Artifact Type: config
- *     - Version: 2.1.0
+ *     - Version: 2.2.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,11 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Viewport-fit
+ *       hardening (audit findings F1/F2): 100dvh fallbacks on the app frame
+ *       and loader so dynamic-chrome mobile browsers never clip the bottom
+ *       band, and min-height/min-width:0 guards on the grid's panel children
+ *       so content can never inflate the height chain past the viewport.
  *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Layered the
  *       per-theme vignette token into the canvas washes for stronger
  *       figure/ground separation, most visibly in Sentinel Obsidian.
@@ -101,6 +106,7 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh; /* dynamic-chrome mobile: track the VISIBLE viewport */
     width: 100vw;
     background: var(--bg-canvas);
     color: var(--fg-default);
@@ -239,11 +245,19 @@
 /* ===== MAIN CONTENT AREA ===== */
 .app-main {
     flex: 1;
+    min-height: 0; /* let the grid shrink to the flex track, never grow past it */
     display: grid;
     grid-template-columns: minmax(280px, 1fr) minmax(400px, 2fr) minmax(280px, 1fr);
     gap: 0;
     overflow: hidden;
     position: relative;
+}
+
+/* Grid items default to min-height/min-width auto — tall or wide content
+   would inflate the tracks and burst the viewport. Pin them down. */
+.app-main > .panel {
+    min-height: 0;
+    min-width: 0;
 }
 
 /* When left panel is collapsed */
@@ -343,6 +357,7 @@
     bottom: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh; /* keep the loader card centered in the VISIBLE viewport */
 
     display: flex;
     align-items: center;

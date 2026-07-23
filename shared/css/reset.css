@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: CssReset (toolMan Edition - v2.0)
+ *     - Title: CssReset (toolMan Edition - v2.1)
  *     - File Name: reset.css
  *     - Relative Path: shared/css/reset.css
  *     - Artifact Type: config
- *     - Version: 2.0.0
+ *     - Version: 2.1.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,9 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — body min-height
+ *       gains a 100dvh fallback so dynamic-chrome mobile browsers size to
+ *       the visible viewport (audit finding F2 companion to shell.css 2.2.0).
  *     - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Relocated to
  *       shared/css/ for the toolMan ecosystem. Scrollbar and focus-ring
  *       colors now resolve from the house token system instead of hardcoded
@@ -94,6 +97,7 @@ html {
 /* Core body defaults */
 body {
     min-height: 100vh;
+    min-height: 100dvh; /* dynamic-chrome mobile: track the VISIBLE viewport */
     line-height: 1.5;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
                  'Helvetica Neue', Arial, sans-serif;

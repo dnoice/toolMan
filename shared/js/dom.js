@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: DOMUtils (toolMan Edition - v2.0)
+ *     - Title: DOMUtils (toolMan Edition - v2.1)
  *     - File Name: dom.js
  *     - Relative Path: shared/js/dom.js
  *     - Artifact Type: library
- *     - Version: 2.0.0
+ *     - Version: 2.1.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,12 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — fadeIn no longer
+ *       stamps display:block on its target: it now restores '' by default
+ *       (stylesheet wins) with an optional display argument for elements
+ *       that genuinely need one. The forced block was overriding #app's
+ *       display:flex at loader handoff, severing the entire height chain and
+ *       rendering the app ~3x viewport height (audit finding F1).
  *     - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Relocated to
  *       shared/js/ for the toolMan ecosystem and hardened: added event
  *       delegation, debounce/throttle, clipboard helper with fallback,
@@ -234,13 +240,19 @@
             if (el) el.remove();
         },
 
-        /** Fade in via requestAnimationFrame. */
-        fadeIn(element, duration = 300) {
+        /**
+         * Fade in via requestAnimationFrame.
+         * `display` is the inline display to apply while revealing — the
+         * default '' clears any inline value so the STYLESHEET decides
+         * (critical for flex/grid containers like #app; forcing 'block'
+         * here once severed the app's entire height chain).
+         */
+        fadeIn(element, duration = 300, display = '') {
             const el = resolve(element);
             if (!el) return;
 
             el.style.opacity = '0';
-            el.style.display = 'block';
+            el.style.display = display;
 
             let start = null;
             const animate = (timestamp) => {
