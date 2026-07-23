@@ -1,18 +1,23 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: ModalStyles (textMan Edition - v1.1)
+ *     - Title: ModalStyles (textMan Edition - v1.2)
  *     - File Name: modals.css
  *     - Relative Path: tools/textman/css/modals.css
  *     - Artifact Type: config
- *     - Version: 1.1.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Version: 1.2.0
+ *     - Date: 2026-07-23
+ *     - Update: Thursday, July 23, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.2.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Confirm-dialog
+ *       styles: a narrower modal-panel--confirm variant and a
+ *       confirm-message paragraph that honours the newline breaks in
+ *       plain-text messages (white-space: pre-line), plus a wrapping footer so a
+ *       three-button action row survives narrow viewports.
  *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Settings QoL
  *       styles: brand-accented range sliders and the local-storage usage
  *       meter (track + gold fill).
@@ -35,7 +40,10 @@
  *       pseudo-element beneath and a gold modal-title
  *     - modal-close button that rotates 90 degrees on hover
  *     - modal-body: scrollable with the thin token-styled scrollbar
- *     - modal-footer: right-aligned action row on an alt surface
+ *     - modal-footer: right-aligned action row on an alt surface, wrapping
+ *       inside the confirm variant
+ *     - modal-panel--confirm: the narrower (440px) confirm dialog, with a
+ *       pre-line confirm-message so plain-text prompts keep their paragraphs
  *     - radio-group settings control: bordered radio-label chips, selected
  *       state via :has(input:checked), brand accent-color on the radio
  *     - Help modal: uppercase brand help-section headings, two-column
@@ -244,6 +252,27 @@
     background: var(--bg-surface-alt);
     border-top: var(--border-width) solid var(--border-muted);
     flex-shrink: 0;
+}
+
+/* ===== CONFIRM DIALOG =====
+   The house replacement for window.confirm(): a narrower panel, a single
+   prose line of consequence, and an action row that always reads
+   safest-first-leftmost → committing action rightmost. */
+.modal-panel--confirm {
+    width: min(440px, 100%);
+}
+
+.confirm-message {
+    /* Messages arrive as plain text with \n paragraph breaks — no markup,
+       no injection surface. */
+    white-space: pre-line;
+    font-size: var(--font-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--fg-body);
+}
+
+.modal-panel--confirm .modal-footer {
+    flex-wrap: wrap;
 }
 
 /* ===== RADIO GROUP (settings) ===== */

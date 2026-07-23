@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: HubStyles (toolMan Edition - v1.4)
+ *     - Title: HubStyles (toolMan Edition - v1.5)
  *     - File Name: hub.css
  *     - Relative Path: shared/css/hub.css
  *     - Artifact Type: config
- *     - Version: 1.4.0
+ *     - Version: 1.5.0
  *     - Date: 2026-07-23
  *     - Update: Thursday, July 23, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,12 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.5.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — The orbit intro now
+ *       tracks the theme: the satellite tiles, borders, icon tints, halo, and
+ *       every drop-shadow glow moved off hardcoded navy/gold onto the
+ *       --loader-* tokens (tokens.css 2.2.0). In parchment the arc reads as
+ *       cream tiles with deep-gold marks over a warm canvas; sentinel keeps
+ *       the navy/brass look it had.
  *     - 1.4.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Hub loader orbit
  *       intro: a pure-CSS sequence (adapted from the FIREWATCH splash) — the
  *       five tool icons sweep into a 180deg arc around the toolMan mark with
@@ -447,13 +453,14 @@
    to the landing page. Pure CSS (loader.js still drives progress and
    the handoff timing). Orbit technique adapted from the FIREWATCH
    splash: each satellite is placed by rotate → translateY(-radius) →
-   counter-rotate off a zero-size anchor on the mark's center. Fixed
-   navy/gold treatment, matching the loader's theme-independent look.
+   counter-rotate off a zero-size anchor on the mark's center. Every
+   colour here comes from the --loader-* tokens, so the intro opens in
+   the same palette as the page behind it.
    =================================================================== */
 
-/* Transparent stage — the composition floats on the navy loader canvas
-   (no glass card) so the arc can bloom above the mark unclipped. The top
-   padding reserves headroom for that arc. */
+/* Transparent stage — the composition floats straight on the loader
+   canvas (no glass card) so the arc can bloom above the mark unclipped.
+   The top padding reserves headroom for that arc. */
 .loader-card--hub {
     background: none;
     border: none;
@@ -477,7 +484,7 @@
 .loader-logo--orbit > .loader-logo-svg {
     width: 100%;
     height: 100%;
-    filter: drop-shadow(0 0 16px rgba(201, 168, 76, 0.38));
+    filter: drop-shadow(0 0 16px rgba(var(--loader-accent-rgb), 0.38));
     animation:
         hubMarkIn 800ms cubic-bezier(0.22, 0.61, 0.36, 1) 250ms both,
         hubMarkBreath 3800ms ease-in-out 1500ms infinite;
@@ -489,8 +496,8 @@
 }
 
 @keyframes hubMarkBreath {
-    0%, 100% { filter: drop-shadow(0 0 12px rgba(201, 168, 76, 0.30)); }
-    50%      { filter: drop-shadow(0 0 22px rgba(201, 168, 76, 0.55)); }
+    0%, 100% { filter: drop-shadow(0 0 12px rgba(var(--loader-accent-rgb), 0.30)); }
+    50%      { filter: drop-shadow(0 0 22px rgba(var(--loader-accent-rgb), 0.55)); }
 }
 
 /* Radial halo behind the mark, pulsing in time with the breath. */
@@ -502,7 +509,7 @@
     height: 210px;
     transform: translate(-50%, -50%);
     border-radius: var(--radius-full);
-    background: radial-gradient(circle, rgba(201, 168, 76, 0.26) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(var(--loader-accent-rgb), 0.26) 0%, transparent 70%);
     opacity: 0;
     pointer-events: none;
     animation: hubHaloPulse 3800ms ease-in-out 1500ms infinite;
@@ -536,14 +543,14 @@
     justify-content: center;
     border-radius: var(--radius-md);
 
-    background: rgba(15, 26, 51, 0.55);
-    border: var(--border-width) solid rgba(201, 168, 76, 0.30);
-    color: var(--identity-gold);
+    background: var(--loader-sat-bg);
+    border: var(--border-width) solid rgba(var(--loader-accent-rgb), 0.30);
+    color: var(--loader-accent);
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
 
     opacity: 0;
-    filter: drop-shadow(0 0 6px rgba(201, 168, 76, 0.25));
+    filter: drop-shadow(0 0 6px rgba(var(--loader-accent-rgb), 0.25));
 
     /* (1) elastic sweep in from beyond the ring, (2) a staggered breath
        once settled so the assembled family reads as alive, not static. */
@@ -562,9 +569,9 @@
 
 /* The live tool (textMan) reads a touch brighter at the crown of the arc. */
 .loader-sat--live {
-    border-color: rgba(201, 168, 76, 0.55);
-    color: #E8C878;
-    filter: drop-shadow(0 0 9px rgba(201, 168, 76, 0.45));
+    border-color: rgba(var(--loader-accent-rgb), 0.55);
+    color: var(--loader-accent-bright);
+    filter: drop-shadow(0 0 9px rgba(var(--loader-accent-rgb), 0.45));
 }
 
 @keyframes hubSatIn {
@@ -592,11 +599,11 @@
 @keyframes hubSatBreath {
     0%, 100% {
         transform: rotate(var(--orbit-angle)) translateY(calc(-1 * var(--orbit-radius))) rotate(calc(-1 * var(--orbit-angle))) scale(1);
-        filter: drop-shadow(0 0 6px rgba(201, 168, 76, 0.25));
+        filter: drop-shadow(0 0 6px rgba(var(--loader-accent-rgb), 0.25));
     }
     50% {
         transform: rotate(var(--orbit-angle)) translateY(calc(-1 * var(--orbit-radius))) rotate(calc(-1 * var(--orbit-angle))) scale(1.06);
-        filter: drop-shadow(0 0 11px rgba(201, 168, 76, 0.45));
+        filter: drop-shadow(0 0 11px rgba(var(--loader-accent-rgb), 0.45));
     }
 }
 

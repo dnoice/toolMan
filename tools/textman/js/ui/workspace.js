@@ -1,18 +1,27 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: WorkspaceRenderers (textMan Edition - v1.1)
+ *     - Title: WorkspaceRenderers (textMan Edition - v1.2)
  *     - File Name: workspace.js
  *     - Relative Path: tools/textman/js/ui/workspace.js
  *     - Artifact Type: script
- *     - Version: 1.1.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Version: 1.2.0
+ *     - Date: 2026-07-23
+ *     - Update: Thursday, July 23, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.2.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Fixed the template
+ *       apply dialog. It used to ask an OK/Cancel question where Cancel meant
+ *       "append" — backing out of the prompt silently modified the document.
+ *       Replace and Append are now separate buttons and Cancel does nothing,
+ *       and an empty editor skips the question entirely. Every workspace
+ *       confirm (restore version, clear history, delete template, delete
+ *       snippet) moved from window.confirm() onto the house
+ *       ModalsUI.confirm() dialog, with the destructive ones focusing Cancel.
+ *       Extracted applyTemplate() so both apply paths share one code path.
  *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Workspace QoL
  *       batch: template and snippet search filters, template "used N×" badge
  *       and Duplicate action, snippet tag-click filtering, inline
@@ -30,8 +39,8 @@
  *     delegated listeners wired once at init.
  *
  * ✒ Key Features:
- *     - Template cards: use (replace/append guard), favorite, delete (custom
- *       only), plus a New-template launcher
+ *     - Template cards: use (replace/append/cancel dialog), favorite, delete
+ *       (custom only), plus a New-template launcher
  *     - Snippet cards: insert, copy, favorite, delete, tag chips, previews
  *     - History timeline with type markers and relative timestamps
  *     - Favorites view aggregating starred templates and snippets
@@ -50,8 +59,9 @@
  *
  * ✒ Examples:
  *     - <button data-action="use-template"> inside a card with
- *       data-id="bug-report" → useTemplate('bug-report') with the
- *       replace-or-append confirm when the editor has content
+ *       data-id="bug-report" → useTemplate('bug-report'); with text already
+ *       in the editor it asks Replace / Append / Cancel, and applies
+ *       straight away when the editor is empty
  *     - <button data-action="insert-snippet"> →
  *       EditorUI.insertText(snippet.content) at the caret
  *     - <button data-action="fav-template"> →
@@ -520,57 +530,109 @@
                 TOOLMAN.notify('Document already matches that version', 'info', 1800);
                 return;
             }
-            if (!window.confirm(`Restore the document to this saved version?\n\n"${entry.description}" — ${absoluteTime(entry.timestamp)}\n\nYour current text is replaced (undo with Ctrl+Z).`)) {
-                return;
-            }
-            EditorUI.setValue(entry.snapshot);
-            State.addHistory({ type: 'save', description: 'Restored a previous version' });
-            this.renderHistory();
-            TOOLMAN.notify('Version restored', 'success', 1600);
+            ModalsUI.confirm({
+                title: 'Restore this version',
+                message: `“${entry.description}” — ${absoluteTime(entry.timestamp)}\n\n`
+                    + 'Your current text is replaced. Ctrl+Z undoes the restore.',
+                buttons: [
+                    { label: 'Cancel', value: false, variant: 'secondary' },
+                    { label: 'Restore', value: true, variant: 'primary', focus: true }
+                ]
+            }).then((ok) => {
+                if (!ok) return;
+                EditorUI.setValue(entry.snapshot);
+                State.addHistory({ type: 'save', description: 'Restored a previous version' });
+                this.renderHistory();
+                TOOLMAN.notify('Version restored', 'success', 1600);
+            });
         },
 
         doClearHistory() {
             if (!State.get().history.length) return;
-            if (!window.confirm('Clear the history timeline? Restore points are lost.')) return;
-            State.clearHistory();
-            Autosave.start(300);
-            this.renderHistory();
+            ModalsUI.confirm({
+                title: 'Clear history',
+                message: 'The whole timeline goes, and every restore point with it.\n\n'
+                    + 'This cannot be undone.',
+                buttons: [
+                    { label: 'Cancel', value: false, variant: 'secondary', focus: true },
+                    { label: 'Clear history', value: true, variant: 'danger' }
+                ]
+            }).then((ok) => {
+                if (!ok) return;
+                State.clearHistory();
+                Autosave.start(300);
+                this.renderHistory();
+            });
         },
 
         useTemplate(id) {
             const template = State.getTemplate(id);
             if (!template || !window.EditorUI) return;
 
-            const current = EditorUI.getValue();
-            if (current.trim()) {
-                const replace = window.confirm(
-                    'Replace the current document with this template?\n\n'
-                    + 'OK = replace · Cancel = append to the bottom'
-                );
-                EditorUI.setValue(replace
-                    ? template.content
-                    : `${current.replace(/\n*$/, '')}\n\n${template.content}`);
-            } else {
-                EditorUI.setValue(template.content);
+            // Empty document: nothing to lose, so skip the question entirely.
+            if (!EditorUI.getValue().trim()) {
+                this.applyTemplate(template, 'replace');
+                return;
             }
 
-            State.tallyTemplateUse(id);
-            State.addHistory({ type: 'template', description: `Used template: ${template.name}` });
+            ModalsUI.confirm({
+                title: 'Apply template',
+                message: `The editor already has text in it.\n\n`
+                    + `Replace it with “${template.name}”, or append the template below what's there?`,
+                buttons: [
+                    { label: 'Cancel', value: 'cancel', variant: 'secondary' },
+                    { label: 'Append', value: 'append', variant: 'secondary' },
+                    { label: 'Replace', value: 'replace', variant: 'primary', focus: true }
+                ],
+                dismissValue: 'cancel'
+            }).then((mode) => {
+                if (mode === 'cancel') return;
+                this.applyTemplate(template, mode);
+            });
+        },
+
+        /** Write a template into the editor, replacing or appending. */
+        applyTemplate(template, mode) {
+            const current = EditorUI.getValue();
+            const appending = mode === 'append';
+
+            EditorUI.setValue(appending
+                ? `${current.replace(/\n*$/, '')}\n\n${template.content}`
+                : template.content);
+
+            State.tallyTemplateUse(template.id);
+            State.addHistory({
+                type: 'template',
+                description: `${appending ? 'Appended' : 'Used'} template: ${template.name}`
+            });
             this.renderTemplates();
             this.renderHistory();
             Autosave.start(500);
-            TOOLMAN.notify(`Template "${template.name}" applied`, 'success', 1800);
+            TOOLMAN.notify(
+                `Template "${template.name}" ${appending ? 'appended' : 'applied'}`,
+                'success',
+                1800
+            );
         },
 
         deleteTemplate(id) {
             const template = State.getTemplate(id);
             if (!template || template.isSeed) return;
-            if (!window.confirm(`Delete template "${template.name}"?`)) return;
 
-            State.removeTemplate(id);
-            Autosave.start(300);
-            this.renderTemplates();
-            this.renderFavorites();
+            ModalsUI.confirm({
+                title: 'Delete template',
+                message: `“${template.name}” is removed from your workspace.\n\nThis cannot be undone.`,
+                buttons: [
+                    { label: 'Cancel', value: false, variant: 'secondary', focus: true },
+                    { label: 'Delete', value: true, variant: 'danger' }
+                ]
+            }).then((ok) => {
+                if (!ok) return;
+                State.removeTemplate(id);
+                Autosave.start(300);
+                this.renderTemplates();
+                this.renderFavorites();
+            });
         },
 
         insertSnippet(id) {
@@ -593,12 +655,21 @@
         deleteSnippet(id) {
             const snippet = State.getSnippet(id);
             if (!snippet) return;
-            if (!window.confirm(`Delete snippet "${snippet.name}"?`)) return;
 
-            State.removeSnippet(id);
-            Autosave.start(300);
-            this.renderSnippets();
-            this.renderFavorites();
+            ModalsUI.confirm({
+                title: 'Delete snippet',
+                message: `“${snippet.name}” is removed from your workspace.\n\nThis cannot be undone.`,
+                buttons: [
+                    { label: 'Cancel', value: false, variant: 'secondary', focus: true },
+                    { label: 'Delete', value: true, variant: 'danger' }
+                ]
+            }).then((ok) => {
+                if (!ok) return;
+                State.removeSnippet(id);
+                Autosave.start(300);
+                this.renderSnippets();
+                this.renderFavorites();
+            });
         },
 
         toggleFav(type, id) {

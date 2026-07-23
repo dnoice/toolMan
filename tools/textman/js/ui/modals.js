@@ -1,18 +1,24 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: ModalSystem (textMan Edition - v1.1)
+ *     - Title: ModalSystem (textMan Edition - v1.2)
  *     - File Name: modals.js
  *     - Relative Path: tools/textman/js/ui/modals.js
  *     - Artifact Type: script
- *     - Version: 1.1.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Version: 1.2.0
+ *     - Date: 2026-07-23
+ *     - Update: Thursday, July 23, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.2.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Added
+ *       ModalsUI.confirm(): a promise-based replacement for window.confirm()
+ *       wearing the house dialog chrome, with configurable buttons, a
+ *       nominated focus target, and a dismissValue that Escape, the backdrop,
+ *       and the X all resolve to — dismissal can never trigger a second
+ *       action. Migrated the workspace reset off the native dialog.
  *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Settings QoL:
  *       autosave-delay and tab-size range controls (live labels), a storage
  *       usage meter, and Export/Import workspace wired to the shared
@@ -25,7 +31,8 @@
  *     and backdrop dismissal, a Tab focus trap, and the submit flows for the
  *     Settings, Save-Snippet, Create-Template, Help, and Diff modals.
  *     Settings covers ecosystem theme, autosave behavior, and the guarded
- *     workspace reset.
+ *     workspace reset. Also owns the shared confirm dialog every destructive
+ *     or branching action in the app asks its question through.
  *
  * ✒ Key Features:
  *     - Focus trap: Tab cycles inside the open dialog; focus restored on
@@ -35,6 +42,8 @@
  *       autosave mode select, double-confirmed workspace reset
  *     - Save Snippet: prefills content from the current editor selection
  *     - Create Template: validated, renders immediately
+ *     - confirm(): promise-based dialog with 2-3 configurable buttons, a
+ *       danger variant, and dismissal that always resolves to "do nothing"
  *     - aria-hidden bookkeeping for assistive tech
  *     - Single-active-dialog rule: opening a modal closes any other
  *     - First focusable element focused on open; prior focus restored after
@@ -57,8 +66,11 @@
  *     - Pressing Escape or clicking the backdrop dismisses the open dialog
  *     - Any <button class="modal-close"> or .modal-cancel closes via one
  *       delegated listener
- *     - #btn-reset-workspace → confirm() → State.reset(), editor cleared,
- *       undo stacks emptied, workspace re-rendered
+ *     - #btn-reset-workspace → ModalsUI.confirm() → State.reset(), editor
+ *       cleared, undo stacks emptied, workspace re-rendered
+ *     - ModalsUI.confirm({ title, message, buttons: [{ label, value,
+ *       variant, focus }], dismissValue }) → Promise resolving to the picked
+ *       button's value, or dismissValue on Escape/backdrop/X
  *
  * ✒ Other Important Information:
  *     - Dependencies: shared/js (dom, storage, toolman), js/state.js,
@@ -132,6 +144,10 @@
 
             if (this.activeModal === modal) this.activeModal = null;
 
+            // Escape, the backdrop, and the X all land here — a confirm closed
+            // this way resolves as dismissed, never as a silent side effect.
+            if (modal === this._confirmEl) this._resolveConfirm(this._confirmDismissValue);
+
             if (this._restoreFocusTo && typeof this._restoreFocusTo.focus === 'function') {
                 this._restoreFocusTo.focus();
             }
@@ -157,6 +173,125 @@
                 e.preventDefault();
                 first.focus();
             }
+        },
+
+        /* ── Confirm dialog ─────────────────────────── */
+
+        _confirmEl: null,
+        _confirmResolve: null,
+        _confirmDismissValue: false,
+
+        /**
+         * Promise-based replacement for window.confirm() wearing the house
+         * dialog chrome. Resolves with the chosen button's value, or with
+         * dismissValue when the user backs out via Escape, the backdrop, or
+         * the X — dismissal always means "do nothing", never a second action.
+         *
+         * opts: { title, message, dismissValue, buttons: [{ label, value,
+         * variant, focus }] } — variant maps to the .btn-* classes, and the
+         * button flagged focus gets keyboard focus (put it on the safe
+         * choice for destructive dialogs).
+         */
+        confirm(opts = {}) {
+            const buttons = (opts.buttons && opts.buttons.length) ? opts.buttons : [
+                { label: 'Cancel', value: false, variant: 'secondary', focus: true },
+                { label: 'Confirm', value: true, variant: 'primary' }
+            ];
+
+            // A dialog still on screen resolves as dismissed before this one
+            // takes the stage — no orphaned promises.
+            this._resolveConfirm(this._confirmDismissValue);
+
+            const backdrop = this._ensureConfirmDialog();
+            DOM.$('.confirm-title', backdrop).textContent = opts.title || 'Are you sure?';
+            DOM.$('.confirm-message', backdrop).textContent = opts.message || '';
+
+            const footer = DOM.$('.modal-footer', backdrop);
+            DOM.empty(footer);
+
+            let focusTarget = null;
+            buttons.forEach((btn) => {
+                const el = DOM.create('button', {
+                    className: `btn btn-${btn.variant || 'secondary'}`,
+                    text: btn.label,
+                    attrs: { type: 'button' }
+                });
+                DOM.on(el, 'click', () => this._resolveConfirm(btn.value));
+                footer.appendChild(el);
+                if (btn.focus) focusTarget = el;
+            });
+
+            this._confirmDismissValue = 'dismissValue' in opts ? opts.dismissValue : false;
+
+            return new Promise((resolve) => {
+                this._confirmResolve = resolve;
+                this.open('modal-confirm');
+                const focusEl = focusTarget || footer.lastElementChild;
+                if (focusEl) focusEl.focus();
+            });
+        },
+
+        /** Build the shared confirm shell once; every call reuses the node. */
+        _ensureConfirmDialog() {
+            if (this._confirmEl) return this._confirmEl;
+
+            const panel = DOM.create('div', {
+                className: 'modal-panel modal-panel--confirm',
+                attrs: {
+                    role: 'alertdialog',
+                    'aria-modal': 'true',
+                    'aria-labelledby': 'confirm-title',
+                    'aria-describedby': 'confirm-message'
+                },
+                children: [
+                    DOM.create('div', {
+                        className: 'modal-header',
+                        children: [
+                            DOM.create('h3', { className: 'modal-title confirm-title', id: 'confirm-title' }),
+                            DOM.create('button', {
+                                className: 'modal-close',
+                                html: '&times;',
+                                attrs: { type: 'button', 'aria-label': 'Close' }
+                            })
+                        ]
+                    }),
+                    DOM.create('div', {
+                        className: 'modal-body',
+                        children: [
+                            DOM.create('p', { className: 'confirm-message', id: 'confirm-message' })
+                        ]
+                    }),
+                    DOM.create('div', { className: 'modal-footer' })
+                ]
+            });
+
+            const backdrop = DOM.create('div', {
+                className: 'modal-backdrop',
+                id: 'modal-confirm',
+                attrs: { 'aria-hidden': 'true' },
+                children: [panel]
+            });
+
+            // init() already ran its backdrop sweep, so this node wires its own.
+            DOM.on(backdrop, 'click', (e) => {
+                if (e.target === backdrop) this.closeActive();
+            });
+
+            document.body.appendChild(backdrop);
+            this._confirmEl = backdrop;
+            return backdrop;
+        },
+
+        /** Settle the pending confirm with a value and close its dialog. */
+        _resolveConfirm(value) {
+            const resolve = this._confirmResolve;
+            this._confirmResolve = null;
+
+            // close() calls back into here; the is-open check breaks the loop.
+            if (this._confirmEl && this._confirmEl.classList.contains('is-open')) {
+                this.close(this._confirmEl);
+            }
+            if (resolve) resolve(value);
         },
 
         /* ── Settings ───────────────────────────────── */
@@ -237,28 +372,33 @@
             DOM.on('#btn-import-workspace', 'click', () => this.importWorkspace());
 
             DOM.on('#btn-reset-workspace', 'click', () => {
-                const sure = window.confirm(
-                    'Reset the local workspace?\n\n'
-                    + 'This clears your document, custom templates, snippets, history, and analytics. '
-                    + 'Seed templates are kept. This cannot be undone.'
-                );
-                if (!sure) return;
+                this.confirm({
+                    title: 'Reset workspace',
+                    message: 'This clears your document, custom templates, snippets, history, '
+                        + 'and analytics. Seed templates are kept.\n\nThis cannot be undone.',
+                    buttons: [
+                        { label: 'Cancel', value: false, variant: 'secondary', focus: true },
+                        { label: 'Reset everything', value: true, variant: 'danger' }
+                    ]
+                }).then((sure) => {
+                    if (!sure) return;
 
-                State.reset();
-                Storage.save();
+                    State.reset();
+                    Storage.save();
 
-                if (window.EditorUI) {
-                    EditorUI.setValue('');
-                    EditorUI.lastSavedContent = '';
-                    EditorUI.undoStack.length = 0;
-                    EditorUI.redoStack.length = 0;
-                    EditorUI.pushSnapshot(true);
-                    EditorUI.setStatus('saved');
-                }
-                if (window.WorkspaceUI) WorkspaceUI.renderAll();
+                    if (window.EditorUI) {
+                        EditorUI.setValue('');
+                        EditorUI.lastSavedContent = '';
+                        EditorUI.undoStack.length = 0;
+                        EditorUI.redoStack.length = 0;
+                        EditorUI.pushSnapshot(true);
+                        EditorUI.setStatus('saved');
+                    }
+                    if (window.WorkspaceUI) WorkspaceUI.renderAll();
 
-                this.closeActive();
-                TOOLMAN.notify('Workspace reset', 'success');
+                    // Settings closed when the confirm took the stage.
+                    TOOLMAN.notify('Workspace reset', 'success');
+                });
             });
         },
 

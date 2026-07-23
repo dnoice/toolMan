@@ -1,18 +1,23 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: EditorEngine (textMan Edition - v1.1)
+ *     - Title: EditorEngine (textMan Edition - v1.2)
  *     - File Name: editor.js
  *     - Relative Path: tools/textman/js/ui/editor.js
  *     - Artifact Type: library
- *     - Version: 1.1.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Version: 1.2.0
+ *     - Date: 2026-07-23
+ *     - Update: Thursday, July 23, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.2.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — openFile()'s
+ *       unsaved-changes guard moved from window.confirm() to the house
+ *       ModalsUI.confirm() dialog (Cancel focused, "Discard & open" as the
+ *       danger action). The read half split out into readFileIntoEditor() so
+ *       the guard can resolve asynchronously.
  *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Editor QoL batch:
  *       live line/col readout + Go-to-line (Ctrl+G), word-wrap toggle and
  *       font-size stepper (persisted via settings, applied through
@@ -66,8 +71,8 @@
  *       standard input pipeline (stats, undo, autosave all fire)
  *     - EditorUI.showDiff()                    → opens modal-diff with the
  *       LCS line diff vs the last save
- *     - Dropping a .md file on the textarea    → openFile() with the
- *       unsaved-changes confirm guard
+ *     - Dropping a .md file on the textarea    → openFile(), which asks
+ *       through the styled confirm dialog when there are unsaved changes
  *
  * ✒ Other Important Information:
  *     - Dependencies: shared/js (dom, storage, toolman), js/state.js
@@ -505,11 +510,26 @@
                 return;
             }
 
-            if (State.get().editor.isDirty
-                && !window.confirm('You have unsaved changes. Replace the document with the opened file?')) {
+            if (!State.get().editor.isDirty) {
+                this.readFileIntoEditor(file);
                 return;
             }
 
+            ModalsUI.confirm({
+                title: 'Unsaved changes',
+                message: `Opening “${file.name}” replaces the current document.\n\n`
+                    + 'Your unsaved changes are lost.',
+                buttons: [
+                    { label: 'Cancel', value: false, variant: 'secondary', focus: true },
+                    { label: 'Discard & open', value: true, variant: 'danger' }
+                ]
+            }).then((ok) => {
+                if (ok) this.readFileIntoEditor(file);
+            });
+        },
+
+        /** Read a text file into the editor and name the document after it. */
+        readFileIntoEditor(file) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 this.setValue(String(e.target.result || ''));
