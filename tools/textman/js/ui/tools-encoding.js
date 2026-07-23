@@ -1,16 +1,23 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: EncodingTools (textMan Edition - v1.0)
+ *     - Title: EncodingTools (textMan Edition - v1.1)
  *     - File Name: tools-encoding.js
  *     - Relative Path: tools/textman/js/ui/tools-encoding.js
  *     - Artifact Type: script
- *     - Version: 1.0.0
+ *     - Version: 1.1.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Added Base64URL
+ *       encode/decode, hex encode/decode (UTF-8), and a decode-only JWT
+ *       payload inspector (clearly labeled no-verify).
+ *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial encoding
+ *       pane: Base64, URL, HTML entities.
  *
  * ✒ Description:
  *     The Encoding/Decoding pane — the pane that was an empty placeholder in
@@ -77,6 +84,45 @@
         return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
     }
 
+    /* Base64URL: '+/' → '-_' and stripped padding */
+    function b64urlEncode(text) {
+        return b64encode(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function b64urlDecode(text) {
+        let s = text.trim().replace(/-/g, '+').replace(/_/g, '/');
+        while (s.length % 4) s += '=';
+        return b64decode(s);
+    }
+
+    /* UTF-8 hex */
+    function hexEncode(text) {
+        return Array.from(new TextEncoder().encode(text))
+            .map((b) => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function hexDecode(text) {
+        const clean = text.trim().replace(/\s+/g, '').replace(/^0x/i, '');
+        if (clean.length % 2 !== 0 || /[^0-9a-fA-F]/.test(clean)) {
+            throw new Error('Invalid hex');
+        }
+        const bytes = new Uint8Array(clean.length / 2);
+        for (let i = 0; i < bytes.length; i++) {
+            bytes[i] = parseInt(clean.substr(i * 2, 2), 16);
+        }
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    }
+
+    /* JWT payload inspector — DECODE ONLY, signature is NOT verified. */
+    function jwtDecode(text) {
+        const parts = text.trim().split('.');
+        if (parts.length < 2) throw new Error('Not a JWT');
+        const header = JSON.parse(b64urlDecode(parts[0]));
+        const payload = JSON.parse(b64urlDecode(parts[1]));
+        return '// header\n' + JSON.stringify(header, null, 2)
+            + '\n\n// payload (signature NOT verified)\n' + JSON.stringify(payload, null, 2);
+    }
+
     const HTML_UNESCAPES = {
         '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"',
         '&#39;': "'", '&#x27;': "'", '&apos;': "'", '&nbsp;': ' '
@@ -99,6 +145,20 @@
         'html-unescape': {
             fn: (t) => t.replace(/&(?:amp|lt|gt|quot|#39|#x27|apos|nbsp);/g, (m) => HTML_UNESCAPES[m]),
             label: 'HTML unescape'
+        },
+        'b64url-encode': { fn: b64urlEncode, label: 'Base64URL encode' },
+        'b64url-decode': {
+            fn: b64urlDecode, label: 'Base64URL decode',
+            friendlyError: 'Not valid Base64URL — document unchanged'
+        },
+        'hex-encode': { fn: hexEncode, label: 'Hex encode' },
+        'hex-decode': {
+            fn: hexDecode, label: 'Hex decode',
+            friendlyError: 'Not valid hex — document unchanged'
+        },
+        'jwt-decode': {
+            fn: jwtDecode, label: 'JWT decode',
+            friendlyError: 'Not a valid JWT — document unchanged'
         }
     };
 

@@ -1,16 +1,24 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: TransformTools (textMan Edition - v1.0)
+ *     - Title: TransformTools (textMan Edition - v1.1)
  *     - File Name: tools-transform.js
  *     - Relative Path: tools/textman/js/ui/tools-transform.js
  *     - Artifact Type: script
- *     - Version: 1.0.0
+ *     - Version: 1.1.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Programmer case
+ *       family (camelCase, PascalCase, snake_case, kebab-case,
+ *       CONSTANT_CASE), plus strip-accents (diacritics via NFD) and smart
+ *       quotes ↔ straight quotes.
+ *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial transform
+ *       pane: case, cleanup, line ops, sorting.
  *
  * ✒ Description:
  *     The Transform pane: case conversion, whitespace cleanup, line
@@ -58,6 +66,15 @@
     'use strict';
 
     const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+    /** Split arbitrary text into word tokens for case conversion. */
+    function words(text) {
+        return text
+            .replace(/([a-z0-9])([A-Z])/g, '$1 $2')  // camel boundaries
+            .replace(/[_\-]+/g, ' ')                  // snake/kebab separators
+            .split(/\s+/)
+            .filter(Boolean);
+    }
 
     const TRANSFORMS = {
         uppercase: (t) => t.toUpperCase(),
@@ -108,7 +125,34 @@
 
         'sort-asc': (t) => t.split('\n').sort(collator.compare).join('\n'),
 
-        'sort-desc': (t) => t.split('\n').sort((a, b) => collator.compare(b, a)).join('\n')
+        'sort-desc': (t) => t.split('\n').sort((a, b) => collator.compare(b, a)).join('\n'),
+
+        /* ── Programmer case family ── */
+        camel: (t) => {
+            const w = words(t);
+            return w.map((x, i) => i === 0
+                ? x.toLowerCase()
+                : x.charAt(0).toUpperCase() + x.slice(1).toLowerCase()).join('');
+        },
+
+        pascal: (t) => words(t)
+            .map((x) => x.charAt(0).toUpperCase() + x.slice(1).toLowerCase()).join(''),
+
+        snake: (t) => words(t).map((x) => x.toLowerCase()).join('_'),
+
+        kebab: (t) => words(t).map((x) => x.toLowerCase()).join('-'),
+
+        constant: (t) => words(t).map((x) => x.toUpperCase()).join('_'),
+
+        /* ── Text cleanup ── */
+        'strip-accents': (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, ''),
+
+        'smart-quotes': (t) => t
+            .replace(/(^|[\s([{<])"/g, '$1“').replace(/"/g, '”')
+            .replace(/(^|[\s([{<])'/g, '$1‘').replace(/'/g, '’'),
+
+        'straight-quotes': (t) => t
+            .replace(/[“”]/g, '"').replace(/[‘’]/g, "'")
     };
 
     const TransformUI = {

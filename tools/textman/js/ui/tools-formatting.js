@@ -1,16 +1,23 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: FormattingTools (textMan Edition - v1.0)
+ *     - Title: FormattingTools (textMan Edition - v1.1)
  *     - File Name: tools-formatting.js
  *     - Relative Path: tools/textman/js/ui/tools-formatting.js
  *     - Artifact Type: script
- *     - Version: 1.0.0
+ *     - Version: 1.1.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Added code-fence
+ *       wrap (```), and strip-markdown (removes headings, emphasis, links,
+ *       list markers, blockquotes, and fences to plain text).
+ *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial
+ *       formatting pane: headings, lists, quote, indent.
  *
  * ✒ Description:
  *     The Text Formatting pane — an empty placeholder in v1, now implemented
@@ -118,6 +125,31 @@
         });
     }
 
+    /** Wrap the block in a fenced code block (toggles off if already fenced). */
+    function toggleCodeFence(text) {
+        const lines = text.split('\n');
+        if (/^```/.test(lines[0]) && /^```/.test(lines[lines.length - 1])) {
+            return lines.slice(1, -1).join('\n');
+        }
+        return '```\n' + text + '\n```';
+    }
+
+    /** Strip common markdown to plain text. */
+    function stripMarkdown(text) {
+        return text
+            .replace(/^```.*$/gm, '')                       // fence lines
+            .replace(/^#{1,6}\s+/gm, '')                    // headings
+            .replace(/^\s*>\s?/gm, '')                      // blockquotes
+            .replace(/^\s*[-*+]\s+/gm, '')                  // bullet markers
+            .replace(/^\s*\d+\.\s+/gm, '')                  // numbered markers
+            .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')       // images → alt
+            .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')        // links → text
+            .replace(/(\*\*|__)(.*?)\1/g, '$2')             // bold
+            .replace(/(\*|_)(.*?)\1/g, '$2')                // italic
+            .replace(/`([^`]+)`/g, '$1')                    // inline code
+            .replace(/^[ \t]*[-*_]{3,}[ \t]*$/gm, '');      // horizontal rules
+    }
+
     const FORMATS = {
         h1: toggleHeading(1),
         h2: toggleHeading(2),
@@ -126,7 +158,9 @@
         numbered: toggleNumbered,
         quote: toggleQuote,
         indent: (text) => eachLine(text, (line) => (line.length ? INDENT + line : line)),
-        outdent: (text) => eachLine(text, (line) => line.replace(/^(?: {1,4}|\t)/, ''))
+        outdent: (text) => eachLine(text, (line) => line.replace(/^(?: {1,4}|\t)/, '')),
+        'code-fence': toggleCodeFence,
+        'strip-md': stripMarkdown
     };
 
     const FormattingUI = {

@@ -1,10 +1,10 @@
 <!--
 ✒ Metadata
-    - Title: TextManApp (textMan Edition - v2.3)
+    - Title: TextManApp (textMan Edition - v2.4)
     - File Name: index.html
     - Relative Path: tools/textman/index.html
     - Artifact Type: other
-    - Version: 2.3.0
+    - Version: 2.4.0
     - Date: 2026-07-22
     - Update: Wednesday, July 22, 2026
     - Author: Dennis 'dendogg' Smaltz
@@ -12,6 +12,9 @@
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 2.4.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Tool-pane additions:
+      transform case family + strip-accents + smart/straight quotes, encoding
+      Base64URL/hex/JWT, and formatting code-fence + strip-markdown buttons.
     - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Editor QoL batch:
       editable document title, font-size stepper, word-wrap toggle,
       download and copy-all controls, a line/col stat pill, and the
@@ -500,6 +503,42 @@
                                     <span class="btn-label">Sort Z → A</span>
                                     <span class="btn-category">Order</span>
                                 </button>
+
+                                <!-- Programmer case -->
+                                <button class="tool-action-btn" data-transform="camel" title="Convert to camelCase">
+                                    <span class="btn-label">camelCase</span>
+                                    <span class="btn-category">Code</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="pascal" title="Convert to PascalCase">
+                                    <span class="btn-label">PascalCase</span>
+                                    <span class="btn-category">Code</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="snake" title="Convert to snake_case">
+                                    <span class="btn-label">snake_case</span>
+                                    <span class="btn-category">Code</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="kebab" title="Convert to kebab-case">
+                                    <span class="btn-label">kebab-case</span>
+                                    <span class="btn-category">Code</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="constant" title="Convert to CONSTANT_CASE">
+                                    <span class="btn-label">CONSTANT_CASE</span>
+                                    <span class="btn-category">Code</span>
+                                </button>
+
+                                <!-- Characters -->
+                                <button class="tool-action-btn" data-transform="strip-accents" title="Remove accents and diacritics (é → e)">
+                                    <span class="btn-label">Strip accents</span>
+                                    <span class="btn-category">Chars</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="smart-quotes" title="Straight quotes → curly quotes">
+                                    <span class="btn-label">Smart quotes</span>
+                                    <span class="btn-category">Chars</span>
+                                </button>
+                                <button class="tool-action-btn" data-transform="straight-quotes" title="Curly quotes → straight quotes">
+                                    <span class="btn-label">Straight quotes</span>
+                                    <span class="btn-category">Chars</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -624,6 +663,26 @@
                                     <span class="btn-label">HTML unescape</span>
                                     <span class="btn-category">Decode</span>
                                 </button>
+                                <button class="tool-action-btn" data-encode="b64url-encode" data-encode-dir="encode" title="Encode as Base64URL (URL-safe, no padding)">
+                                    <span class="btn-label">Base64URL enc</span>
+                                    <span class="btn-category">Encode</span>
+                                </button>
+                                <button class="tool-action-btn" data-encode="b64url-decode" data-encode-dir="decode" title="Decode Base64URL">
+                                    <span class="btn-label">Base64URL dec</span>
+                                    <span class="btn-category">Decode</span>
+                                </button>
+                                <button class="tool-action-btn" data-encode="hex-encode" data-encode-dir="encode" title="Encode as hex (UTF-8 bytes)">
+                                    <span class="btn-label">Hex encode</span>
+                                    <span class="btn-category">Encode</span>
+                                </button>
+                                <button class="tool-action-btn" data-encode="hex-decode" data-encode-dir="decode" title="Decode hex to text">
+                                    <span class="btn-label">Hex decode</span>
+                                    <span class="btn-category">Decode</span>
+                                </button>
+                                <button class="tool-action-btn" data-encode="jwt-decode" data-encode-dir="decode" title="Decode a JWT's header + payload (signature NOT verified)">
+                                    <span class="btn-label">JWT decode</span>
+                                    <span class="btn-category">Inspect</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -672,6 +731,14 @@
                                 <button class="tool-action-btn" data-format="outdent" title="Outdent lines by up to 4 spaces">
                                     <span class="btn-label">← Outdent</span>
                                     <span class="btn-category">Indent</span>
+                                </button>
+                                <button class="tool-action-btn" data-format="code-fence" title="Wrap in a fenced code block (toggles off)">
+                                    <span class="btn-label">``` Code fence</span>
+                                    <span class="btn-category">Block</span>
+                                </button>
+                                <button class="tool-action-btn" data-format="strip-md" title="Strip markdown to plain text">
+                                    <span class="btn-label">Strip markdown</span>
+                                    <span class="btn-category">Clean</span>
                                 </button>
                             </div>
                         </div>
