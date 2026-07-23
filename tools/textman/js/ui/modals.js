@@ -1,16 +1,24 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: ModalSystem (textMan Edition - v1.0)
+ *     - Title: ModalSystem (textMan Edition - v1.1)
  *     - File Name: modals.js
  *     - Relative Path: tools/textman/js/ui/modals.js
  *     - Artifact Type: script
- *     - Version: 1.0.0
+ *     - Version: 1.1.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Settings QoL:
+ *       autosave-delay and tab-size range controls (live labels), a storage
+ *       usage meter, and Export/Import workspace wired to the shared
+ *       Storage.export/import — editor prefs re-apply after save/import.
+ *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial dialog
+ *       controller: focus trap, Escape/backdrop close, submit flows.
  *
  * ✒ Description:
  *     textMan's dialog controller: open/close with focus management, Escape
@@ -154,15 +162,51 @@
         /* ── Settings ───────────────────────────────── */
 
         syncSettingsForm() {
+            const s = State.get().settings;
+
             const theme = document.documentElement.getAttribute('data-theme') || 'parchment';
             const radio = DOM.$(`input[name="theme-pref"][value="${theme}"]`);
             if (radio) radio.checked = true;
 
             const autosaveSelect = DOM.id('setting-autosave');
-            if (autosaveSelect) autosaveSelect.value = State.get().settings.autosave;
+            if (autosaveSelect) autosaveSelect.value = s.autosave;
+
+            const delay = DOM.id('setting-autosave-delay');
+            const delayLabel = DOM.id('autosave-delay-label');
+            if (delay) delay.value = String(s.autosaveDelay);
+            if (delayLabel) delayLabel.textContent = String(s.autosaveDelay);
+
+            const tab = DOM.id('setting-tab-size');
+            const tabLabel = DOM.id('tab-size-label');
+            if (tab) tab.value = String(s.tabSize);
+            if (tabLabel) tabLabel.textContent = String(s.tabSize);
+
+            this.updateUsageMeter();
+        },
+
+        /** Reflect stored size against the ~5 MB LocalStorage budget. */
+        updateUsageMeter() {
+            const info = Storage.getUsageInfo();
+            const fill = DOM.id('usage-fill');
+            const label = DOM.id('usage-label');
+            if (!info) return;
+
+            const pct = Math.min(100, (info.bytes / (5 * 1024 * 1024)) * 100);
+            if (fill) fill.style.width = `${Math.max(1, pct)}%`;
+            if (label) label.textContent = info.formatted;
         },
 
         wireSettings() {
+            // Live range labels
+            DOM.on('#setting-autosave-delay', 'input', (e) => {
+                const el = DOM.id('autosave-delay-label');
+                if (el) el.textContent = e.target.value;
+            });
+            DOM.on('#setting-tab-size', 'input', (e) => {
+                const el = DOM.id('tab-size-label');
+                if (el) el.textContent = e.target.value;
+            });
+
             DOM.on('#btn-save-settings', 'click', () => {
                 const themeRadio = DOM.$('input[name="theme-pref"]:checked');
                 if (themeRadio) TOOLMAN.setTheme(themeRadio.value);
@@ -170,10 +214,27 @@
                 const autosaveSelect = DOM.id('setting-autosave');
                 if (autosaveSelect) State.updateSettings('autosave', autosaveSelect.value);
 
+                const delay = DOM.id('setting-autosave-delay');
+                if (delay) State.updateSettings('autosaveDelay', Number(delay.value));
+
+                const tab = DOM.id('setting-tab-size');
+                if (tab) State.updateSettings('tabSize', Number(tab.value));
+
+                if (window.EditorUI) EditorUI.applyPrefs(); // tab size takes effect now
+
                 Autosave.saveNow();
+                this.updateUsageMeter();
                 this.closeActive();
                 TOOLMAN.notify('Settings saved', 'success', 1600);
             });
+
+            // Export / Import workspace
+            DOM.on('#btn-export-workspace', 'click', () => {
+                if (Storage.export()) TOOLMAN.notify('Workspace exported', 'success', 1600);
+                else TOOLMAN.notify('Export failed', 'error');
+            });
+
+            DOM.on('#btn-import-workspace', 'click', () => this.importWorkspace());
 
             DOM.on('#btn-reset-workspace', 'click', () => {
                 const sure = window.confirm(
@@ -199,6 +260,46 @@
                 this.closeActive();
                 TOOLMAN.notify('Workspace reset', 'success');
             });
+        },
+
+        /** File-picker → Storage.import → re-hydrate the editor + workspace. */
+        importWorkspace() {
+            const input = DOM.create('input', {
+                attrs: { type: 'file', accept: '.json,application/json' },
+                style: { display: 'none' }
+            });
+            document.body.appendChild(input);
+
+            DOM.on(input, 'change', () => {
+                const file = input.files && input.files[0];
+                input.remove();
+                if (!file) return;
+
+                Storage.import(file)
+                    .then(() => {
+                        // Re-apply imported state across the UI.
+                        if (window.EditorUI) {
+                            EditorUI.setValue(State.get().editor.content || '');
+                            EditorUI.applyPrefs();
+                            const titleInput = DOM.id('doc-title');
+                            if (titleInput) titleInput.value = State.get().editor.docTitle;
+                            EditorUI.syncTabTitle();
+                        }
+                        if (window.LayoutUI) {
+                            LayoutUI.applyAccordionState();
+                            LayoutUI.applySectionOrder();
+                        }
+                        if (window.WorkspaceUI) WorkspaceUI.renderAll();
+                        this.updateUsageMeter();
+                        TOOLMAN.notify('Workspace imported', 'success', 1800);
+                    })
+                    .catch((err) => {
+                        console.error('[Settings] Import failed:', err);
+                        TOOLMAN.notify('Import failed — invalid backup file', 'error');
+                    });
+            });
+
+            input.click();
         },
 
         /* ── Save Snippet ───────────────────────────── */

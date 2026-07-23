@@ -794,6 +794,34 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="setting-autosave-delay">Autosave delay: <span id="autosave-delay-label">1000</span> ms</label>
+                    <input type="range" id="setting-autosave-delay" class="range-input" min="300" max="5000" step="100" value="1000">
+                    <p class="help-text">How long to wait after you stop typing (debounced mode).</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="setting-tab-size">Editor tab size: <span id="tab-size-label">4</span> spaces</label>
+                    <input type="range" id="setting-tab-size" class="range-input" min="2" max="8" step="1" value="4">
+                </div>
+
+                <div class="form-group">
+                    <label>Backup &amp; restore</label>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" id="btn-export-workspace">Export workspace</button>
+                        <button class="btn btn-secondary" id="btn-import-workspace">Import workspace</button>
+                    </div>
+                    <p class="help-text">Export downloads a JSON backup; import merges it into this browser.</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Local storage used</label>
+                    <div class="usage-meter" title="textMan's share of this browser's storage for the tool">
+                        <div class="usage-fill" id="usage-fill"></div>
+                    </div>
+                    <p class="help-text"><span id="usage-label">0 bytes</span> of ~5 MB</p>
+                </div>
+
+                <div class="form-group">
                     <button class="btn btn-danger" id="btn-reset-workspace">Reset local workspace</button>
                     <p class="help-text">Clears your document, custom templates, snippets, history, and analytics. Seed templates are kept.</p>
                 </div>
