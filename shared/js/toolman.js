@@ -1,16 +1,25 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: EcosystemCore (toolMan Edition - v1.0)
+ *     - Title: EcosystemCore (toolMan Edition - v1.1)
  *     - File Name: toolman.js
  *     - Relative Path: shared/js/toolman.js
  *     - Artifact Type: library
- *     - Version: 1.0.0
+ *     - Version: 1.1.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Ecosystem usage
+ *       layer: stampLastUsed/getLastUsed (per-tool timestamps), pinned-tool
+ *       persistence (getPinned/togglePinned), getToolDataInfo (stored bytes
+ *       plus textMan snippet/template counts), and clearToolData — all
+ *       consumed by the hub's card ordering, badges, and reset actions.
+ *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial kernel:
+ *       registry, theme management, toasts.
  *
  * ✒ Description:
  *     The toolMan ecosystem kernel. Owns the tool registry (which tools
@@ -185,6 +194,76 @@
         toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme') || this.getTheme();
             return this.setTheme(current === 'parchment' ? 'sentinel' : 'parchment');
+        },
+
+        /* ── Ecosystem usage layer ──────────────────── */
+
+        LAST_USED_KEY: 'toolman.lastUsed',
+        PINNED_KEY: 'toolman.pinned',
+
+        /** Record that a tool was opened (called by each tool at boot). */
+        stampLastUsed(toolId) {
+            try {
+                const map = JSON.parse(window.localStorage.getItem(this.LAST_USED_KEY) || '{}');
+                map[toolId] = Date.now();
+                window.localStorage.setItem(this.LAST_USED_KEY, JSON.stringify(map));
+            } catch (_err) { /* private mode — non-fatal */ }
+        },
+
+        /** { toolId: epochMs } of last launches. */
+        getLastUsed() {
+            try {
+                const map = JSON.parse(window.localStorage.getItem(this.LAST_USED_KEY) || '{}');
+                return (map && typeof map === 'object') ? map : {};
+            } catch (_err) { return {}; }
+        },
+
+        /** Array of pinned tool ids. */
+        getPinned() {
+            try {
+                const list = JSON.parse(window.localStorage.getItem(this.PINNED_KEY) || '[]');
+                return Array.isArray(list) ? list.filter((id) => typeof id === 'string') : [];
+            } catch (_err) { return []; }
+        },
+
+        /** Toggle a tool's pinned state; returns the new state. */
+        togglePinned(toolId) {
+            const pinned = this.getPinned();
+            const idx = pinned.indexOf(toolId);
+            if (idx === -1) pinned.push(toolId); else pinned.splice(idx, 1);
+            try {
+                window.localStorage.setItem(this.PINNED_KEY, JSON.stringify(pinned));
+            } catch (_err) { /* non-fatal */ }
+            return idx === -1;
+        },
+
+        /**
+         * Size and headline counts of a tool's stored state, or null when
+         * the tool has no data. Count extraction is best-effort per tool.
+         */
+        getToolDataInfo(toolId) {
+            try {
+                const raw = window.localStorage.getItem(`toolman.${toolId}.state`);
+                if (!raw) return null;
+
+                const info = { bytes: new Blob([raw]).size, snippets: null, templates: null };
+                try {
+                    const state = JSON.parse(raw).state || {};
+                    if (Array.isArray(state.snippets)) info.snippets = state.snippets.length;
+                    if (Array.isArray(state.templates)) {
+                        info.templates = state.templates.filter((t) => t && !t.isSeed).length;
+                    }
+                } catch (_err) { /* counts stay null; size still reports */ }
+                return info;
+            } catch (_err) { return null; }
+        },
+
+        /** Remove a tool's stored state. Returns success. */
+        clearToolData(toolId) {
+            try {
+                window.localStorage.removeItem(`toolman.${toolId}.state`);
+                return true;
+            } catch (_err) { return false; }
         },
 
         /**

@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: LoaderController (toolMan Edition - v2.1)
+ *     - Title: LoaderController (toolMan Edition - v2.2)
  *     - File Name: loader.js
  *     - Relative Path: shared/js/loader.js
  *     - Artifact Type: library
- *     - Version: 2.1.0
+ *     - Version: 2.2.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,10 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Returning-visitor
+ *       fast path: after the first full sequence in a browser session
+ *       (sessionStorage 'toolman.loaderSeen'), the minimum display drops to
+ *       1200ms — ceremony for arrivals, speed for regulars.
  *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Made the sequence
  *       deliberate: a MIN_DISPLAY_MS (3200ms) hold keeps the loader on screen
  *       for a ~3.5s branded beat even when boot finishes instantly, the
@@ -81,9 +85,17 @@
     'use strict';
 
     const FAILSAFE_MS = 8000;
-    const MIN_DISPLAY_MS = 3200;   // the deliberate on-screen beat
-    const MESSAGE_CYCLE_MS = 1600; // two messages land inside the sequence
-    const READY_BEAT_MS = 450;     // how long "Ready!" holds before the fade
+    const MIN_DISPLAY_MS = 3200;      // the deliberate on-screen beat (first visit)
+    const MIN_DISPLAY_FAST_MS = 1200; // returning-visitor fast path
+    const SEEN_KEY = 'toolman.loaderSeen';
+    const MESSAGE_CYCLE_MS = 1600;    // two messages land inside the sequence
+    const READY_BEAT_MS = 450;        // how long "Ready!" holds before the fade
+
+    /** True once the full sequence has played this browser session. */
+    function seenThisSession() {
+        try { return sessionStorage.getItem(SEEN_KEY) === '1'; }
+        catch (_err) { return false; }
+    }
 
     const Loader = {
         el: null,
@@ -202,9 +214,10 @@
             if (this.completed || this._completePending || !this._initialized) return;
 
             const elapsed = Date.now() - this._startedAt;
+            const minDisplay = seenThisSession() ? MIN_DISPLAY_FAST_MS : MIN_DISPLAY_MS;
             const remaining = this._reducedMotion()
                 ? 0
-                : Math.max(0, MIN_DISPLAY_MS - elapsed);
+                : Math.max(0, minDisplay - elapsed);
 
             if (remaining > 0) {
                 this._completePending = true;
@@ -240,6 +253,9 @@
             this.updateProgress(100);
             this.statusEl.textContent = 'Ready!';
             this.stopMessageCycle();
+
+            // Subsequent loads this session take the fast path
+            try { sessionStorage.setItem(SEEN_KEY, '1'); } catch (_err) { /* non-fatal */ }
 
             setTimeout(() => this.hide(), READY_BEAT_MS);
         },

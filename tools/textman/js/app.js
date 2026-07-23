@@ -5,7 +5,7 @@
  *     - File Name: app.js
  *     - Relative Path: tools/textman/js/app.js
  *     - Artifact Type: script
- *     - Version: 2.2.0
+ *     - Version: 2.3.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,9 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Stamps the
+ *       ecosystem last-used record (TOOLMAN.stampLastUsed) during session
+ *       tracking, feeding the hub's continue chip and card ordering.
  *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — applyPanelStates
  *       delegates section state to LayoutUI.applyAccordionState (exclusive
  *       accordion model) instead of iterating the removed collapsedSections
@@ -220,12 +223,14 @@
             });
         },
 
-        /** Count this session in analytics. */
+        /** Count this session in analytics + stamp the ecosystem record. */
         trackSession() {
             const analytics = State.get().analytics;
             analytics.sessionsCount = (analytics.sessionsCount || 0) + 1;
             analytics.lastSessionDate = new Date().toISOString();
             Storage.save();
+
+            if (window.TOOLMAN) TOOLMAN.stampLastUsed('textman');
         }
     };
 

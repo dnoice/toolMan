@@ -1,10 +1,10 @@
 <!--
 ✒ Metadata
-    - Title: HubPage (toolMan Edition - v1.1)
+    - Title: HubPage (toolMan Edition - v1.2)
     - File Name: index.html
     - Relative Path: index.html
     - Artifact Type: other
-    - Version: 1.1.0
+    - Version: 1.2.0
     - Date: 2026-07-22
     - Update: Wednesday, July 22, 2026
     - Author: Dennis 'dendogg' Smaltz
@@ -12,6 +12,10 @@
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 1.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Hub QoL batch:
+      tool-search input in the header, "Continue where you left off" hero
+      slot, and the version + GitHub footer line (grid enrichments live in
+      shared/js/hub.js 1.1.0).
     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Replaced the
       fountain-pen mark (textMan's identity) with the placeholder toolbox
       mark (logo-toolMan.svg) in the loader, header, hero, and favicon.
@@ -102,6 +106,8 @@
             </div>
 
             <div class="header-right">
+                <input type="search" id="tool-search" class="tool-search" placeholder="Search tools ( / )" aria-label="Search tools" autocomplete="off">
+
                 <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Toggle parchment/sentinel theme">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -120,6 +126,7 @@
                 <h1 class="hub-title">tool<span class="logo-accent">Man</span></h1>
                 <p class="hub-tagline">One workshop, many tools.</p>
                 <p class="hub-subtitle">Focused, beautiful browser tools — no accounts, no servers, your data stays local.</p>
+                <div id="continue-chip" class="continue-slot"><!-- Rendered by HubUI when a last-used stamp exists --></div>
             </section>
 
             <section class="tool-grid" id="tool-grid" aria-label="Available tools">
@@ -129,6 +136,7 @@
 
             <footer class="hub-footer">
                 <p>Crafted by Dennis 'dendogg' Smaltz</p>
+                <p class="hub-meta">toolMan v<span id="hub-version"></span> · <a href="https://github.com/dnoice/toolMan" target="_blank" rel="noopener">GitHub</a></p>
                 <p class="signature">︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!</p>
             </footer>
         </main>

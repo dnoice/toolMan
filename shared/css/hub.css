@@ -5,7 +5,7 @@
  *     - File Name: hub.css
  *     - Relative Path: shared/css/hub.css
  *     - Artifact Type: config
- *     - Version: 1.1.1
+ *     - Version: 1.2.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,10 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Hub QoL batch:
+ *       header tool-search field, continue chip, card overlay launch link
+ *       (cards are now articles), pin/reset card actions, stored-data and
+ *       last-used badges, empty-filter message, and the footer meta line.
  *     - 1.1.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the
  *       tool-card transition:all to named properties (motion-polish pass).
  *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Tool cards now
@@ -87,6 +91,28 @@
     scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
+/* ===== HEADER TOOL SEARCH ===== */
+.tool-search {
+    width: 200px;
+    padding: var(--space-xs) var(--space-md);
+    background: rgba(255, 255, 255, 0.08);
+    border: var(--border-width) solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-full);
+    color: var(--header-text);
+    font-size: var(--font-sm);
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.tool-search::placeholder {
+    color: var(--header-subtitle);
+}
+
+.tool-search:focus {
+    outline: none;
+    border-color: var(--header-gold);
+    background: rgba(255, 255, 255, 0.12);
+}
+
 /* ===== HERO ===== */
 .hub-hero {
     text-align: center;
@@ -122,6 +148,38 @@
     margin-top: var(--space-xs);
     font-size: var(--font-sm);
     color: var(--fg-subtle);
+}
+
+/* ===== CONTINUE CHIP ===== */
+.continue-slot {
+    margin-top: var(--space-lg);
+    min-height: 1px; /* keeps the hero stable when empty */
+}
+
+.continue-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
+
+    background: var(--bg-card);
+    border: var(--border-width) solid var(--color-brand);
+    border-radius: var(--radius-full);
+    box-shadow: var(--card-inset), var(--shadow-sm);
+
+    font-size: var(--font-sm);
+    color: var(--fg-muted);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.continue-chip strong {
+    color: var(--fg-default);
+    font-weight: var(--font-semibold);
+}
+
+.continue-chip:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-inset), var(--shadow-md), var(--glow-brand);
 }
 
 /* ===== TOOL GRID ===== */
@@ -163,10 +221,62 @@
     opacity: 0.7;
 }
 
+/* Overlay launch link: the whole live card is the click target while the
+   markup stays valid (buttons are siblings above it, not children of <a>) */
+.card-link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+}
+
+.card-link:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: -2px;
+}
+
 .tool-card-header {
     display: flex;
     align-items: center;
     gap: var(--space-md);
+}
+
+/* Pin / reset actions float above the overlay link */
+.tool-card-actions {
+    position: relative;
+    z-index: 2;
+    margin-left: auto;
+    display: flex;
+    gap: var(--space-xs);
+}
+
+.card-action {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    color: var(--fg-subtle);
+    transition: color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.card-action:hover {
+    background: var(--bg-hover);
+    color: var(--color-brand);
+    transform: scale(1.12);
+}
+
+.card-action.pin[data-active="true"] {
+    color: var(--color-identity-gold);
+}
+
+.card-action.pin[data-active="true"] svg polygon {
+    fill: currentColor;
+}
+
+.card-action.reset:hover {
+    color: var(--color-danger);
 }
 
 .tool-card-icon {
@@ -267,6 +377,28 @@
     color: var(--fg-subtle);
 }
 
+/* Card meta cluster: data badge, last-used, launch affordance */
+.tool-card-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.tool-card-data,
+.tool-card-last {
+    font-size: 0.6875rem;
+    color: var(--fg-subtle);
+    font-family: var(--font-mono);
+}
+
+.grid-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--space-2xl);
+    color: var(--fg-subtle);
+    font-size: var(--font-sm);
+}
+
 /* ===== HUB FOOTER ===== */
 .hub-footer {
     margin-top: var(--space-3xl);
@@ -274,6 +406,20 @@
     text-align: center;
     font-size: var(--font-xs);
     color: var(--fg-subtle);
+}
+
+.hub-meta {
+    margin-top: var(--space-xs);
+}
+
+.hub-meta a {
+    color: var(--color-brand);
+    transition: color var(--transition-fast);
+}
+
+.hub-meta a:hover {
+    color: var(--color-brand-emphasis);
+    text-decoration: underline;
 }
 
 .hub-footer .signature {
