@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: DOMUtils (toolMan Edition - v2.1)
+ *     - Title: DOMUtils (toolMan Edition - v2.2)
  *     - File Name: dom.js
  *     - Relative Path: shared/js/dom.js
  *     - Artifact Type: library
- *     - Version: 2.1.0
+ *     - Version: 2.2.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,9 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Added
+ *       Text.countSentences and Text.readability (Flesch Reading Ease with a
+ *       heuristic syllable count) for the analytics pane.
  *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — fadeIn no longer
  *       stamps display:block on its target: it now restores '' by default
  *       (stylesheet wins) with an optional display argument for elements
@@ -415,6 +418,53 @@
         formatNumber(num) {
             const n = Number(num);
             return Number.isFinite(n) ? n.toLocaleString() : '0';
+        },
+
+        /** Count sentences (terminal .!? runs), min 1 for non-empty text. */
+        countSentences(text) {
+            if (!text || typeof text !== 'string') return 0;
+            const matches = text.match(/[.!?]+(\s|$)/g);
+            const n = matches ? matches.length : 0;
+            return n || (text.trim() ? 1 : 0);
+        },
+
+        /** Heuristic syllable count for one word (vowel-group approximation). */
+        _syllables(word) {
+            const w = word.toLowerCase().replace(/[^a-z]/g, '');
+            if (!w) return 0;
+            if (w.length <= 3) return 1;
+            const groups = w
+                .replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '')
+                .replace(/^y/, '')
+                .match(/[aeiouy]{1,2}/g);
+            return groups ? groups.length : 1;
+        },
+
+        /**
+         * Flesch Reading Ease: 206.835 − 1.015·(words/sentences)
+         * − 84.6·(syllables/word). Returns { score, label } or null when
+         * there is too little text to score.
+         */
+        readability(text) {
+            const words = text ? text.trim().split(/\s+/).filter(Boolean) : [];
+            if (words.length < 5) return null;
+
+            const sentences = Math.max(1, this.countSentences(text));
+            const syllables = words.reduce((sum, w) => sum + this._syllables(w), 0);
+
+            const score = Math.round(
+                206.835 - 1.015 * (words.length / sentences) - 84.6 * (syllables / words.length)
+            );
+            const clamped = Math.max(0, Math.min(100, score));
+
+            const label = clamped >= 90 ? 'Very easy'
+                : clamped >= 70 ? 'Easy'
+                : clamped >= 60 ? 'Plain'
+                : clamped >= 50 ? 'Fairly hard'
+                : clamped >= 30 ? 'Hard'
+                : 'Very hard';
+
+            return { score: clamped, label };
         }
     };
 

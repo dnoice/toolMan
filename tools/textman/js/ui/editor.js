@@ -257,7 +257,12 @@
         saveNow() {
             const ok = this.persist();
             if (ok) {
-                State.addHistory({ type: 'save', description: 'Saved document' });
+                // Attach a restore-point snapshot of the saved document.
+                State.addHistory({
+                    type: 'save',
+                    description: 'Saved document',
+                    snapshot: this.textarea.value
+                });
                 if (window.WorkspaceUI) WorkspaceUI.renderHistory();
                 TOOLMAN.notify('Document saved', 'success', 1400);
             } else {

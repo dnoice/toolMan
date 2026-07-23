@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: WorkspaceSidebarStyles (textMan Edition - v1.0)
+ *     - Title: WorkspaceSidebarStyles (textMan Edition - v1.1)
  *     - File Name: sidebar-left.css
  *     - Relative Path: tools/textman/css/sidebar-left.css
  *     - Artifact Type: config
- *     - Version: 1.0.1
+ *     - Version: 1.1.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,11 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Workspace QoL
+ *       styling: list search rows, snippet control row + chip buttons,
+ *       clickable tag chips, template use-count badge, expandable snippet
+ *       previews, restorable history entries, and the widened analytics
+ *       stat block, top-transforms list, and readability sub-label.
  *     - 1.0.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the
  *       card, card-button, favorite-star, and stat-block transition:all
  *       declarations to named properties (motion-polish pass).
@@ -326,4 +331,173 @@
     color: var(--fg-meta);
     letter-spacing: 0.04em;
     text-transform: uppercase;
+}
+
+/* Wide readability block spans both grid columns */
+.stat-block-wide {
+    grid-column: 1 / -1;
+}
+
+.stat-sub {
+    font-family: var(--font-sans);
+    font-size: var(--font-xs);
+    font-weight: var(--font-medium);
+    color: var(--fg-muted);
+}
+
+/* ===== TOP TRANSFORMS LIST ===== */
+.analytics-top {
+    margin-top: var(--space-md);
+}
+
+.analytics-heading {
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fg-meta);
+    margin-bottom: var(--space-xs);
+}
+
+.top-list {
+    counter-reset: top;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.top-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-surface-alt);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-xs);
+}
+
+.top-name {
+    font-family: var(--font-mono);
+    color: var(--fg-body);
+}
+
+.top-count {
+    font-family: var(--font-mono);
+    color: var(--color-brand);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== LIST SEARCH + CONTROLS ===== */
+.ws-search {
+    margin-bottom: var(--space-sm);
+}
+
+.ws-search-input {
+    width: 100%;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-input);
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--fg-default);
+    font-size: var(--font-xs);
+    transition: border-color var(--transition-fast);
+}
+
+.ws-search-input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+}
+
+.ws-controls {
+    margin-bottom: var(--space-sm);
+}
+
+.ws-control-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.chip-btn {
+    padding: 2px var(--space-sm);
+    background: var(--bg-tag);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-full);
+    color: var(--fg-muted);
+    font-size: 0.6875rem;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.chip-btn:hover {
+    color: var(--color-brand);
+    border-color: var(--color-brand);
+}
+
+.chip-btn.active {
+    background: var(--bg-active);
+    color: var(--color-brand);
+    border-color: var(--color-brand);
+}
+
+.ws-empty {
+    padding: var(--space-md);
+    text-align: center;
+    font-size: var(--font-xs);
+    color: var(--fg-subtle);
+}
+
+/* ===== TEMPLATE USE BADGE ===== */
+.use-badge {
+    display: inline-block;
+    margin-left: var(--space-xs);
+    padding: 0 var(--space-xs);
+    background: var(--bg-tag);
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    color: var(--fg-meta);
+}
+
+/* ===== CLICKABLE TAG CHIPS (snippet filtering) ===== */
+.tag-chip {
+    cursor: pointer;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+button.tag-chip:hover {
+    color: var(--color-brand);
+    border-color: var(--color-brand);
+}
+
+/* ===== EXPANDABLE SNIPPET PREVIEW ===== */
+.card-preview[data-action="toggle-expand"] {
+    cursor: pointer;
+}
+
+.card-preview.is-expanded {
+    max-height: 220px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* ===== RESTORABLE HISTORY ENTRIES ===== */
+.history-entry.is-restorable {
+    cursor: pointer;
+}
+
+.history-entry.is-restorable:hover {
+    background: var(--bg-active);
+}
+
+.restore-tag {
+    margin-left: var(--space-xs);
+    font-size: 0.625rem;
+    color: var(--color-brand);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.history-entry.is-restorable:hover .restore-tag {
+    opacity: 1;
 }

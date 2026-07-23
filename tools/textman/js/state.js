@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: StateManager (textMan Edition - v2.3)
+ *     - Title: StateManager (textMan Edition - v2.4)
  *     - File Name: state.js
  *     - Relative Path: tools/textman/js/state.js
  *     - Artifact Type: library
- *     - Version: 2.3.0
+ *     - Version: 2.4.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,11 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.4.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Workspace QoL:
+ *       history entries carry an optional document snapshot (restore points,
+ *       capped at SNAPSHOT_CAP=10 to bound storage), plus clearHistory,
+ *       duplicateTemplate, template use-count tallying, and useCounts
+ *       persistence.
  *     - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Editor prefs for
  *       the QoL batch: editor.docTitle (named document) plus settings
  *       wordWrap, fontSize, and tabSize, all validated on restore.
@@ -89,6 +94,7 @@
     const STATE_VERSION = '2.2.0';
     const HISTORY_CAP = 50;
     const HISTORY_TRIM = 20;
+    const SNAPSHOT_CAP = 10; // keep document snapshots on the newest N entries
 
     /** Which sidebar each accordion section lives in. */
     const PANEL_SECTIONS = {
@@ -337,6 +343,23 @@ High-level description of the feature
             return true;
         },
 
+        /** Deep-copy a template as a new editable custom template. */
+        duplicateTemplate(id) {
+            const src = this.getTemplate(id);
+            if (!src) return null;
+            return this.addTemplate({
+                name: `${src.name} copy`,
+                description: src.description,
+                content: src.content
+            });
+        },
+
+        /** Count a template use (drives the "used N×" badge). */
+        tallyTemplateUse(id) {
+            const t = this.getTemplate(id);
+            if (t) t.useCount = (t.useCount || 0) + 1;
+        },
+
         /* ── Snippets ───────────────────────────────── */
 
         getSnippet(id) {
@@ -399,11 +422,33 @@ High-level description of the feature
                 id: uid('history'),
                 type: entry.type || 'info',
                 description: String(entry.description).slice(0, 200),
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                // Optional document snapshot (restore point). Only kept on the
+                // newest SNAPSHOT_CAP entries so history never balloons storage.
+                snapshot: typeof entry.snapshot === 'string' ? entry.snapshot : null
             });
+
+            // Evict snapshots beyond the newest SNAPSHOT_CAP that carry one.
+            let kept = 0;
+            AppState.history.forEach((h) => {
+                if (h.snapshot === null || h.snapshot === undefined) return;
+                kept += 1;
+                if (kept > SNAPSHOT_CAP) h.snapshot = null;
+            });
+
             if (AppState.history.length > HISTORY_CAP) {
                 AppState.history.length = HISTORY_CAP;
             }
+        },
+
+        /** Find a history entry by id. */
+        getHistoryEntry(id) {
+            return AppState.history.find((h) => h.id === id) || null;
+        },
+
+        /** Wipe the history timeline. */
+        clearHistory() {
+            AppState.history = [];
         },
 
         /* ── Analytics ──────────────────────────────── */
