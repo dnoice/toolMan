@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: AppOrchestrator (textMan Edition - v2.1)
+ *     - Title: AppOrchestrator (textMan Edition - v2.2)
  *     - File Name: app.js
  *     - Relative Path: tools/textman/js/app.js
  *     - Artifact Type: script
- *     - Version: 2.1.0
+ *     - Version: 2.2.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,10 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — applyPanelStates
+ *       delegates section state to LayoutUI.applyAccordionState (exclusive
+ *       accordion model) instead of iterating the removed collapsedSections
+ *       booleans.
  *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Panel recovery
  *       shortcuts (audit finding F4): Ctrl/Cmd+[ toggles the Workspace panel
  *       and Ctrl/Cmd+] the Tools panel; applyPanelStates now routes panel
@@ -152,10 +156,8 @@
                 DOM.id('panel-tools')?.setAttribute('data-collapsed', String(uiState.rightPanelCollapsed));
             }
 
-            Object.entries(uiState.collapsedSections).forEach(([section, collapsed]) => {
-                const sectionEl = DOM.$(`[data-section="${section}"]`);
-                if (sectionEl) sectionEl.setAttribute('data-collapsed', String(collapsed));
-            });
+            // Sections follow the exclusive-open accordion model.
+            if (window.LayoutUI) LayoutUI.applyAccordionState();
         },
 
         /** Global keyboard shortcuts. */

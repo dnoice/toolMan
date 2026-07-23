@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: StateManager (textMan Edition - v2.1)
+ *     - Title: StateManager (textMan Edition - v2.2)
  *     - File Name: state.js
  *     - Relative Path: tools/textman/js/state.js
  *     - Artifact Type: library
- *     - Version: 2.1.0
+ *     - Version: 2.2.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,12 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Accordion state
+ *       model: replaced the ten independent collapsedSections booleans with
+ *       ui.openSection (one open section per sidebar, null = all closed),
+ *       plus panelOf/getOpenSection/setOpenSection/toggleSection helpers.
+ *       mergeRestore accepts both shapes — legacy payloads convert by
+ *       opening each sidebar's first non-collapsed section.
  *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Added
  *       ui.sectionOrder (workspace/tools) with the setSectionOrder helper and
  *       restore-merge support, persisting the user's drag-and-drop section
@@ -77,9 +83,15 @@
 
     const STORAGE_KEY = 'toolman.textman.state';
     const LEGACY_KEY = 'textman-state';
-    const STATE_VERSION = '2.1.0';
+    const STATE_VERSION = '2.2.0';
     const HISTORY_CAP = 50;
     const HISTORY_TRIM = 20;
+
+    /** Which sidebar each accordion section lives in. */
+    const PANEL_SECTIONS = {
+        workspace: ['templates', 'snippets', 'history', 'favorites', 'analytics'],
+        tools: ['transform', 'search', 'prefix', 'encoding', 'formatting']
+    };
 
     /** Collision-proof id generator. */
     function uid(prefix) {
@@ -249,17 +261,11 @@ High-level description of the feature
                 workspace: [],
                 tools: []
             },
-            collapsedSections: {
-                templates: false,
-                snippets: false,
-                history: false,
-                favorites: false,
-                analytics: false,
-                transform: false,
-                search: false,
-                prefix: false,
-                encoding: false,
-                formatting: false
+            /* Exclusive-open accordion: the one open section per sidebar
+               (null = all closed) */
+            openSection: {
+                workspace: 'templates',
+                tools: 'transform'
             }
         },
 
@@ -420,12 +426,37 @@ High-level description of the feature
             return false;
         },
 
-        toggleSectionCollapse(section) {
-            if (section in AppState.ui.collapsedSections) {
-                AppState.ui.collapsedSections[section] = !AppState.ui.collapsedSections[section];
-                return AppState.ui.collapsedSections[section];
-            }
-            return false;
+        /** Which sidebar a section id belongs to ('workspace'|'tools'|null). */
+        panelOf(section) {
+            return Object.keys(PANEL_SECTIONS)
+                .find((panel) => PANEL_SECTIONS[panel].includes(section)) || null;
+        },
+
+        /** The section currently open in a sidebar (or null = all closed). */
+        getOpenSection(panel) {
+            return panel in AppState.ui.openSection
+                ? AppState.ui.openSection[panel]
+                : null;
+        },
+
+        setOpenSection(panel, section) {
+            if (!(panel in AppState.ui.openSection)) return false;
+            AppState.ui.openSection[panel] =
+                (section && PANEL_SECTIONS[panel].includes(section)) ? section : null;
+            return true;
+        },
+
+        /**
+         * Accordion toggle: open the section (closing its sidebar siblings),
+         * or close it if it is already the open one. Returns the sidebar's
+         * new open section (or null).
+         */
+        toggleSection(section) {
+            const panel = this.panelOf(section);
+            if (!panel) return null;
+            const next = AppState.ui.openSection[panel] === section ? null : section;
+            AppState.ui.openSection[panel] = next;
+            return next;
         },
 
         /** Persist a sidebar's user-arranged section order. */
@@ -523,11 +554,22 @@ High-level description of the feature
         if (saved.ui && typeof saved.ui === 'object') {
             AppState.ui.leftPanelCollapsed = Boolean(saved.ui.leftPanelCollapsed);
             AppState.ui.rightPanelCollapsed = Boolean(saved.ui.rightPanelCollapsed);
-            if (saved.ui.collapsedSections && typeof saved.ui.collapsedSections === 'object') {
-                Object.keys(AppState.ui.collapsedSections).forEach((key) => {
-                    if (key in saved.ui.collapsedSections) {
-                        AppState.ui.collapsedSections[key] = Boolean(saved.ui.collapsedSections[key]);
-                    }
+            if (saved.ui.openSection && typeof saved.ui.openSection === 'object') {
+                Object.keys(AppState.ui.openSection).forEach((panel) => {
+                    const value = saved.ui.openSection[panel];
+                    AppState.ui.openSection[panel] =
+                        (typeof value === 'string' && PANEL_SECTIONS[panel].includes(value))
+                            ? value
+                            : null;
+                });
+            } else if (saved.ui.collapsedSections
+                && typeof saved.ui.collapsedSections === 'object') {
+                // Legacy (≤2.1.0) shape: ten independent booleans. Each
+                // sidebar's first non-collapsed section becomes its open one.
+                Object.keys(PANEL_SECTIONS).forEach((panel) => {
+                    const open = PANEL_SECTIONS[panel]
+                        .find((id) => !saved.ui.collapsedSections[id]);
+                    AppState.ui.openSection[panel] = open || null;
                 });
             }
             if (saved.ui.sectionOrder && typeof saved.ui.sectionOrder === 'object') {
@@ -566,8 +608,10 @@ High-level description of the feature
         },
         migrations: {
             // Older payloads restore cleanly through the allowlisted merge
+            // (mergeRestore converts the legacy collapsedSections shape)
             '1.0.0': (state) => state,
-            '2.0.0': (state) => state
+            '2.0.0': (state) => state,
+            '2.1.0': (state) => state
         }
     });
 

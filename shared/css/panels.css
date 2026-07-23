@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: PanelSystem (toolMan Edition - v2.2)
+ *     - Title: PanelSystem (toolMan Edition - v2.3)
  *     - File Name: panels.css
  *     - Relative Path: shared/css/panels.css
  *     - Artifact Type: config
- *     - Version: 2.2.0
+ *     - Version: 2.3.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,13 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Accordion pane
+ *       sizing: sections are grid rows (header auto + body 0fr↔1fr) with an
+ *       animated reveal; the open section takes the sidebar's remaining
+ *       height and scrolls internally, closed sections shrink to their
+ *       headers. Removed the empty-state min-height that inflated
+ *       unpopulated panes past the viewport; added scrollbar-gutter so
+ *       opening a scrolling pane never shifts layout.
  *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Collapsed-rail
  *       redesign (audit finding F3): a collapsed panel's header becomes a
  *       true 48px vertical rail — zero horizontal padding, vertical-writing
@@ -304,12 +311,15 @@
     display: none;
 }
 
-/* ===== TOOL SECTIONS (in side panels) ===== */
+/* ===== TOOL SECTIONS (accordion panes in side panels) =====
+   Each section is a two-row grid (header / body). The body row animates
+   0fr↔1fr for the accordion reveal; the OPEN section also takes the
+   sidebar's remaining height (flex:1) and scrolls internally. */
 .tool-section {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0; /* Allow flex children to shrink */
+    display: grid;
+    grid-template-rows: auto 1fr;
+    flex: 1 1 auto;
+    min-height: 0;
 
     background: var(--card-gradient);
     border: var(--border-width) solid var(--border-muted);
@@ -317,7 +327,10 @@
     overflow: hidden;
 
     box-shadow: var(--card-inset), var(--card-shadow);
-    transition: all var(--transition-fast);
+    transition: grid-template-rows var(--transition-base),
+                border-color var(--transition-fast),
+                box-shadow var(--transition-fast),
+                opacity var(--transition-fast);
 }
 
 .tool-section:hover {
@@ -419,25 +432,33 @@
 
 /* ===== TOOL BODY ===== */
 .tool-body {
-    flex: 1;
+    min-height: 0; /* let the 0fr row actually reach zero */
     overflow-y: auto;
     overflow-x: hidden;
     padding: var(--space-md);
+    scrollbar-gutter: stable; /* opening a scrolling pane never shifts layout */
+
+    visibility: visible;
+    transition: padding-block var(--transition-base),
+                visibility 0s linear 0s;
 
     /* Custom scrollbar */
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
-/* Hide body when section is collapsed */
-.tool-section[data-collapsed="true"] .tool-body {
-    display: none;
+/* Collapsed: shrink to the header row; the body row animates shut */
+.tool-section[data-collapsed="true"] {
+    grid-template-rows: auto 0fr;
+    flex: 0 0 auto;
 }
 
-/* When collapsed, reduce section height */
-.tool-section[data-collapsed="true"] {
-    flex: 0 0 auto;
-    min-height: 0;
+.tool-section[data-collapsed="true"] .tool-body {
+    visibility: hidden; /* removed from the a11y tree and tab order */
+    padding-block: 0;   /* padding would otherwise hold the 0fr row open */
+    overflow-y: hidden;
+    transition: padding-block var(--transition-base),
+                visibility 0s linear 250ms; /* hide only after the reveal closes */
 }
 
 /* ===== EMPTY STATE ===== */
@@ -449,7 +470,8 @@
     gap: var(--space-md);
     padding: var(--space-xl);
     text-align: center;
-    min-height: 200px;
+    /* No min-height: empty panes must never inflate past the viewport —
+       the open accordion pane already provides the vertical room. */
 }
 
 .empty-title {

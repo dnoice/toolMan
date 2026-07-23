@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: LayoutController (textMan Edition - v1.2)
+ *     - Title: LayoutController (textMan Edition - v1.3)
  *     - File Name: layout.js
  *     - Relative Path: tools/textman/js/ui/layout.js
  *     - Artifact Type: script
- *     - Version: 1.2.0
+ *     - Version: 1.3.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,11 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Accordion
+ *       conversion: section headers now drive State.toggleSection (exclusive
+ *       open per sidebar) and applyAccordionState() syncs every section's
+ *       data-collapsed + aria-expanded from ui.openSection. Replaces the
+ *       old per-section independent collapse.
  *     - 1.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Collapse recovery
  *       overhaul (audit findings F3/F4): extracted a public
  *       togglePanel/setPanelCollapsed API consumed by app.js's new
@@ -40,7 +45,8 @@
  *     - Collapsed rail recovery: the whole 48px rail is a click-to-expand
  *       target; public togglePanel(side) API backs the keyboard shortcuts
  *     - aria-expanded + tooltip text synced on every panel state change
- *     - Per-section collapse via delegated tool-header clicks
+ *     - Exclusive-open accordion per sidebar via delegated tool-header
+ *       clicks (open a section, its siblings close; click again to close)
  *     - Drag-and-drop section reordering: grab any tool-header and drop the
  *       section anywhere in its sidebar (HTML5 drag and drop)
  *     - Saved order reapplied on boot before first paint of the panels
@@ -74,7 +80,8 @@
  *     - Limitations: HTML5 drag and drop does not fire on touch-only
  *       devices — mobile users keep the default order; a section added in a
  *       future version sorts before any previously saved order until the
- *       user drags again
+ *       user drags again; accordion section ids must be registered in
+ *       state.js's PANEL_SECTIONS map to participate
  * ----------------------------------------------------------------------------
  */
 
@@ -87,6 +94,7 @@
 
         init() {
             this.applySectionOrder();
+            this.applyAccordionState();
             this.wirePanelCollapse('panel-workspace', 'left');
             this.wirePanelCollapse('panel-tools', 'right');
             this.wireSectionCollapse();
@@ -161,7 +169,24 @@
             }
         },
 
-        /* ── Section collapse ───────────────────────── */
+        /* ── Section accordion (exclusive open per sidebar) ── */
+
+        /** Sync every section's data-collapsed + aria from ui.openSection. */
+        applyAccordionState() {
+            this.sidebarContents().forEach((content) => {
+                const panel = content.closest('.panel');
+                const name = panel ? panel.dataset.panel : null;
+                if (!name) return;
+
+                const open = State.getOpenSection(name);
+                DOM.$$('.tool-section', content).forEach((section) => {
+                    const collapsed = section.dataset.section !== open;
+                    section.setAttribute('data-collapsed', String(collapsed));
+                    const btn = DOM.$('.tool-collapse', section);
+                    if (btn) btn.setAttribute('aria-expanded', String(!collapsed));
+                });
+            });
+        },
 
         wireSectionCollapse() {
             // One delegated listener covers every section in both sidebars.
@@ -172,14 +197,8 @@
                 const section = header.closest('.tool-section');
                 if (!section) return;
 
-                const name = section.dataset.section;
-                const collapsed = State.toggleSectionCollapse(name);
-
-                section.setAttribute('data-collapsed', String(collapsed));
-
-                const toggleBtn = DOM.$('.tool-collapse', header);
-                if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(!collapsed));
-
+                State.toggleSection(section.dataset.section);
+                this.applyAccordionState();
                 Autosave.start(500);
             });
         },
