@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: LayoutController (textMan Edition - v1.1)
+ *     - Title: LayoutController (textMan Edition - v1.2)
  *     - File Name: layout.js
  *     - Relative Path: tools/textman/js/ui/layout.js
  *     - Artifact Type: script
- *     - Version: 1.1.0
+ *     - Version: 1.2.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,12 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Collapse recovery
+ *       overhaul (audit findings F3/F4): extracted a public
+ *       togglePanel/setPanelCollapsed API consumed by app.js's new
+ *       Ctrl/Cmd+[ and Ctrl/Cmd+] shortcuts, made the entire collapsed rail
+ *       a click-to-expand target, and kept aria-expanded plus button/header
+ *       tooltips in sync with every state change.
  *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Added drag-and-drop
  *       section reordering in both sidebars (grab a section header, drop it
  *       where you want it), persisted per panel through ui.sectionOrder and
@@ -31,6 +37,9 @@
  *
  * ✒ Key Features:
  *     - Side panel collapse with grid column animation
+ *     - Collapsed rail recovery: the whole 48px rail is a click-to-expand
+ *       target; public togglePanel(side) API backs the keyboard shortcuts
+ *     - aria-expanded + tooltip text synced on every panel state change
  *     - Per-section collapse via delegated tool-header clicks
  *     - Drag-and-drop section reordering: grab any tool-header and drop the
  *       section anywhere in its sidebar (HTML5 drag and drop)
@@ -86,26 +95,70 @@
 
         /* ── Panel collapse ─────────────────────────── */
 
+        _panelId(side) {
+            return side === 'left' ? 'panel-workspace' : 'panel-tools';
+        },
+
+        _panelName(side) {
+            return side === 'left' ? 'Workspace' : 'Tools';
+        },
+
+        /** Apply a collapse state to the DOM (attributes, aria, tooltips). */
+        setPanelCollapsed(side, collapsed) {
+            const panel = DOM.id(this._panelId(side));
+            if (!panel) return;
+
+            panel.setAttribute('data-collapsed', String(collapsed));
+
+            const btn = DOM.$('.collapse-btn', panel);
+            if (btn) {
+                btn.setAttribute('aria-expanded', String(!collapsed));
+                btn.title = `${collapsed ? 'Expand' : 'Collapse'} ${this._panelName(side)} `
+                    + `(Ctrl+${side === 'left' ? '[' : ']'})`;
+            }
+
+            const header = DOM.$('.panel-header', panel);
+            if (header) {
+                header.title = collapsed ? `Expand ${this._panelName(side)}` : '';
+            }
+
+            const mainEl = DOM.$('.app-main');
+            if (mainEl) {
+                mainEl.setAttribute(`data-${side}-collapsed`, String(collapsed));
+            }
+        },
+
+        /** Toggle a panel: state + DOM + persistence. Returns the new state. */
+        togglePanel(side) {
+            const collapsed = State.togglePanelCollapse(side);
+            this.setPanelCollapsed(side, collapsed);
+            Autosave.start(500);
+            return collapsed;
+        },
+
         wirePanelCollapse(panelId, side) {
             const panel = DOM.id(panelId);
             if (!panel) return;
 
             const btn = DOM.$('.collapse-btn', panel);
-            if (!btn) return;
+            if (btn) {
+                DOM.on(btn, 'click', (e) => {
+                    // Don't bubble into the rail's own expand handler below.
+                    e.stopPropagation();
+                    this.togglePanel(side);
+                });
+            }
 
-            DOM.on(btn, 'click', () => {
-                const collapsed = State.togglePanelCollapse(side);
-
-                panel.setAttribute('data-collapsed', String(collapsed));
-                btn.setAttribute('aria-expanded', String(!collapsed));
-
-                const mainEl = DOM.$('.app-main');
-                if (mainEl) {
-                    mainEl.setAttribute(`data-${side}-collapsed`, String(collapsed));
-                }
-
-                Autosave.start(500);
-            });
+            // Collapsed rail: the ENTIRE header is the expand target — the
+            // 48px column must never depend on hitting a 32px button.
+            const header = DOM.$('.panel-header', panel);
+            if (header) {
+                DOM.on(header, 'click', () => {
+                    if (panel.getAttribute('data-collapsed') === 'true') {
+                        this.togglePanel(side);
+                    }
+                });
+            }
         },
 
         /* ── Section collapse ───────────────────────── */

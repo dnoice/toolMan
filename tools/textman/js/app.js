@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: AppOrchestrator (textMan Edition - v2.0)
+ *     - Title: AppOrchestrator (textMan Edition - v2.1)
  *     - File Name: app.js
  *     - Relative Path: tools/textman/js/app.js
  *     - Artifact Type: script
- *     - Version: 2.0.0
+ *     - Version: 2.1.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,11 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Panel recovery
+ *       shortcuts (audit finding F4): Ctrl/Cmd+[ toggles the Workspace panel
+ *       and Ctrl/Cmd+] the Tools panel; applyPanelStates now routes panel
+ *       collapse through LayoutUI.setPanelCollapsed so aria and tooltips
+ *       stay in sync on restore.
  *     - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Rebuilt for the
  *       toolMan ecosystem: boots every UI module through an error-isolated
  *       registry (one failing module no longer kills the app), removed the
@@ -32,7 +37,8 @@
  * ✒ Key Features:
  *     - Error-isolated module boot: each UI module inits in its own try/catch
  *     - State restore before first paint of the workspace
- *     - Global shortcuts: Ctrl/Cmd+S save, Ctrl/Cmd+F focus search, Esc close
+ *     - Global shortcuts: Ctrl/Cmd+S save, Ctrl/Cmd+F focus search,
+ *       Ctrl/Cmd+[ and Ctrl/Cmd+] panel toggles, Ctrl/Cmd+, settings, Esc
  *     - Lifecycle persistence: pagehide + visibilitychange saves
  *     - Session tracking in analytics
  *     - Loader completion with guaranteed handoff
@@ -50,6 +56,7 @@
  *     - Ctrl/Cmd+S anywhere → EditorUI.saveNow() (browser save dialog blocked)
  *     - Ctrl/Cmd+F → focuses and selects #search-input (not browser find)
  *     - Ctrl/Cmd+, → ModalsUI.open('modal-settings')
+ *     - Ctrl/Cmd+[ → LayoutUI.togglePanel('left'); Ctrl/Cmd+] → 'right'
  *     - Switching tabs (visibilitychange → hidden) triggers Storage.save()
  *     - Closing with unsaved work → beforeunload warning via editor.isDirty
  *     - App.applyPanelStates(State.get().ui) → re-applies panel/section
@@ -130,14 +137,20 @@
 
         /** Apply restored panel/section collapse states to the DOM. */
         applyPanelStates(uiState) {
-            const mainEl = DOM.$('.app-main');
-            if (mainEl) {
-                mainEl.setAttribute('data-left-collapsed', String(uiState.leftPanelCollapsed));
-                mainEl.setAttribute('data-right-collapsed', String(uiState.rightPanelCollapsed));
+            // Panels go through LayoutUI so aria-expanded and tooltips stay
+            // coherent with what the user actually sees.
+            if (window.LayoutUI) {
+                LayoutUI.setPanelCollapsed('left', uiState.leftPanelCollapsed);
+                LayoutUI.setPanelCollapsed('right', uiState.rightPanelCollapsed);
+            } else {
+                const mainEl = DOM.$('.app-main');
+                if (mainEl) {
+                    mainEl.setAttribute('data-left-collapsed', String(uiState.leftPanelCollapsed));
+                    mainEl.setAttribute('data-right-collapsed', String(uiState.rightPanelCollapsed));
+                }
+                DOM.id('panel-workspace')?.setAttribute('data-collapsed', String(uiState.leftPanelCollapsed));
+                DOM.id('panel-tools')?.setAttribute('data-collapsed', String(uiState.rightPanelCollapsed));
             }
-
-            DOM.id('panel-workspace')?.setAttribute('data-collapsed', String(uiState.leftPanelCollapsed));
-            DOM.id('panel-tools')?.setAttribute('data-collapsed', String(uiState.rightPanelCollapsed));
 
             Object.entries(uiState.collapsedSections).forEach(([section, collapsed]) => {
                 const sectionEl = DOM.$(`[data-section="${section}"]`);
@@ -170,6 +183,15 @@
                 if (mod && e.key === ',') {
                     e.preventDefault();
                     if (window.ModalsUI) ModalsUI.open('modal-settings');
+                }
+
+                // Ctrl/Cmd + [ / ] — toggle the Workspace / Tools panel
+                // (the guaranteed recovery route for a collapsed rail)
+                if (mod && (e.key === '[' || e.key === ']')) {
+                    e.preventDefault();
+                    if (window.LayoutUI) {
+                        LayoutUI.togglePanel(e.key === '[' ? 'left' : 'right');
+                    }
                 }
 
                 // Escape — handled by ModalsUI's own listener

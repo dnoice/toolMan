@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: PanelSystem (toolMan Edition - v2.1)
+ *     - Title: PanelSystem (toolMan Edition - v2.2)
  *     - File Name: panels.css
  *     - Relative Path: shared/css/panels.css
  *     - Artifact Type: config
- *     - Version: 2.1.0
+ *     - Version: 2.2.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,12 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Collapsed-rail
+ *       redesign (audit finding F3): a collapsed panel's header becomes a
+ *       true 48px vertical rail — zero horizontal padding, vertical-writing
+ *       title, centered chevron, full-height click-to-expand target with
+ *       hover affordance. Previously the 24px paddings left a 0px content
+ *       box that clipped the expand button entirely off-canvas.
  *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Tool sections now
  *       ride the theme depth tokens (card gradient, inset highlight, layered
  *       shadows) for sharper contrast; added the manipulate-your-workspace
@@ -197,6 +203,40 @@
 /* Rotate chevron when collapsed */
 .panel[data-collapsed="true"] .collapse-btn .chevron {
     transform: rotate(180deg);
+}
+
+/* ===== COLLAPSED RAIL (48px click-to-expand) =====
+   The whole header becomes a full-height vertical rail: chevron on top,
+   vertical title beneath, every pixel a click target to re-expand. */
+.panel[data-collapsed="true"] .panel-header {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--space-md);
+    height: 100%;
+    padding: var(--space-sm) 0;
+    cursor: pointer;
+}
+
+.panel[data-collapsed="true"] .panel-title {
+    writing-mode: vertical-rl;
+    font-size: var(--font-sm);
+    font-weight: var(--font-medium);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--header-subtitle);
+    transition: color var(--transition-fast);
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.panel[data-collapsed="true"] .panel-header:hover .panel-title {
+    color: var(--header-gold);
+}
+
+.panel[data-collapsed="true"] .collapse-btn {
+    flex-shrink: 0;
+    color: var(--header-gold);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* ===== PANEL CONTENT ===== */
