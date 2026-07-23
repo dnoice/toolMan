@@ -1,15 +1,21 @@
 <!--
 ✒ Metadata
-    - Title: UiOverhaulPlan (textMan Edition - v1.0)
+    - Title: UiOverhaulPlan (textMan Edition - v1.1)
     - File Name: OVERHAUL_PLAN.md
     - Relative Path: OVERHAUL_PLAN.md
     - Artifact Type: docs
-    - Version: 1.0.0
+    - Version: 1.1.0
     - Date: 2026-07-22
     - Update: Wednesday, July 22, 2026
     - Author: Dennis 'dendogg' Smaltz
     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+
+✒ Changelog:
+    - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Execution status
+      added: P0–P4 shipped and smoke-proven the same day (see Status).
+    - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial audited
+      blueprint.
 
 ✒ Description:
     The audited, phased game plan for overhauling textMan's UI layout and
@@ -33,6 +39,17 @@
 -->
 
 # textMan UI Overhaul — Game Plan
+
+## Status — EXECUTED 2026-07-22
+
+| Phase | Commit | Proof |
+| ----- | ------ | ----- |
+| P0 height chain | `62bae4d` | doc == viewport at 1440/1366; stats visible |
+| P1 collapsed rail | `987d043` | rail hit-testable; Ctrl+[ / ] round-trip |
+| P2 accordion | `f63159b` | exclusive-open; legacy payload migrates |
+| P3 sheen | `f4fea94` | animationName sheenSweep→none; no reverse |
+| P4 mobile | `c02f855` | 375×667 slide-in + scrim dismiss |
+| P5 sweep | this commit | full suite green, zero console errors |
 
 Four owner complaints drove the audit. All four reproduced, all four have
 verified root causes.
