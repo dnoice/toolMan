@@ -30,8 +30,9 @@
  *
  * ✒ Key Features:
  *     - Tool registry: id, name, tagline, description, status, and path for
- *       every tool in the ecosystem
- *     - Theme management: parchment/sentinel, persisted under
+ *       every tool in the ecosystem; descriptions state what the tool does,
+ *       never its availability — the card's status badge carries that
+ *     - Theme management: light/dark, persisted under
  *       'toolman.theme', applied to <html data-theme> immediately on parse
  *     - System-preference fallback: honors prefers-color-scheme on first
  *       visit
@@ -51,14 +52,14 @@
  *         <script src="../../shared/js/toolman.js"></script>
  *     Then from any tool code:
  *         TOOLMAN.toggleTheme();
- *         TOOLMAN.setTheme('sentinel');
+ *         TOOLMAN.setTheme('dark');
  *         TOOLMAN.notify('Copied to clipboard', 'success');
  *
  * ✒ Examples:
- *     TOOLMAN.getTheme()                       → 'parchment'
- *     TOOLMAN.setTheme('sentinel')             → persists + applies dark theme
+ *     TOOLMAN.getTheme()                       → 'light'
+ *     TOOLMAN.setTheme('dark')             → persists + applies dark theme
  *     TOOLMAN.toggleTheme()                    → flips between the two themes
- *     TOOLMAN.applyTheme('parchment')          → applies without persisting
+ *     TOOLMAN.applyTheme('light')          → applies without persisting
  *     TOOLMAN.storageAvailable()               → true when localStorage writable
  *     TOOLMAN.tools.find(t => t.id === 'textman').status → 'live'
  *     TOOLMAN.notify('Invalid regex', 'error') → red toast, 3.5s
@@ -79,8 +80,12 @@
     'use strict';
 
     const THEME_KEY = 'toolman.theme';
-    const THEMES = ['parchment', 'sentinel'];
-    const DEFAULT_THEME = 'parchment';
+    const THEMES = ['light', 'dark'];
+    const DEFAULT_THEME = 'light';
+
+    // Themes were keyed on their branded names until v3. The names live on as
+    // display labels; the stored value migrates on first read.
+    const LEGACY_THEMES = { parchment: 'light', sentinel: 'dark' };
 
     const TOOLMAN = {
         VERSION: '1.0.0',
@@ -105,7 +110,7 @@
                 id: 'colorman',
                 name: 'colorMan',
                 tagline: 'Command the spectrum',
-                description: 'Palettes, conversions, contrast checks, and gradient building. Coming soon.',
+                description: 'Palettes, conversions, contrast checks, and gradient building.',
                 status: 'soon',
                 path: null
             },
@@ -113,7 +118,7 @@
                 id: 'mathman',
                 name: 'mathMan',
                 tagline: 'Numbers, tamed',
-                description: 'Calculators, expression evaluation, and unit-aware math. Coming soon.',
+                description: 'Calculators, expression evaluation, and unit-aware math.',
                 status: 'soon',
                 path: null
             },
@@ -121,7 +126,7 @@
                 id: 'convertman',
                 name: 'convertMan',
                 tagline: 'From anything, to anything',
-                description: 'Units, timestamps, data formats, and file-friendly conversions. Coming soon.',
+                description: 'Units, timestamps, data formats, and file-friendly conversions.',
                 status: 'soon',
                 path: null
             },
@@ -129,7 +134,7 @@
                 id: 'devman',
                 name: 'devMan',
                 tagline: 'A toolbelt for builders',
-                description: 'JSON tools, regex testing, UUIDs, hashes, and dev utilities. Coming soon.',
+                description: 'JSON tools, regex testing, UUIDs, hashes, and dev utilities.',
                 status: 'soon',
                 path: null
             }
@@ -160,10 +165,19 @@
                 saved = window.localStorage.getItem(THEME_KEY);
             } catch (_err) { /* private mode — fall through */ }
 
+            // v2 stored the branded names. Rewrite them in place so anyone who
+            // picked a theme before the rename keeps the theme they picked.
+            if (saved && LEGACY_THEMES[saved]) {
+                saved = LEGACY_THEMES[saved];
+                try {
+                    window.localStorage.setItem(THEME_KEY, saved);
+                } catch (_err) { /* non-fatal — the mapping still applies */ }
+            }
+
             if (THEMES.includes(saved)) return saved;
 
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                return 'sentinel';
+                return 'dark';
             }
             return DEFAULT_THEME;
         },
@@ -189,11 +203,11 @@
         },
 
         /**
-         * Flip between parchment and sentinel.
+         * Flip between the light and dark themes.
          */
         toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme') || this.getTheme();
-            return this.setTheme(current === 'parchment' ? 'sentinel' : 'parchment');
+            return this.setTheme(current === 'light' ? 'dark' : 'light');
         },
 
         /* ── Ecosystem usage layer ──────────────────── */

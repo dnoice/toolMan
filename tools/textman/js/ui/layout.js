@@ -48,9 +48,14 @@
  *
  * ✒ Key Features:
  *     - Side panel collapse with grid column animation
- *     - Collapsed rail recovery: the whole 48px rail is a click-to-expand
+ *     - Collapsed rail recovery: the whole 50px rail is a click-to-expand
  *       target; public togglePanel(side) API backs the keyboard shortcuts
- *     - aria-expanded + tooltip text synced on every panel state change
+ *     - aria-expanded, aria-label and tooltip text synced on every panel
+ *       state change ("Open Workspace panel" / "Collapse Workspace panel")
+ *     - Zen mode (review §14.2): a VIEW state, never persisted — rails, pane
+ *       titles, header and toolbar all leave, a temporary exit hint appears,
+ *       and the status bar thins to cursor + save state. Chrome peeks back on
+ *       a pointer at the top edge or on keyboard focus landing inside it
  *     - Exclusive-open accordion per sidebar via delegated tool-header
  *       clicks (open a section, its siblings close; click again to close)
  *     - Drag-and-drop section reordering: grab any tool-header and drop the
@@ -69,6 +74,8 @@
  *
  * ✒ Examples:
  *     - LayoutUI.init() → applies ui.sectionOrder, then wires collapse + drag
+ *     - LayoutUI.toggleZen() → data-zen on <html>; LayoutUI.setZen(false) is
+ *       what app.js's capture-phase Escape handler calls to leave it
  *     - Dragging the Snippets header above Templates → DOM order updates
  *       live, State.setSectionOrder('workspace', ['snippets', 'templates',
  *       …]) persists it, and the arrangement survives reload
@@ -133,6 +140,14 @@
                 btn.setAttribute('aria-expanded', String(!collapsed));
                 btn.title = `${collapsed ? 'Expand' : 'Collapse'} ${this._panelName(side)} `
                     + `(Ctrl+${side === 'left' ? '[' : ']'})`;
+
+                // Review §21: a rail button needs an explicit name, not a
+                // direction-less "Toggle" — a screen-reader user cannot see
+                // which way the chevron points.
+                btn.setAttribute(
+                    'aria-label',
+                    `${collapsed ? 'Open' : 'Collapse'} ${this._panelName(side)} panel`
+                );
             }
 
             const header = DOM.$('.panel-header', panel);
@@ -344,6 +359,210 @@
         toggleMobile(side) {
             this.setMobileOpen(this._mobileOpen === side ? null : side);
         },
+
+        /* ── Zen mode (review §14.2) ────────────────── */
+        /*
+         * Focus mode (app.js) collapses the rails. Zen removes the interface:
+         * rails gone rather than railed, pane titles gone, global header and
+         * editor toolbar lifted out of flow — leaving the editor canvas, the
+         * status bar thinned to its cursor/save readout, and a hint that says
+         * how to get out. The visual hiding is all CSS (:root[data-zen]); this
+         * module owns the state, the reveal watchers, and the hint.
+         *
+         * THIS IS A VIEW STATE, NOT A DOCUMENT STATE. Nothing here touches
+         * State or Storage, and the attribute lives on <html>, which every
+         * reload rebuilds. Waking up to a hidden interface with no memory of
+         * asking for it is hostile, so Zen deliberately does not persist.
+         *
+         * Because nothing is mutated, leaving Zen restores the previous layout
+         * exactly: the rails come back with the same data-collapsed values,
+         * the same open accordion section and the same widths they had.
+         */
+
+        zenActive: false,
+        _zenChrome: false,
+        _zenHint: null,
+        _zenHintTimer: 0,
+        _zenHandlers: null,
+
+        /** Pointer within this many px of the top edge peeks the chrome. */
+        ZEN_PEEK_EDGE: 6,
+
+        /** Fallback chrome depth when the toolbar cannot be measured. */
+        ZEN_CHROME_FALLBACK: 120,
+
+        toggleZen() {
+            this.setZen(!this.zenActive);
+        },
+
+        setZen(on) {
+            const next = Boolean(on);
+            if (next === this.zenActive) return this.zenActive;
+
+            this.zenActive = next;
+            this._buildZenFurniture();
+
+            const root = document.documentElement;
+            if (next) {
+                root.setAttribute('data-zen', 'true');
+                // Never enter Zen with the chrome already peeked — the whole
+                // point of the entry animation is the interface leaving.
+                this.setZenChrome(false);
+                this._startZenWatch();
+                this._showZenHint('Zen mode', 'Esc', 'to exit');
+            } else {
+                root.removeAttribute('data-zen');
+                this.setZenChrome(false);
+                this._stopZenWatch();
+                // Announce the exit for anyone who cannot see the interface
+                // reappear, then let it fade on its own.
+                this._showZenHint('Zen mode off', '', '', 1200);
+            }
+
+            return this.zenActive;
+        },
+
+        /** Reveal or re-hide the peeked header + toolbar. */
+        setZenChrome(on) {
+            const next = Boolean(on) && this.zenActive;
+            if (next === this._zenChrome) return;
+
+            this._zenChrome = next;
+            const root = document.documentElement;
+            if (next) root.setAttribute('data-zen-chrome', 'true');
+            else root.removeAttribute('data-zen-chrome');
+        },
+
+        toggleZenChrome() {
+            this.setZenChrome(!this._zenChrome);
+        },
+
+        /* ── Zen: runtime furniture ─────────────────── */
+
+        /*
+         * Built from JS rather than markup on purpose: the hint exists for a
+         * mode most sessions never enter, and index.html has no business
+         * carrying an element that is invisible 99% of the time. Built once on
+         * first entry, then reused.
+         *
+         * There is deliberately no companion status element. §14.2 wants "only
+         * essential cursor and save status" kept, and the unified status bar
+         * (review §12) already IS that readout — minting a second one beside
+         * it would be exactly the duplicate status §4.4 and §5.6 rule out. Zen
+         * thins the real bar in CSS instead.
+         */
+        _buildZenFurniture() {
+            if (this._zenHint) return;
+
+            this._zenHint = DOM.create('div', {
+                className: 'zen-hint',
+                attrs: { role: 'status', 'aria-live': 'polite' }
+            });
+            document.body.appendChild(this._zenHint);
+        },
+
+        /**
+         * Show the temporary exit hint (§14.2), then fade it. Re-showing while
+         * one is on screen restarts the clock rather than stacking hints.
+         */
+        _showZenHint(label, key, tail = '', hold = 3200) {
+            if (!this._zenHint) return;
+
+            DOM.empty(this._zenHint);
+            this._zenHint.appendChild(DOM.create('span', {
+                className: 'zen-hint-label', text: label
+            }));
+
+            if (key) {
+                const keys = DOM.create('span', { className: 'zen-hint-keys' });
+                keys.appendChild(DOM.create('kbd', { text: key }));
+                if (tail) keys.appendChild(document.createTextNode(' ' + tail));
+                this._zenHint.appendChild(keys);
+            }
+
+            this._zenHint.classList.add('is-visible');
+            clearTimeout(this._zenHintTimer);
+            this._zenHintTimer = setTimeout(() => {
+                if (this._zenHint) this._zenHint.classList.remove('is-visible');
+            }, hold);
+        },
+
+        /* ── Zen: chrome reveal watchers ────────────── */
+
+        /*
+         * Wired on entry, torn down on exit. A pointermove listener plus two
+         * focus listeners are cheap, but they are pure overhead outside Zen,
+         * so they do not outlive it.
+         */
+        _startZenWatch() {
+            if (this._zenHandlers) return;
+
+            const onPointer = (e) => {
+                if (!this.zenActive) return;
+
+                if (!this._zenChrome) {
+                    if (e.clientY <= this.ZEN_PEEK_EDGE) this.setZenChrome(true);
+                    return;
+                }
+
+                // Keyboard focus inside the chrome outranks the pointer —
+                // tabbing to Save and then moving the mouse must not yank the
+                // toolbar out from under the focused control.
+                if (this._focusInChrome()) return;
+                if (e.clientY > this._chromeDepth()) this.setZenChrome(false);
+            };
+
+            // The "keyboard command" half of §14.2's reveal: Tab into anything
+            // in the header or toolbar and it comes to meet you.
+            const onFocusIn = (e) => {
+                if (!this.zenActive) return;
+                const el = e.target instanceof Element ? e.target : null;
+                if (el && el.closest('.app-header, .editor-header')) {
+                    this.setZenChrome(true);
+                }
+            };
+
+            const onFocusOut = () => {
+                if (!this.zenActive || !this._zenChrome) return;
+                // activeElement updates after focusout; check on the next tick.
+                setTimeout(() => {
+                    if (this.zenActive && this._zenChrome && !this._focusInChrome()) {
+                        this.setZenChrome(false);
+                    }
+                }, 0);
+            };
+
+            document.addEventListener('pointermove', onPointer, { passive: true });
+            document.addEventListener('focusin', onFocusIn);
+            document.addEventListener('focusout', onFocusOut);
+            this._zenHandlers = { onPointer, onFocusIn, onFocusOut };
+        },
+
+        _stopZenWatch() {
+            if (!this._zenHandlers) return;
+
+            const h = this._zenHandlers;
+            document.removeEventListener('pointermove', h.onPointer);
+            document.removeEventListener('focusin', h.onFocusIn);
+            document.removeEventListener('focusout', h.onFocusOut);
+            this._zenHandlers = null;
+        },
+
+        _focusInChrome() {
+            const el = document.activeElement;
+            return Boolean(el && el.closest && el.closest('.app-header, .editor-header'));
+        },
+
+        /** Bottom of the peeked chrome — measured, because the toolbar wraps. */
+        _chromeDepth() {
+            const toolbar = DOM.$('.editor-header');
+            if (toolbar) {
+                const rect = toolbar.getBoundingClientRect();
+                if (rect.height) return rect.bottom;
+            }
+            return this.ZEN_CHROME_FALLBACK;
+        },
+
 
         /** Read the sidebar's DOM order and persist it. */
         persistOrder(content) {

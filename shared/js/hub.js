@@ -39,31 +39,31 @@
  *     - Type-ahead search over name/tagline/description; '/' focuses it,
  *       Escape clears it
  *     - ArrowLeft/Right/Up/Down move focus across launch links, Enter opens
- *     - Hero "Continue where you left off" chip from the last-used stamp
- *     - Per-card badge: stored KB + snippet/template counts (live data)
+ *     - Hero resume action: a button plus a separate "last used" metadata line
+ *     - Per-card footer counts: templates and snippets saved in this browser
  *     - Pin toggle and confirm-guarded per-card data reset
  *     - Footer version stamp (TOOLMAN.VERSION) — the GitHub link lives in
  *       the page markup
  *
  * ✒ Usage Instructions:
  *     Loaded by the hub's index.html after toolman.js, dom.js, and
- *     loader.js. Expects #tool-grid, #tool-search, #continue-chip, and
+ *     loader.js. Expects #tool-grid, #tool-search, #resume-slot, and
  *     #hub-version in the markup. No configuration required.
  *
  * ✒ Examples:
  *     - Pressing '/' anywhere (outside an input) focuses the search box
  *     - Typing "text" filters the grid to textMan
- *     - ArrowRight from one Launch link focuses the next card's link
+ *     - ArrowRight from one card's overlay link focuses the next card's link
  *     - Clicking a card's pin star floats it to the front on next render
  *     - The reset action (↺) confirm()s, then clears toolman.<id>.state
- *     - After using textMan, the hero shows "Continue in textMan · 5m ago"
+ *     - After using textMan, the hero shows "Resume textMan → Last used 5 min ago"
  *
  * ✒ Other Important Information:
  *     - Dependencies: shared/js/toolman.js, shared/js/dom.js,
  *       shared/js/loader.js
  *     - Compatible platforms: all evergreen browsers
- *     - Limitations: data badges parse other tools' stored JSON
- *       best-effort; unknown shapes fall back to size-only
+ *     - Limitations: footer counts parse other tools' stored JSON
+ *       best-effort; unknown shapes simply show no counts
  * ----------------------------------------------------------------------------
  */
 
@@ -99,22 +99,47 @@
         return `${Text.escapeHtml(name.slice(0, idx))}<span class="logo-accent">Man</span>${Text.escapeHtml(name.slice(idx + 3))}`;
     }
 
+    /** Spelled-out relative time — reads as prose beside the resume button. */
     function relativeTime(ms) {
         const diff = Date.now() - ms;
         if (diff < 60000) return 'just now';
-        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-        return `${Math.floor(diff / 86400000)}d ago`;
+        if (diff < 3600000) {
+            const n = Math.floor(diff / 60000);
+            return `${n} min ago`;
+        }
+        if (diff < 86400000) {
+            const n = Math.floor(diff / 3600000);
+            return `${n} hour${n === 1 ? '' : 's'} ago`;
+        }
+        const n = Math.floor(diff / 86400000);
+        return `${n} day${n === 1 ? '' : 's'} ago`;
     }
 
-    function dataBadge(tool) {
+    /**
+     * Card footer counts. Deliberately no byte size: stored KB is an
+     * implementation detail, not something that helps anyone choose a tool.
+     */
+    function cardCounts(tool) {
         const info = TOOLMAN.getToolDataInfo(tool.id);
         if (!info) return '';
-        const kb = (info.bytes / 1024).toFixed(1);
-        const parts = [`${kb} KB`];
+
+        const parts = [];
+        if (info.templates !== null) parts.push(`${info.templates} template${info.templates === 1 ? '' : 's'}`);
         if (info.snippets !== null) parts.push(`${info.snippets} snippet${info.snippets === 1 ? '' : 's'}`);
-        if (info.templates !== null && info.templates > 0) parts.push(`${info.templates} custom`);
-        return `<span class="tool-card-data" title="Data stored locally in this browser">${parts.join(' · ')}</span>`;
+        if (!parts.length) return '';
+        return `<span class="tool-card-counts" title="Saved in this browser">${parts.join(' · ')}</span>`;
+    }
+
+    /**
+     * The COMING SOON badge already says the product is not here yet, so the
+     * registry's trailing "Coming soon." sentence is noise on the card.
+     * Stripped at render time — the registry copy itself is shared.
+     */
+    function productDescription(tool) {
+        const text = tool.status === 'live'
+            ? tool.description
+            : tool.description.replace(/\s*Coming soon\.?\s*$/i, '');
+        return Text.escapeHtml(text);
     }
 
     const HubUI = {
@@ -150,32 +175,32 @@
         buildCard(tool) {
             const isLive = tool.status === 'live' && tool.path;
             const pinned = TOOLMAN.getPinned().includes(tool.id);
-            const last = TOOLMAN.getLastUsed()[tool.id];
 
             const card = DOM.create('article', {
                 className: 'tool-card',
-                data: { status: isLive ? 'live' : 'soon', tool: tool.id }
+                // data-pinned lets the card keep its star on show at rest —
+                // the actions row is otherwise hidden until hover/focus.
+                data: { status: isLive ? 'live' : 'soon', tool: tool.id, pinned: String(isLive && pinned) }
             });
 
             card.innerHTML = `
-                ${isLive ? `<a class="card-link" href="${tool.path}" aria-label="Launch ${Text.escapeHtml(tool.name)} — ${Text.escapeHtml(tool.tagline)}"></a>` : ''}
+                ${isLive ? `<a class="card-link" href="${tool.path}" aria-label="Open ${Text.escapeHtml(tool.name)} — ${Text.escapeHtml(tool.tagline)}"></a>` : ''}
                 <div class="tool-card-header">
                     <div class="tool-card-icon" aria-hidden="true">${TOOL_ICONS[tool.id] || TOOL_ICONS.devman}</div>
                     <h2 class="tool-card-name">${accentName(tool.name)}</h2>
                     ${isLive ? `
                     <span class="tool-card-actions">
-                        <button type="button" class="card-action pin" data-action="pin" data-active="${pinned}" title="${pinned ? 'Unpin' : 'Pin to front'}" aria-label="${pinned ? 'Unpin' : 'Pin'} ${Text.escapeHtml(tool.name)}" aria-pressed="${pinned}">${PIN_SVG}</button>
-                        <button type="button" class="card-action reset" data-action="reset" title="Clear this tool's local data" aria-label="Clear ${Text.escapeHtml(tool.name)} local data">${RESET_SVG}</button>
+                        <button type="button" class="card-action pin" data-action="pin" data-active="${pinned}" title="${pinned ? `Unpin ${Text.escapeHtml(tool.name)} from the front` : `Pin ${Text.escapeHtml(tool.name)} to the front`}" aria-label="${pinned ? 'Unpin' : 'Pin'} ${Text.escapeHtml(tool.name)}" aria-pressed="${pinned}">${PIN_SVG}</button>
+                        <button type="button" class="card-action reset" data-action="reset" title="Clear ${Text.escapeHtml(tool.name)}'s local data" aria-label="Clear ${Text.escapeHtml(tool.name)} local data">${RESET_SVG}</button>
                     </span>` : ''}
                 </div>
-                <p class="tool-card-desc">${Text.escapeHtml(tool.description)}</p>
+                <p class="tool-card-desc">${productDescription(tool)}</p>
                 <div class="tool-card-footer">
-                    <span class="tool-card-status">${isLive ? 'Live' : 'Coming soon'}</span>
                     <span class="tool-card-meta">
-                        ${isLive ? dataBadge(tool) : ''}
-                        ${isLive && last ? `<span class="tool-card-last" title="Last opened">${relativeTime(last)}</span>` : ''}
-                        ${isLive ? '<span class="tool-card-launch">Launch <span aria-hidden="true">→</span></span>' : ''}
+                        <span class="tool-card-status">${isLive ? 'Live' : 'Coming soon'}</span>
+                        ${isLive ? cardCounts(tool) : ''}
                     </span>
+                    ${isLive ? '<span class="tool-card-launch">Open <span aria-hidden="true">→</span></span>' : ''}
                 </div>
             `;
             return card;
@@ -198,8 +223,12 @@
             tools.forEach((tool) => grid.appendChild(this.buildCard(tool)));
         },
 
-        renderContinueChip() {
-            const slot = DOM.id('continue-chip');
+        /**
+         * Resume action: a real button carrying only the verb + product, with
+         * the timestamp as metadata beside it rather than inside the target.
+         */
+        renderResume() {
+            const slot = DOM.id('resume-slot');
             if (!slot) return;
             DOM.empty(slot);
 
@@ -209,12 +238,21 @@
             const tool = id && TOOLMAN.tools.find((t) => t.id === id && t.status === 'live');
             if (!tool || !at) return;
 
-            const chip = DOM.create('a', {
-                className: 'continue-chip',
+            const btn = DOM.create('a', {
+                className: 'resume-btn',
                 attrs: { href: tool.path }
             });
-            chip.innerHTML = `Continue in <strong>${accentName(tool.name)}</strong> · ${relativeTime(at)} <span aria-hidden="true">→</span>`;
-            slot.appendChild(chip);
+            // The label is one flex item — otherwise the button's gap would
+            // open a hole inside the wordmark ("text | Man").
+            btn.innerHTML = `<span>Resume ${accentName(tool.name)}</span><span aria-hidden="true">→</span>`;
+
+            const meta = DOM.create('span', {
+                className: 'resume-meta',
+                text: `Last used ${relativeTime(at)}`
+            });
+
+            slot.appendChild(btn);
+            slot.appendChild(meta);
         },
 
         wireSearch() {
@@ -285,7 +323,7 @@
                     TOOLMAN.clearToolData(id);
                     TOOLMAN.notify(`${tool.name} data cleared`, 'success', 1800);
                     this.renderGrid();
-                    this.renderContinueChip();
+                    this.renderResume();
                 }
             });
         },
@@ -294,7 +332,7 @@
             DOM.on('#btn-theme', 'click', () => {
                 const theme = TOOLMAN.toggleTheme();
                 TOOLMAN.notify(
-                    theme === 'sentinel' ? 'Sentinel Obsidian engaged' : 'Parchment Dossier engaged',
+                    theme === 'dark' ? 'Sentinel Obsidian engaged' : 'Parchment Dossier engaged',
                     'info',
                     1600
                 );
@@ -309,7 +347,7 @@
         boot() {
             try {
                 this.renderGrid();
-                this.renderContinueChip();
+                this.renderResume();
                 this.renderVersion();
                 this.wireSearch();
                 this.wireKeyboardNav();

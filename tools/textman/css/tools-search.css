@@ -13,17 +13,22 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Description:
- *     Search & Replace pane specifics: the live match counter chip, the
- *     invalid-regex error state on the search field, and a compact
- *     two-column action button layout. The inputs and buttons themselves
- *     come from the shared panel styles.
+ *     Search & Replace pane specifics: the pane's form rhythm, the live match
+ *     count as flat helper text, the independent-option checkbox rows, the
+ *     invalid-regex error state on the search field, and the two-column
+ *     action layout. The inputs and buttons themselves come from the shared
+ *     panel styles.
  *
  * ✒ Key Features:
- *     - match-counter: mono pill chip showing occurrence counts in tabular
- *       numerals; turns brand-colored when data-has-matches is true
- *     - input-error: danger border and wash ring for invalid regex input
- *       on the shared text-input
- *     - Compact 2x2 arrangement of the pane's action-buttons grid
+ *     - Form rhythm per review §13.2: 8px label-to-field gap, 16px between
+ *       groups, on top of panels.css's 12px labels and 36px fields
+ *     - match-counter: FLAT status text (no pill) in tabular numerals,
+ *       turning accent-ink when data-has-matches is true
+ *     - option-check: checkbox rows for the independent Match case / Whole
+ *       word / Regex switches, with hover, focus-visible, and a
+ *       weight-plus-colour checked state
+ *     - input-error: danger border and colour-mixed halo for invalid regex
+ *     - Two-column action grid with Replace all spanning the closing row
  *
  * ✒ Usage Instructions:
  *     Loaded via a link tag in tools/textman/index.html, after the shared
@@ -33,17 +38,18 @@
  *     updates the counter text, data-has-matches, and input-error.
  *
  * ✒ Examples:
- *     While the user types a query, the match-counter chip reads something
- *     like "3 of 17" in mono tabular numerals; with at least one match,
- *     data-has-matches="true" tints the chip's border and text brand gold.
+ *     Before anything is typed the counter reads "No matches yet" in quiet
+ *     secondary ink directly beneath the search field; while the user types
+ *     it becomes "3 of 17" in tabular numerals, and data-has-matches="true"
+ *     lifts it to accent ink at medium weight.
  *
  *     Entering an invalid pattern in regex mode (say an unclosed bracket)
  *     adds input-error to the search text-input, giving it a danger-red
- *     border and a soft danger wash ring.
+ *     border and a soft danger halo while the counter spells out why.
  *
- *     Inside search-container the action-buttons block becomes a
- *     two-column grid, so Find / Replace / Replace All sit compactly in a
- *     2x2 arrangement.
+ *     Inside search-container the action-buttons block becomes a two-column
+ *     grid: Prev and Next pair on the first row, Replace on the second, and
+ *     Replace all spans the closing row as the pane's primary.
  *
  * ✒ Other Important Information:
  *     - Dependencies: shared/css/panels.css (text-input, action-buttons
@@ -53,32 +59,115 @@
  * ----------------------------------------------------------------------------
  */
 
-.search-container .action-buttons {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+/* ===== FORM RHYTHM (review §13.2) =====
+   12px label · 6–8px label-to-field gap · 36px fields · 14–16px between
+   groups. The field height and the 12px label come from panels.css; the two
+   gaps are set here because the shared .form-group still uses a 4px
+   label-to-field gap, which reads as the label being stuck to its input.
+   Scoped to this pane so nothing else shifts under a concurrent edit. */
+.search-container .form-group {
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
 }
 
-/* Live match counter */
-.match-counter {
-    display: inline-block;
-    margin-bottom: var(--space-sm);
-    padding: 2px var(--space-sm);
-    background: var(--bg-tag);
-    border: var(--border-width) solid var(--border-muted);
-    border-radius: var(--radius-full);
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    color: var(--fg-meta);
+/* ===== MATCH COUNT (review §6.6 / §23.3) =====
+   Was a capsule chip. Review §6.6 puts status in FLAT TEXT — a pill made a
+   read-only count look like something you could press, and it was one more
+   capsule in an interface the review says has too many (§4.1).
+   Tabular numerals so the count does not jitter as it climbs (§17). */
+.search-container .match-counter {
+    margin: calc(var(--space-1) * -1) 0 0;
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+    color: var(--text-secondary);
     font-variant-numeric: tabular-nums;
 }
 
-.match-counter[data-has-matches="true"] {
-    border-color: var(--color-brand);
-    color: var(--color-brand);
+/* Found something: the count earns accent INK (never a fill — it is text) */
+.search-container .match-counter[data-has-matches="true"] {
+    color: var(--accent-text);
+    font-weight: var(--font-medium);
 }
 
-/* Invalid regex feedback */
+/* ===== INDEPENDENT OPTIONS (review §13.2) =====
+   Real checkboxes. They wrap onto a second line rather than squeezing, and
+   each label is the hit target, not just the 16px box. */
+.search-container .option-checks {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+}
+
+/* NOTE the .search-container prefix: these rows are <label>s inside a
+   .form-group, and panels.css's `.form-group label` (uppercase, 12px,
+   letter-spaced) outranks a bare .option-check. */
+.search-container .option-check {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--h-chip);
+    padding-right: var(--space-1);
+
+    font-size: var(--font-xs);
+    font-weight: var(--font-normal);
+    color: var(--text-body);
+    letter-spacing: normal;
+    text-transform: none;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: color var(--transition-fast);
+}
+
+.search-container .option-check:hover {
+    color: var(--text-primary);
+}
+
+.search-container .option-check input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    flex: 0 0 auto;
+    accent-color: var(--accent-fill);
+    cursor: pointer;
+}
+
+/* Review §20: focus is visible on the ROW, so a keyboard user sees which
+   option is focused and not merely which box. */
+.search-container .option-check:focus-within {
+    color: var(--text-primary);
+}
+
+.search-container .option-check input[type="checkbox"]:focus-visible {
+    box-shadow: var(--glow-brand);
+}
+
+/* Checked reads through weight as well as colour — never colour alone (§20) */
+.search-container .option-check:has(input:checked) {
+    color: var(--accent-text);
+    font-weight: var(--font-medium);
+}
+
+/* ===== ACTIONS ===== */
+.search-container .action-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Two jobs, two shapes: Prev and Next are a navigation PAIR and share a row;
+   the two replacement actions are full-width rows beneath them, ending on the
+   gold primary. Half-width Replace beside an empty cell read as a layout
+   accident (review §13.4 action hierarchy). */
+.search-container #btn-replace-one,
+.search-container #btn-replace-all {
+    grid-column: 1 / -1;
+}
+
+/* ===== INVALID REGEX =====
+   Not colour alone: the border thickens to the danger hue AND the counter
+   spells out the parser's complaint (review §21). The halo is mixed off
+   --danger rather than a wash token so it cannot outlive its source. */
 .text-input.input-error {
-    border-color: var(--color-danger);
-    box-shadow: 0 0 0 3px var(--wash-danger);
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 18%, transparent);
 }

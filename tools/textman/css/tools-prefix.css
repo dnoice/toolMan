@@ -13,16 +13,23 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Description:
- *     Prefix/Suffix pane specifics: the non-destructive preview box that
- *     shows the first few lines of the pending result before Apply is
- *     committed. The pane's inputs and buttons come from the shared panel
- *     styles; this file only adds the preview surface.
+ *     Prefix/Suffix pane specifics: the joined segmented scope control, the
+ *     pane's Apply / Preview / Clear action hierarchy, and the
+ *     non-destructive preview box that shows the first few lines of the
+ *     pending result before Apply is committed. Also the home of the shared
+ *     .segmented component the Encoding pane borrows.
  *
  * ✒ Key Features:
+ *     - segmented: one joined container with a single shared border, no gaps
+ *       between segments, a 6px outer radius, and exactly one segment
+ *       carrying the accent-tinted aria-checked state (review §13.3)
+ *     - Action hierarchy: Apply filled gold, Preview neutral outline, Clear
+ *       quiet tertiary — ordered in CSS, since markup order is not ours
+ *     - field-label: section label for controls that cannot use a <label>
  *     - prefix-preview: dashed-border mono preview surface, pre-wrap with
  *       break-all so long lines never overflow the pane
- *     - is-visible state reveals the box with the shared fadeIn animation
- *     - Scrollable at 140px max height with the thin token scrollbar
+ *     - is-visible state reveals the box with the shared fadeIn animation,
+ *       skipped under prefers-reduced-motion
  *     - preview-note: quiet italic line for truncation notes on long
  *       previews
  *
@@ -48,27 +55,122 @@
  * ✒ Other Important Information:
  *     - Dependencies: shared/css/panels.css (pane inputs/buttons, loads
  *       first) and shared/css/tokens.css (fadeIn keyframes, all tokens)
+ *     - Depended on by: tools-encoding.css, which reuses .segmented for the
+ *       encode/decode direction filter (this file loads first)
  *     - Compatible platforms: all evergreen browsers
  *     - Limitations: the reveal animation breaks if tokens.css's fadeIn
- *       keyframes are ever removed or renamed
+ *       keyframes are ever removed or renamed; .segmented is defined here
+ *       rather than in panels.css only because this pass does not own the
+ *       shared stylesheet
  * ----------------------------------------------------------------------------
  */
 
+/* ===== FORM RHYTHM (review §13.2, applied to this pane too) ===== */
+.prefix-container .form-group {
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+}
+
+/* A group label that is not a <label> — the segmented control below it is a
+   radiogroup named by aria-labelledby, and a <label> pointing at nothing
+   would be a lie. Matches panels.css's field-label treatment on purpose. */
+.field-label {
+    font-size: var(--font-label);
+    font-weight: var(--font-label-weight);
+    color: var(--text-secondary);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+/* ===== SEGMENTED CONTROL (review §6.6 / §13.3) =====
+   ONE joined container: a single shared border, no gaps between segments, a
+   6px outer radius, and exactly one segment visibly selected. Three separate
+   pills implied you could pick several; these three positions are mutually
+   exclusive.
+
+   The .segmented / .segmented-option component now lives in panels.css so the
+   Prefix scope control and the Encoding direction filter share one definition
+   (the integration pass moved it there and retired the older .scope-pills
+   variant). This file only styles the Prefix pane's action hierarchy. */
+
+/* ===== ACTION HIERARCHY (review §13.3) =====
+   Apply = filled gold primary · Preview = neutral outline · Clear = quiet
+   tertiary. The three used to be near-identical buttons, so the destructive
+   one (Clear) carried the same visual weight as the one you actually want.
+   Order is set in CSS because the markup order (Preview, Apply, Clear) lives
+   in index.html. */
+.prefix-container .action-buttons {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+}
+
+.prefix-container #btn-prefix-apply {
+    order: 1;
+    flex: 1 1 auto;
+}
+
+/* Neutral OUTLINE: same geometry as the primary, no fill of its own */
+.prefix-container #btn-prefix-preview {
+    order: 2;
+    flex: 0 1 auto;
+    background: transparent;
+    border-color: var(--border-strong);
+    color: var(--text-body);
+}
+
+.prefix-container #btn-prefix-preview:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.prefix-container #btn-prefix-preview:active:not(:disabled) {
+    background: var(--bg-active);
+}
+
+/* Quiet TERTIARY: no border, no fill — it earns a surface only on hover */
+.prefix-container #btn-prefix-clear {
+    order: 3;
+    flex: 0 0 auto;
+    padding-inline: var(--space-3);
+    background: transparent;
+    border-color: transparent;
+    color: var(--text-secondary);
+}
+
+.prefix-container #btn-prefix-clear:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+.prefix-container #btn-prefix-clear:active:not(:disabled) {
+    background: var(--bg-active);
+}
+
+/* ===== PREVIEW SURFACE =====
+   Dashed on purpose: dashed means "not committed yet", which is exactly what
+   a preview is. Level 0 per review §19 — border and tone, no shadow. */
 .prefix-preview {
     display: none;
-    margin-top: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-4);
 
     background: var(--bg-surface-alt);
-    border: var(--border-width) dashed var(--border-default);
-    border-radius: var(--radius-sm);
+    border: var(--border-width) dashed var(--border);
+    border-radius: var(--radius-kbd);
 
     font-family: var(--font-mono);
     font-size: var(--font-xs);
-    color: var(--fg-body);
+    color: var(--text-body);
     line-height: var(--leading-normal);
     white-space: pre-wrap;
     word-break: break-all;
+
+    /* Review §9.3 wants ONE scroll region per rail. The pane's JS now caps the
+       preview at 8 lines AND clips each line, so the box is bounded by its
+       content instead of by a scrollbar; max-height stays as a safety valve
+       for pathological input, not as the normal case. */
     max-height: 140px;
     overflow-y: auto;
     scrollbar-width: thin;
@@ -82,7 +184,15 @@
 
 .prefix-preview .preview-note {
     display: block;
-    margin-top: var(--space-xs);
-    color: var(--fg-subtle);
+    margin-top: var(--space-1);
+    color: var(--text-secondary);
     font-style: italic;
+}
+
+/* Review §20: reduced-motion users get the preview, just not the fade */
+@media (prefers-reduced-motion: reduce) {
+    .prefix-preview.is-visible {
+        animation: none;
+        opacity: 1;
+    }
 }

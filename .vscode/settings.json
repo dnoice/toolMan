@@ -1,0 +1,7 @@
+{
+  // Live Server (Ritwick Dey) → serve the app at localhost:5500, opened in
+  // Edge. The app now lives at the project root, so "Go Live" serves it
+  // directly. Full exe path is version-proof across Live Server releases.
+  "liveServer.settings.port": 5500,
+  "liveServer.settings.AdvanceCustomBrowserCmdLine": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+}

@@ -41,7 +41,7 @@
 ✒ Key Features:
     - Branded loading screen with fail-safe handoff
     - Tool grid rendered from the shared registry (shared/js/toolman.js)
-    - Ecosystem-wide parchment/sentinel theme toggle
+    - Ecosystem-wide light/dark theme toggle
     - Keyboard-accessible cards (live cards are real links)
 
 ✒ Usage Instructions:
@@ -58,7 +58,7 @@
 ---------
 -->
 <!DOCTYPE html>
-<html lang="en" data-theme="parchment">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -133,16 +133,27 @@
 
         <header class="app-header" role="banner">
             <div class="header-left">
-                <svg class="logo-icon" width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="8.5" width="18" height="11.5" rx="1.5"/><path d="M3 13.5h18M8.5 8.5V7a3.5 3.5 0 0 1 7 0v1.5M10 13.5v2.5h4v-2.5"/>
-                </svg>
+                <!-- Shares the shell's 32px product-logo box so every tool
+                     mark across the ecosystem sits in the same optical frame.
+                     The briefcase is stroked, not filled, so it takes the
+                     full box where textMan's solid nib needs insetting. -->
+                <span class="product-logo" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="8.5" width="18" height="11.5" rx="1.5"/><path d="M3 13.5h18M8.5 8.5V7a3.5 3.5 0 0 1 7 0v1.5M10 13.5v2.5h4v-2.5"/>
+                    </svg>
+                </span>
                 <span class="logo-text" title="toolMan · One workshop, many tools">tool<span class="logo-accent">Man</span></span>
             </div>
 
             <div class="header-right">
-                <input type="search" id="tool-search" class="tool-search" placeholder="Search tools ( / )" aria-label="Search tools" autocomplete="off">
+                <!-- The shortcut is a real keycap beside the field, not copy
+                     baked into the placeholder — it survives typing. -->
+                <div class="tool-search-field">
+                    <input type="search" id="tool-search" class="tool-search" placeholder="Search tools" aria-label="Search tools — press the slash key to focus" autocomplete="off">
+                    <kbd class="tool-search-kbd" aria-hidden="true">/</kbd>
+                </div>
 
-                <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Toggle parchment/sentinel theme">
+                <button type="button" class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Toggle light/dark theme">
                     <svg class="theme-icon theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>
@@ -164,7 +175,7 @@
                 <h1 class="hub-title">tool<span class="logo-accent">Man</span></h1>
                 <p class="hub-tagline">One workshop, many tools.</p>
                 <p class="hub-subtitle">Focused, beautiful browser tools — no accounts, no servers, your data stays local.</p>
-                <div id="continue-chip" class="continue-slot"><!-- Rendered by HubUI when a last-used stamp exists --></div>
+                <div id="resume-slot" class="resume-slot"><!-- Rendered by HubUI when a last-used stamp exists --></div>
             </section>
 
             <section class="tool-grid" id="tool-grid" aria-label="Available tools">

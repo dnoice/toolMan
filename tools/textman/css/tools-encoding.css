@@ -14,14 +14,17 @@
  *
  * ✒ Description:
  *     Encoding/Decoding pane specifics layered on the shared tool-button
- *     grid: encode/decode direction tinting so encode and decode actions
- *     read as paired families at a glance. The buttons themselves come
- *     entirely from sidebar-right.css.
+ *     grid: placement for the encode/decode direction filter, and the
+ *     full-width JWT inspector tile. The buttons themselves come entirely
+ *     from sidebar-right.css, and the filter's joined control from
+ *     tools-prefix.css.
  *
  * ✒ Key Features:
  *     - encoding-hint: small italic guidance line above the button grid
- *     - Direction tinting via data-encode-dir: encode buttons' category
- *       captions render brand gold, decode captions render info blue
+ *     - encoding-filter: layout for the All / Encode / Decode segmented
+ *       control the pane's JS injects above the grid
+ *     - Full-width JWT tile, separating the one-way inspector from the ten
+ *       paired round-trip tiles
  *     - Inherits grid, sheen, and press states from sidebar-right.css
  *
  * ✒ Usage Instructions:
@@ -33,37 +36,64 @@
  *     decode.
  *
  * ✒ Examples:
- *     The Base64 Encode button is a tool-action-btn carrying
- *     data-encode-dir="encode", so its btn-category caption renders brand
- *     gold; the paired Base64 Decode button carries
- *     data-encode-dir="decode" and its caption renders info blue —
- *     scanning the grid, the two directions read as distinct families.
+ *     Choosing "Decode" in the filter above the grid hides every
+ *     data-encode-dir="encode" tile, leaving the five decoders and the JWT
+ *     inspector; "All" brings the full eleven back.
  *
  *     The encoding-hint above the grid notes in quiet italics what the
  *     actions operate on.
  *
  * ✒ Other Important Information:
  *     - Dependencies: tools/textman/css/sidebar-right.css (tool-action-btn
- *       grid, loads first) and shared/css/tokens.css (color and spacing
- *       tokens)
+ *       grid) and tools/textman/css/tools-prefix.css (the .segmented and
+ *       .field-label components) — both load first — plus
+ *       shared/css/tokens.css
  *     - Compatible platforms: all evergreen browsers
- *     - Limitations: buttons without a data-encode-dir attribute fall back
- *       to the neutral shared caption color
+ *     - Limitations: the filter reads data-encode-dir, so a tile without
+ *       that attribute would only ever appear under "All"
  * ----------------------------------------------------------------------------
  */
 
 .encoding-hint {
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-3);
     font-size: var(--font-xs);
-    color: var(--fg-subtle);
+    line-height: var(--leading-normal);
+    color: var(--text-secondary);
     font-style: italic;
 }
 
-/* Direction cues */
-.tool-action-btn[data-encode-dir="encode"] .btn-category {
-    color: var(--color-brand);
+/* ===== DIRECTION FILTER (review §13.4) =====
+   The joined control itself is the shared .segmented component defined in
+   tools-prefix.css (which loads first). Only its placement is set here. */
+.encoding-filter {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
 }
 
-.tool-action-btn[data-encode-dir="decode"] .btn-category {
-    color: var(--color-info);
+/* ===== DIRECTION CUES: DELIBERATELY NONE =====
+   This file used to tint encode captions gold and decode captions info-blue.
+   Review §5.4 — gold marks brand, active selection, primary action and focus,
+   NOT a caption sitting on ten resting tiles; and a second decorative hue on
+   top of it made the grid read as two colour-coded families competing with
+   the accent. The words ENCODE / DECODE / INSPECT already carry the
+   distinction, and the filter above the grid now carries it structurally, so
+   both overrides are gone and the captions inherit the shared muted caption
+   colour (and the shared accent-on-hover) from sidebar-right.css. */
+
+/* The filter hides tiles with the `hidden` ATTRIBUTE, which takes them out of
+   the a11y tree and the tab order as well as the layout. But the UA's
+   `[hidden] { display: none }` is a bare attribute selector, and
+   .tool-action-btn's own `display: flex` outranks it — without this rule the
+   tiles stay on screen while reporting themselves hidden. */
+[data-body="encoding"] .tool-action-btn[hidden] {
+    display: none;
+}
+
+/* The JWT inspector is not half of a round-trip pair — it is a one-way
+   reading of a token. Spanning the closing row separates it from the ten
+   paired tiles above AND clears the orphan an odd tile count would leave. */
+[data-body="encoding"] .tool-action-btn[data-encode="jwt-decode"] {
+    grid-column: 1 / -1;
 }

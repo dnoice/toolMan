@@ -27,6 +27,8 @@
  *     it to an H1 line re-levels it.
  *
  * ✒ Key Features:
+ *     - Tile captions split at init into a mono marker plus a plain name,
+ *       so the grid reads evenly (review §13.1)
  *     - Heading toggles: H1 / H2 / H3 (re-level or strip when re-applied)
  *     - Bullet list ("- ") and numbered list ("1. ") toggles
  *     - Blockquote ("> ") toggle
@@ -163,10 +165,63 @@
         'strip-md': stripMarkdown
     };
 
+    /* ===== TILE CAPTIONS (review §13.1, applied to this pane) =====
+       The captions were the raw markup with the name trailing behind it —
+       "# Heading 1", "``` Code fence" — set entirely in mono. That is the
+       same mistake §13.1 calls out in the Transform grid: the label
+       demonstrates itself, so no two labels share a shape and the column
+       reads ragged.
+
+       Here the marker is genuinely useful information, so it is not thrown
+       away — it is demoted to a SECONDARY channel exactly as §13.1 suggests:
+       a small mono marker chip in front of a plain, consistently-cased name.
+       One column of names, one column of markers, an even grid.
+
+       index.html owns this markup, so the split happens at init. */
+    const LABELS = {
+        h1:            ['#',    'Heading 1'],
+        h2:            ['##',   'Heading 2'],
+        h3:            ['###',  'Heading 3'],
+        quote:         ['>',    'Quote'],
+        bullet:        ['-',    'Bullet list'],
+        numbered:      ['1.',   'Numbered list'],
+        indent:        ['→',    'Indent'],
+        outdent:       ['←',    'Outdent'],
+        'code-fence':  ['```',  'Code fence'],
+        'strip-md':    ['',     'Strip markdown']
+    };
+
     const FormattingUI = {
         init() {
+            this.relabel();
+
             DOM.delegate('[data-body="formatting"]', 'click', '[data-format]', (e, btn) => {
                 this.apply(btn.dataset.format, btn);
+            });
+        },
+
+        /** Split each caption into an optional mono marker plus a plain name. */
+        relabel() {
+            DOM.$$('[data-body="formatting"] [data-format]').forEach((btn) => {
+                const entry = LABELS[btn.dataset.format];
+                const label = DOM.$('.btn-label', btn);
+                if (!entry || !label) return;
+
+                const [marker, name] = entry;
+                DOM.empty(label);
+
+                // The marker span is rendered even when empty: its fixed width
+                // is what keeps every NAME starting at the same x position
+                // down the grid. aria-hidden because the accessible name is
+                // the operation, not the punctuation that performs it.
+                const markerEl = DOM.create('span', {
+                    className: 'btn-marker',
+                    attrs: { 'aria-hidden': 'true' }
+                });
+                markerEl.textContent = marker;
+
+                label.appendChild(markerEl);
+                label.appendChild(DOM.create('span', { className: 'btn-name', text: name }));
             });
         },
 

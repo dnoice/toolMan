@@ -162,10 +162,132 @@
         }
     };
 
+    /* Consistent tile captions (review §13.1's rule applied to this pane):
+       "Base64URL enc" / "Base64URL dec" were abbreviated to fit an older,
+       narrower tile — the tile is wide enough now, and half a word is not a
+       label. index.html is not ours to edit, so they are set at init. */
+    const LABELS = {
+        'b64url-encode': 'Base64URL encode',
+        'b64url-decode': 'Base64URL decode'
+    };
+
+    const DIRECTION_LABEL_ID = 'encoding-direction-label';
+
     const EncodingUI = {
+        direction: 'all',
+        filterBar: null,
+
         init() {
+            this.relabel();
+            this.buildDirectionFilter();
+
             DOM.delegate('[data-body="encoding"]', 'click', '[data-encode]', (e, btn) => {
                 this.apply(btn.dataset.encode, btn);
+            });
+        },
+
+        relabel() {
+            Object.entries(LABELS).forEach(([key, text]) => {
+                const label = DOM.$(`[data-body="encoding"] [data-encode="${key}"] .btn-label`);
+                if (label) label.textContent = text;
+            });
+        },
+
+        /* ===== DIRECTION FILTER (review §13.4) =====
+           §13.4 asks for joined segmented controls wherever a pane has a
+           mutually exclusive mode. This pane has exactly one: direction.
+           Eleven tiles in one undifferentiated grid is the pane's real
+           scanning problem — encode and decode are interleaved pairs, so
+           finding "hex decode" means reading every second tile.
+
+           All / Encode / Decode is a genuine exclusive choice, so it gets the
+           same joined control as the Prefix pane's scope. It defaults to All,
+           which means the pane opens showing everything it did before —
+           filtering is something the user opts into, never a hidden tile. */
+        buildDirectionFilter() {
+            const body = DOM.$('[data-body="encoding"]');
+            if (!body || DOM.id(DIRECTION_LABEL_ID)) return;
+
+            const grid = DOM.$('.tool-grid-buttons', body);
+            if (!grid) return;
+
+            const wrap = DOM.create('div', { className: 'form-group encoding-filter' });
+            const label = DOM.create('span', {
+                className: 'field-label',
+                id: DIRECTION_LABEL_ID,
+                text: 'Show'
+            });
+
+            const bar = DOM.create('div', {
+                className: 'segmented',
+                attrs: { role: 'radiogroup', 'aria-labelledby': DIRECTION_LABEL_ID }
+            });
+
+            [['all', 'All'], ['encode', 'Encode'], ['decode', 'Decode']].forEach(([value, text]) => {
+                bar.appendChild(DOM.create('button', {
+                    className: 'segmented-option',
+                    text,
+                    data: { direction: value, active: String(value === this.direction) },
+                    attrs: {
+                        type: 'button',
+                        role: 'radio',
+                        'aria-checked': String(value === this.direction),
+                        tabindex: value === this.direction ? '0' : '-1'
+                    }
+                }));
+            });
+
+            wrap.appendChild(label);
+            wrap.appendChild(bar);
+            body.insertBefore(wrap, grid);
+            this.filterBar = bar;
+
+            DOM.delegate(bar, 'click', '[data-direction]', (e, btn) => {
+                this.setDirection(btn.dataset.direction, false);
+            });
+
+            DOM.on(bar, 'keydown', (e) => {
+                const keys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
+                if (!keys.includes(e.key)) return;
+
+                const options = DOM.$$('[data-direction]', bar);
+                const current = options.findIndex((b) => b.getAttribute('aria-checked') === 'true');
+                let next;
+
+                if (e.key === 'Home') next = 0;
+                else if (e.key === 'End') next = options.length - 1;
+                else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    next = (current + 1) % options.length;
+                } else {
+                    next = (current - 1 + options.length) % options.length;
+                }
+
+                e.preventDefault();
+                this.setDirection(options[next].dataset.direction, true);
+            });
+        },
+
+        setDirection(direction, moveFocus) {
+            const bar = this.filterBar;
+            if (!bar) return;
+
+            let chosen = null;
+            DOM.$$('[data-direction]', bar).forEach((btn) => {
+                const on = btn.dataset.direction === direction;
+                if (on) chosen = btn;
+                btn.setAttribute('aria-checked', String(on));
+                btn.dataset.active = String(on);
+                btn.tabIndex = on ? 0 : -1;
+            });
+            if (!chosen) return;
+
+            this.direction = direction;
+            if (moveFocus) chosen.focus();
+
+            // `hidden` rather than display:none so the tiles leave the a11y
+            // tree and the tab order together, not just the layout.
+            DOM.$$('[data-body="encoding"] [data-encode]').forEach((btn) => {
+                btn.hidden = direction !== 'all' && btn.dataset.encodeDir !== direction;
             });
         },
 

@@ -65,7 +65,7 @@
 ---------
 -->
 <!DOCTYPE html>
-<html lang="en" data-theme="parchment">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -130,26 +130,30 @@
         <!-- ============================================ -->
         <header class="app-header" role="banner">
             <div class="header-left">
-                <a class="hub-link" href="../../index.html" title="Back to toolMan hub">
+                <a class="hub-link" href="../../index.html" title="Back to the toolMan hub" aria-label="Back to the toolMan hub">
                     <span class="hub-link-arrow" aria-hidden="true">←</span>
                     <span class="hub-link-label">Hub</span>
                 </a>
-                <svg class="logo-icon" width="32" height="32" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <path d="m18.858 0.087595c-0.068533 0.080388-0.09085 0.19042-0.059081 0.29118-0.14604 0.11305-0.2958 0.21943-0.44882 0.31982-2.7005 1.5776-6.341 1.7177-9.4146 1.2188-0.088204-0.014314-0.19748 0.035231-0.24406 0.11154-1.7923 2.9363-3.4305 5.9718-5.1226 8.9685-0.047453 0.08404-0.14253 0.09763-0.21229 0.0304l-1.0931-1.0538c-0.069801-0.067202-0.17989-0.064333-0.24598 0.00658-0.23531 0.25231-0.47053 0.5047-0.70595 0.75691-0.066127 0.07084-0.063028 0.1826 0.00692 0.24964 0.1655 0.15857 0.33092 0.31723 0.49641 0.47582 0.069973 0.06703 0.063138 0.16761-0.015209 0.22461l-1.7383 1.2646a0.14992 0.15001 0 0 0-0.0179 0.22735l6.7659 6.7761a0.1511 0.15119 0 0 0 0.2283-0.01685l1.2798-1.7294c0.057647-0.0779 0.15869-0.08431 0.22571-0.01432 0.15848 0.1656 0.31705 0.33111 0.47555 0.49669 0.066989 0.07001 0.17869 0.07309 0.24948 7e-3 0.25204-0.23558 0.50426-0.47095 0.75646-0.70637 0.0708-0.06614 0.07376-0.1763 0.0066-0.2461l-1.0532-1.0939c-0.06721-0.06981-0.054722-0.16741 0.028112-0.21766 2.9399-1.7834 6.0876-3.238 8.9688-5.1164 0.07462-0.04864 0.12447-0.16013 0.11208-0.24869-0.44224-3.1611-0.43973-6.6048 1.2144-9.4194 0.10034-0.15311 0.20644-0.30308 0.31964-0.44908 0.10071 0.031787 0.21068 0.00946 0.29102-0.059117 0.13824-0.1403 0.11286-0.40525-0.07696-0.47005-0.01756-0.005983-0.04255 0.002647-0.05506 0.016694-1.7485 1.964-3.5702 3.8426-5.4854 5.6395-0.0652 0.061164-0.08469 0.17504-0.04962 0.25727 0.21094 0.49455 0.32039 1.1954-0.03807 1.5311-0.43682 0.40498-1.3051 0.37868-1.9979-0.32159-0.68594-0.67621-0.73588-1.5515-0.32141-1.9991 0.3357-0.35894 1.0365-0.24888 1.5303-0.038056 0.08214 0.035075 0.1944 0.014165 0.25389-0.05256 1.7483-1.9609 3.724-3.6958 5.6417-5.4867 0.01281-0.011962 0.02041-0.036746 0.01432-0.054527-0.06503-0.18964-0.32962-0.21472-0.46967-0.076567z" fill="currentColor"/>
-                </svg>
+                <!-- Product marks all sit in the same 32px .product-logo box
+                     so every tool's lockup reads at one optical weight. -->
+                <span class="product-logo" aria-hidden="true">
+                    <svg class="logo-icon" width="32" height="32" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path d="m18.858 0.087595c-0.068533 0.080388-0.09085 0.19042-0.059081 0.29118-0.14604 0.11305-0.2958 0.21943-0.44882 0.31982-2.7005 1.5776-6.341 1.7177-9.4146 1.2188-0.088204-0.014314-0.19748 0.035231-0.24406 0.11154-1.7923 2.9363-3.4305 5.9718-5.1226 8.9685-0.047453 0.08404-0.14253 0.09763-0.21229 0.0304l-1.0931-1.0538c-0.069801-0.067202-0.17989-0.064333-0.24598 0.00658-0.23531 0.25231-0.47053 0.5047-0.70595 0.75691-0.066127 0.07084-0.063028 0.1826 0.00692 0.24964 0.1655 0.15857 0.33092 0.31723 0.49641 0.47582 0.069973 0.06703 0.063138 0.16761-0.015209 0.22461l-1.7383 1.2646a0.14992 0.15001 0 0 0-0.0179 0.22735l6.7659 6.7761a0.1511 0.15119 0 0 0 0.2283-0.01685l1.2798-1.7294c0.057647-0.0779 0.15869-0.08431 0.22571-0.01432 0.15848 0.1656 0.31705 0.33111 0.47555 0.49669 0.066989 0.07001 0.17869 0.07309 0.24948 7e-3 0.25204-0.23558 0.50426-0.47095 0.75646-0.70637 0.0708-0.06614 0.07376-0.1763 0.0066-0.2461l-1.0532-1.0939c-0.06721-0.06981-0.054722-0.16741 0.028112-0.21766 2.9399-1.7834 6.0876-3.238 8.9688-5.1164 0.07462-0.04864 0.12447-0.16013 0.11208-0.24869-0.44224-3.1611-0.43973-6.6048 1.2144-9.4194 0.10034-0.15311 0.20644-0.30308 0.31964-0.44908 0.10071 0.031787 0.21068 0.00946 0.29102-0.059117 0.13824-0.1403 0.11286-0.40525-0.07696-0.47005-0.01756-0.005983-0.04255 0.002647-0.05506 0.016694-1.7485 1.964-3.5702 3.8426-5.4854 5.6395-0.0652 0.061164-0.08469 0.17504-0.04962 0.25727 0.21094 0.49455 0.32039 1.1954-0.03807 1.5311-0.43682 0.40498-1.3051 0.37868-1.9979-0.32159-0.68594-0.67621-0.73588-1.5515-0.32141-1.9991 0.3357-0.35894 1.0365-0.24888 1.5303-0.038056 0.08214 0.035075 0.1944 0.014165 0.25389-0.05256 1.7483-1.9609 3.724-3.6958 5.6417-5.4867 0.01281-0.011962 0.02041-0.036746 0.01432-0.054527-0.06503-0.18964-0.32962-0.21472-0.46967-0.076567z" fill="currentColor"/>
+                    </svg>
+                </span>
                 <span class="logo-text" title="textMan · Bend text to your will">text<span class="logo-accent">Man</span></span>
             </div>
 
             <div class="header-right">
                 <button class="icon-btn mobile-only" id="btn-mobile-workspace" title="Workspace panel" aria-label="Toggle the Workspace panel" aria-controls="panel-workspace" aria-expanded="false">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <rect x="3" y="3" width="18" height="18" rx="2"></rect>
                         <line x1="9" y1="3" x2="9" y2="21"></line>
                     </svg>
                 </button>
 
                 <button class="icon-btn mobile-only" id="btn-mobile-tools" title="Tools panel" aria-label="Toggle the Tools panel" aria-controls="panel-tools" aria-expanded="false">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <line x1="4" y1="21" x2="4" y2="14"></line>
                         <line x1="4" y1="10" x2="4" y2="3"></line>
                         <line x1="12" y1="21" x2="12" y2="12"></line>
@@ -163,13 +167,13 @@
                 </button>
 
                 <button class="icon-btn" id="btn-settings" title="Settings" aria-label="Open settings">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <circle cx="12" cy="12" r="3"></circle>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                     </svg>
                 </button>
 
-                <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Toggle parchment/sentinel theme">
+                <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Toggle light/dark theme">
                     <svg class="theme-icon theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>
@@ -180,7 +184,7 @@
                 </button>
 
                 <button class="icon-btn" id="btn-help" title="Help" aria-label="Open help">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <circle cx="12" cy="12" r="10"></circle>
                         <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                         <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -297,11 +301,6 @@
 
                 </div>
 
-                <footer class="panel-footer">
-                    <span class="footer-left">Workspace</span>
-                    <span class="footer-right" id="workspace-stats">Templates: 0 | Snippets: 0</span>
-                </footer>
-
             </section>
 
             <!-- ============================================ -->
@@ -315,114 +314,102 @@
 
                 <div class="panel-content">
 
-                    <!-- Editor Header / Toolbar -->
+                    <!-- Editor toolbar (review §10.1) — the controls read as
+                         four functional GROUPS separated by hairlines, not as
+                         one undifferentiated run of icon squares. The floppy
+                         Save button is gone: it duplicated autosave (§10.5),
+                         and Download already covers the different action with
+                         a download symbol. -->
                     <div class="editor-header">
 
                         <div class="editor-tools">
-                            <input type="text" id="doc-title" class="doc-title" value="Untitled" aria-label="Document title" title="Document title (used for the download filename)" spellcheck="false" autocomplete="off">
+                            <input type="text" id="doc-title" class="doc-title" value="Untitled" placeholder="Untitled" aria-label="Rename document" title="Rename document" spellcheck="false" autocomplete="off">
                         </div>
 
                         <div class="editor-controls">
-                            <!-- Font size stepper -->
-                            <button class="control-btn" id="btn-font-dec" title="Decrease font size" aria-label="Decrease editor font size">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            </button>
-                            <span class="font-size-label" id="font-size-label" title="Editor font size">14px</span>
-                            <button class="control-btn" id="btn-font-inc" title="Increase font size" aria-label="Increase editor font size">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            </button>
 
-                            <!-- Word wrap toggle -->
-                            <button class="control-btn" id="btn-wrap" data-active="true" aria-pressed="true" title="Word wrap: on" aria-label="Toggle word wrap">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><path d="M3 12h15a3 3 0 1 1 0 6h-4"></path><polyline points="16 16 14 18 16 20"></polyline><line x1="3" y1="18" x2="10" y2="18"></line></svg>
-                            </button>
-
-                            <span class="control-divider" aria-hidden="true"></span>
-
-                            <button class="control-btn" id="btn-open" title="Open file (or drop one on the editor)" aria-label="Open file">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                                </svg>
-                            </button>
-
-                            <button class="control-btn" id="btn-download" title="Download as text file" aria-label="Download document">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                            </button>
-
-                            <button class="control-btn" id="btn-copy-all" title="Copy the whole document" aria-label="Copy all">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                            </button>
-
-                            <button class="control-btn" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M3 7v6h6"></path>
-                                    <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
-                                </svg>
-                            </button>
-
-                            <button class="control-btn" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 7v6h-6"></path>
-                                    <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
-                                </svg>
-                            </button>
-
-                            <button class="control-btn" id="btn-diff" title="Diff against last save" aria-label="Show differences">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                    <line x1="9" y1="3" x2="9" y2="21"></line>
-                                </svg>
-                            </button>
-
-                            <button class="control-btn btn-save" id="btn-save" title="Save (Ctrl+S)" aria-label="Save">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                                    <polyline points="7 3 7 8 15 8"></polyline>
-                                </svg>
-                            </button>
-
-                            <!-- Status Indicator -->
-                            <div class="status-indicator" id="save-status" data-status="saved">
-                                <span class="status-dot"></span>
-                                <span class="status-label">Saved</span>
+                            <!-- Type size -->
+                            <div class="control-group" data-group="type" role="group" aria-label="Type size">
+                                <button class="control-btn" id="btn-font-dec" title="Smaller type" aria-label="Decrease editor font size">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                </button>
+                                <span class="font-size-label" id="font-size-label" title="Editor type size">14px</span>
+                                <button class="control-btn" id="btn-font-inc" title="Larger type" aria-label="Increase editor font size">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                </button>
                             </div>
+
+                            <!-- Document: open, download, copy -->
+                            <div class="control-group" data-group="doc" role="group" aria-label="Document">
+                                <button class="control-btn" id="btn-open" title="Open a file — or drop one on the editor" aria-label="Open a file">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                    </svg>
+                                </button>
+
+                                <button class="control-btn" id="btn-download" title="Download a copy" aria-label="Download a copy">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                </button>
+
+                                <button class="control-btn" id="btn-copy-all" title="Copy the whole document" aria-label="Copy the whole document">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <!-- History -->
+                            <div class="control-group" data-group="history" role="group" aria-label="History">
+                                <button class="control-btn" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 7v6h6"></path>
+                                        <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+                                    </svg>
+                                </button>
+
+                                <button class="control-btn" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 7v6h-6"></path>
+                                        <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <!-- View -->
+                            <div class="control-group" data-group="view" role="group" aria-label="View">
+                                <button class="control-btn" id="btn-wrap" data-active="true" aria-pressed="true" title="Word wrap: on" aria-label="Toggle word wrap">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><path d="M3 12h15a3 3 0 1 1 0 6h-4"></path><polyline points="16 16 14 18 16 20"></polyline><line x1="3" y1="18" x2="10" y2="18"></line></svg>
+                                </button>
+
+                                <button class="control-btn" id="btn-diff" title="Compare with the last save" aria-label="Compare with the last save">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                                    </svg>
+                                </button>
+                            </div>
+
                         </div>
 
                     </div>
 
-                    <!-- Editor Main (Textarea + Stats Footer) -->
+                    <!-- Editor Main (the writing canvas — review §11) -->
                     <div class="editor-main">
                         <textarea
                             class="editor-textarea"
                             id="editor-textarea"
-                            placeholder="Start typing here… (or drop a text file)"
+                            placeholder="Start typing, paste text, or drop a file"
                             spellcheck="true"
                             aria-label="Main text editor"
                         ></textarea>
-
-                        <!-- Stats Footer (viewport-locked) -->
-                        <div class="editor-stats">
-                            <span class="stat-pill" id="stat-words">Words: 0</span>
-                            <span class="stat-pill" id="stat-chars">Characters: 0</span>
-                            <span class="stat-pill" id="stat-read-time">Est. read time: 0 min</span>
-                            <span class="stat-pill stat-caret" id="stat-caret" title="Line and column (Ctrl+G to jump)">Ln 1, Col 1</span>
-                        </div>
                     </div>
 
                 </div>
-
-                <footer class="panel-footer">
-                    <span class="footer-left">Editor status</span>
-                    <span class="footer-right" id="editor-footer-status">Ready</span>
-                </footer>
 
             </section>
 
@@ -753,14 +740,42 @@
 
                 </div>
 
-                <footer class="panel-footer">
-                    <span class="footer-left">Tools</span>
-                    <span class="footer-right">5 panes</span>
-                </footer>
-
             </section>
 
         </main>
+
+        <!-- ============================================ -->
+        <!-- UNIFIED STATUS BAR (review §12) -->
+        <!-- ============================================ -->
+        <!-- ONE home for document state. Replaces the metric capsules that
+             used to sit under the editor, the separate green "Saved" pill in
+             the toolbar, and all three panel footer strips. It is the third
+             row of the .app grid, so it spans the full width beneath the
+             rails and sizes itself from --h-statusbar. -->
+        <div class="editor-statusbar" id="editor-statusbar">
+
+            <div class="statusbar-group statusbar-metrics" data-selecting="false">
+                <span class="status-metric" id="stat-words">0 words</span>
+                <span class="status-metric" id="stat-chars">0 characters</span>
+                <span class="status-metric" id="stat-read-time">0 min read</span>
+            </div>
+
+            <div class="statusbar-group statusbar-doc">
+                <!-- §12: the line/column value stays interactive for Go to
+                     Line. A real button so the keyboard reaches it — it just
+                     reads as plain text until hovered or focused. -->
+                <button class="status-caret" id="stat-caret" title="Go to line (Ctrl+G)" aria-label="Line 1, column 1 — go to line">Ln 1, Col 1</button>
+                <span class="status-sep" aria-hidden="true">·</span>
+                <!-- The one saved-state readout in the whole app (§4.4/§23.4).
+                     Also the click target for a manual save, now that the
+                     duplicate floppy toolbar icon is gone (§10.5). -->
+                <button class="status-save" id="save-status" data-status="saved" title="All changes saved — save again (Ctrl+S)">
+                    <span class="status-mark" aria-hidden="true">✓</span>
+                    <span class="status-label">Saved</span>
+                </button>
+            </div>
+
+        </div>
 
     </div>
 
@@ -776,16 +791,27 @@
                 <button class="modal-close" aria-label="Close settings">×</button>
             </header>
             <div class="modal-body">
+                <!-- Theme preference — plain name first, branded name second, with a
+                     small preview swatch (§15.3 / §23.6). value= and name= stay so
+                     TOOLMAN.setTheme keeps reading the checked radio unchanged. -->
                 <div class="form-group">
                     <label>Theme preference</label>
-                    <div class="radio-group">
-                        <label class="radio-label">
-                            <input type="radio" name="theme-pref" value="parchment" checked>
-                            <span>Parchment Dossier (light)</span>
+                    <div class="radio-group theme-choices">
+                        <label class="radio-label theme-option">
+                            <input type="radio" name="theme-pref" value="light" checked>
+                            <span class="theme-swatch theme-swatch--light" aria-hidden="true"></span>
+                            <span class="theme-option-text">
+                                <span class="theme-name">Light</span>
+                                <span class="theme-brand">Parchment Dossier</span>
+                            </span>
                         </label>
-                        <label class="radio-label">
-                            <input type="radio" name="theme-pref" value="sentinel">
-                            <span>Sentinel Obsidian (dark)</span>
+                        <label class="radio-label theme-option">
+                            <input type="radio" name="theme-pref" value="dark">
+                            <span class="theme-swatch theme-swatch--dark" aria-hidden="true"></span>
+                            <span class="theme-option-text">
+                                <span class="theme-name">Dark</span>
+                                <span class="theme-brand">Sentinel Obsidian</span>
+                            </span>
                         </label>
                     </div>
                     <p class="help-text">Applies across every toolMan tool.</p>
@@ -800,49 +826,82 @@
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label for="setting-autosave-delay">Autosave delay: <span id="autosave-delay-label">1000</span> ms</label>
+                <!-- Autosave delay only means anything while debouncing, so the whole
+                     group is hidden by JS in immediate/manual modes (§15.3). The value
+                     is shown as seconds ("1.0 s"), not raw milliseconds. -->
+                <div class="form-group" id="autosave-delay-group">
+                    <div class="field-row">
+                        <label for="setting-autosave-delay">Autosave delay</label>
+                        <span class="field-value" id="autosave-delay-label">1.0 s</span>
+                    </div>
                     <input type="range" id="setting-autosave-delay" class="range-input" min="300" max="5000" step="100" value="1000">
-                    <p class="help-text">How long to wait after you stop typing (debounced mode).</p>
+                    <p class="help-text">How long to wait after you stop typing.</p>
                 </div>
 
+                <!-- Tab size is discrete (2–8), so a stepper reads truer than a slider
+                     (§15.3). The hidden input stays the single source of truth that
+                     syncSettingsForm/Save read via .value; the buttons drive it. -->
                 <div class="form-group">
-                    <label for="setting-tab-size">Editor tab size: <span id="tab-size-label">4</span> spaces</label>
-                    <input type="range" id="setting-tab-size" class="range-input" min="2" max="8" step="1" value="4">
+                    <div class="field-row">
+                        <label id="tab-size-heading">Editor tab size</label>
+                        <div class="stepper" role="group" aria-labelledby="tab-size-heading">
+                            <button type="button" class="stepper-btn" id="tab-size-dec" aria-label="Decrease tab size">&minus;</button>
+                            <span class="stepper-value"><span id="tab-size-label">4</span><span class="stepper-unit">spaces</span></span>
+                            <button type="button" class="stepper-btn" id="tab-size-inc" aria-label="Increase tab size">+</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="setting-tab-size" value="4">
                 </div>
 
                 <div class="form-group">
                     <label>Backup &amp; restore</label>
                     <div class="action-buttons">
-                        <button class="btn btn-secondary" id="btn-export-workspace">Export workspace</button>
-                        <button class="btn btn-secondary" id="btn-import-workspace">Import workspace</button>
+                        <button class="btn btn-secondary" id="btn-export-workspace">Download backup</button>
+                        <button class="btn btn-secondary" id="btn-import-workspace">Import and merge backup</button>
                     </div>
-                    <p class="help-text">Export downloads a JSON backup; import merges it into this browser.</p>
+                    <p class="help-text">Downloads a JSON backup, or merges one back into this browser.</p>
                 </div>
 
+                <!-- Storage meter reads as broken at tiny values (a 2.5 KB fill is
+                     invisible), so the number and percent carry the meaning and the
+                     fill keeps a minimum visible nib whenever anything is stored. -->
                 <div class="form-group">
-                    <label>Local storage used</label>
+                    <label>Local storage</label>
                     <div class="usage-meter" title="textMan's share of this browser's storage for the tool">
                         <div class="usage-fill" id="usage-fill"></div>
                     </div>
-                    <p class="help-text"><span id="usage-label">0 bytes</span> of ~5 MB</p>
+                    <div class="usage-row">
+                        <span id="usage-label">0 bytes used</span>
+                        <span id="usage-percent">&lt;1%</span>
+                    </div>
+                    <p class="help-text">Of roughly 5 MB available to this browser.</p>
                 </div>
 
-                <div class="form-group">
-                    <button class="btn btn-danger" id="btn-reset-workspace">Reset local workspace</button>
-                    <p class="help-text">Clears your document, custom templates, snippets, history, and analytics. Seed templates are kept.</p>
-                </div>
+                <!-- Danger zone: visually fenced off, outlined danger button at rest,
+                     and a second confirmation before anything is deleted (§15.3). -->
+                <section class="danger-zone" aria-labelledby="danger-zone-title">
+                    <h4 class="danger-zone-title" id="danger-zone-title">Danger zone</h4>
+                    <div class="danger-zone-action">
+                        <div class="danger-zone-copy">
+                            <p class="danger-zone-heading">Reset local workspace</p>
+                            <p class="help-text">Deletes the current document, custom templates, snippets, history, and analytics. Seed templates are kept.</p>
+                        </div>
+                        <button class="btn btn-danger-outline" id="btn-reset-workspace">Reset workspace</button>
+                    </div>
+                </section>
             </div>
+            <!-- Settings applies on Save (staged), so Cancel + Save; Save stays
+                 disabled until the form actually changes (dirty-tracked in JS). -->
             <footer class="modal-footer">
-                <button class="btn btn-secondary modal-cancel">Close</button>
-                <button class="btn btn-primary" id="btn-save-settings">Save</button>
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="btn-save-settings" disabled>Save</button>
             </footer>
         </div>
     </div>
 
     <!-- Help Modal -->
     <div class="modal-backdrop" id="modal-help" role="dialog" aria-modal="true" aria-labelledby="help-title">
-        <div class="modal-panel">
+        <div class="modal-panel modal-panel--help">
             <header class="modal-header">
                 <h3 class="modal-title" id="help-title">Help & Shortcuts</h3>
                 <button class="modal-close" aria-label="Close help">×</button>
@@ -862,38 +921,45 @@
                     </dl>
                 </section>
 
+                <!-- kbd chips carry the key parts as data attributes; ModalsUI
+                     rewrites the visible text to the platform modifier once at boot
+                     (⌘/⇧ on macOS, Ctrl/Shift on Windows and Linux — §15.4). The
+                     Ctrl/Cmd fallback text stands in if the script never runs. -->
                 <section class="help-section">
                     <h4>Keyboard Shortcuts</h4>
                     <dl class="help-list">
-                        <dt><kbd>Ctrl/Cmd + S</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="S">Ctrl/Cmd + S</kbd></dt>
                         <dd>Save document</dd>
 
-                        <dt><kbd>Ctrl/Cmd + Z</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="Z">Ctrl/Cmd + Z</kbd></dt>
                         <dd>Undo</dd>
 
-                        <dt><kbd>Ctrl/Cmd + Y</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="Y">Ctrl/Cmd + Y</kbd></dt>
                         <dd>Redo</dd>
 
-                        <dt><kbd>Ctrl/Cmd + F</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="F">Ctrl/Cmd + F</kbd></dt>
                         <dd>Jump to Search &amp; Replace</dd>
 
-                        <dt><kbd>Ctrl/Cmd + G</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="G">Ctrl/Cmd + G</kbd></dt>
                         <dd>Go to line</dd>
 
-                        <dt><kbd>Ctrl/Cmd + [</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="[">Ctrl/Cmd + [</kbd></dt>
                         <dd>Toggle the Workspace panel</dd>
 
-                        <dt><kbd>Ctrl/Cmd + ]</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="]">Ctrl/Cmd + ]</kbd></dt>
                         <dd>Toggle the Tools panel</dd>
 
-                        <dt><kbd>Ctrl/Cmd + \</kbd></dt>
-                        <dd>Zen mode (collapse both panels)</dd>
+                        <dt><kbd class="kbd-shortcut" data-key="\">Ctrl/Cmd + \</kbd></dt>
+                        <dd>Focus mode (collapse both side panels)</dd>
 
-                        <dt><kbd>Ctrl/Cmd + ,</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="\" data-shift="true">Ctrl/Cmd + Shift + \</kbd></dt>
+                        <dd>Zen mode (distraction-free; Esc or the shortcut to exit)</dd>
+
+                        <dt><kbd class="kbd-shortcut" data-key=",">Ctrl/Cmd + ,</kbd></dt>
                         <dd>Open Settings</dd>
 
                         <dt><kbd>Esc</kbd></dt>
-                        <dd>Close any open dialog</dd>
+                        <dd>Close any open dialog, or exit Zen mode</dd>
                     </dl>
                 </section>
             </div>

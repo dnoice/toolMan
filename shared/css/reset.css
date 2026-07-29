@@ -63,7 +63,7 @@
  *     containers.
  *
  * ✒ Other Important Information:
- *     - Dependencies: shared/css/tokens.css (for --color-brand and scrollbar
+ *     - Dependencies: shared/css/tokens.css (for --accent-fill and scrollbar
  *       tokens; safe fallbacks included)
  *     - Compatible platforms: all evergreen browsers
  *     - Limitations: body overflow is locked for the app-shell layout — pages
@@ -165,18 +165,18 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-thumb, rgba(139, 115, 78, 0.3));
+    background: var(--scrollbar-thumb, rgba(45, 41, 35, 0.22));
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--scrollbar-thumb-hover, rgba(139, 115, 78, 0.45));
+    background: var(--scrollbar-thumb-hover, rgba(45, 41, 35, 0.36));
 }
 
 /* Focus visible for accessibility */
 :focus-visible {
-    outline: 2px solid var(--color-brand, #8B6914);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--glow-brand);
 }
 
 /* Remove outline for mouse users */

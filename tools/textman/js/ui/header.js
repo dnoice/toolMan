@@ -30,9 +30,9 @@
  * ✒ Examples:
  *     - HeaderUI.init() → wires #btn-settings, #btn-theme, and #btn-help
  *     - Clicking #btn-settings → ModalsUI.open('modal-settings')
- *     - Clicking #btn-theme → TOOLMAN.toggleTheme(); returning 'sentinel'
+ *     - Clicking #btn-theme → TOOLMAN.toggleTheme(); returning 'dark'
  *       shows the toast "Sentinel Obsidian engaged"
- *     - Toggling back to 'parchment' shows "Parchment Dossier engaged"
+ *     - Toggling back to 'light' shows "Parchment Dossier engaged"
  *     - Clicking #btn-help → ModalsUI.open('modal-help')
  *
  * ✒ Other Important Information:
@@ -55,7 +55,7 @@
             DOM.on('#btn-theme', 'click', () => {
                 const theme = TOOLMAN.toggleTheme();
                 TOOLMAN.notify(
-                    theme === 'sentinel' ? 'Sentinel Obsidian engaged' : 'Parchment Dossier engaged',
+                    theme === 'dark' ? 'Sentinel Obsidian engaged' : 'Parchment Dossier engaged',
                     'info',
                     1600
                 );

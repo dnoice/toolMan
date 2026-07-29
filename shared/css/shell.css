@@ -62,12 +62,20 @@
  *       color
  *     - Dossier-paper depth: faint radial washes layered over the canvas via
  *       the app container's before pseudo-element
- *     - Sticky header on the house navy gradient with brand logo slot and
- *       circular icon buttons
- *     - Gold hairline rule running under the header — the dossier rule
+ *     - Sticky header on the house navy chrome with a standard 32px product
+ *       mark box and rounded-square ghost icon buttons
+ *     - Gold hairline rule under the header — the dossier rule, as a single
+ *       tinted border rather than a stack of framing devices
  *     - Branded gold text selection via the selection pseudo-element
- *     - Three-column CSS grid with per-side collapse states via data
- *       attributes
+ *     - Asymmetric three-column CSS grid (narrow list rail / dominant editor /
+ *       wider form rail) with per-side collapse states via data attributes
+ *     - Overlay rail expansion between 769 and 1099px: the rail tracks stay
+ *       pinned at the collapsed width and an expanded rail floats over the
+ *       stage, so the editor never jumps when a panel opens
+ *     - Zen mode (:root[data-zen]): rails and pane titles leave, the header
+ *       and editor toolbar park out of flow and peek back on data-zen-chrome,
+ *       a temporary .zen-hint states the exit, and the unified status bar
+ *       thins to its cursor + save group
  *     - Branded loading screen: theme-tracking gradient, glass card, pulsing
  *       logo, animated gold progress bar
  *     - Toast notification stack with per-type accent borders and slide
@@ -87,8 +95,12 @@
  *
  * ✒ Examples:
  *     Collapsing the left panel sets data-left-collapsed on the main grid,
- *     which narrows the first column to the panel-collapsed-width token;
- *     both sides collapsed leaves the center column dominant.
+ *     which swaps the rail-left-track variable for the panel-collapsed-width
+ *     token; both sides collapsed leaves the center column dominant.
+ *
+ *     A future rail resizer only has to write --rail-left-w / --rail-right-w
+ *     onto .app-main (persisted under toolman.textman.railWidth.*); the
+ *     clamp() around each track already holds the review's min/max limits.
  *
  *     The loading screen paints the loader-bg gradient — cream in parchment,
  *     navy-to-obsidian in sentinel — with a glass card; the progress bar
@@ -99,8 +111,9 @@
  *     slides in from the right; success, warning, and info map to their
  *     matching status tokens.
  *
- *     Header icon buttons lift two pixels on hover, borrow the header-gold
- *     color, and glow via the glow-brand token.
+ *     Header icon buttons are 40px hit targets that paint a 34px rounded-square
+ *     surface on hover, focus, or press; the gold ring belongs to
+ *     focus-visible alone.
  *
  *     Under the 768px breakpoint the side panels become absolute slide-ins
  *     toggled by the data-mobile-open attribute.
@@ -119,21 +132,27 @@
 
 /* ===== GLOBAL REFINEMENTS ===== */
 
-/* Branded text selection */
+/* Branded text selection. Gold here is a FILLED surface, so the ink on top
+   has to be the token minted for that pairing (review §5.4) — not a brand
+   anchor that only happens to be dark enough in one theme. */
 ::selection {
-    background: var(--color-identity-gold);
-    color: var(--navy-deep);
+    background: var(--accent-fill);
+    color: var(--on-accent);
 }
 
 /* ===== APP CONTAINER ===== */
+/* Review §8.1 vertical structure — 56px header / flexible stage / 28px status
+   bar. Explicit grid rows rather than a flex column so the unified status bar
+   (review §12, a later wave) drops in as a third child and sizes itself: no
+   band height is hardcoded anywhere in the shell. */
 .app {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
     height: 100vh;
     height: 100dvh; /* dynamic-chrome mobile: track the VISIBLE viewport */
     width: 100vw;
-    background: var(--bg-canvas);
-    color: var(--fg-default);
+    background: var(--bg-app);
+    color: var(--text-primary);
     overflow: hidden;
     transition: opacity var(--transition-slow);
     position: relative;
@@ -146,8 +165,7 @@
     inset: 0;
     background:
         radial-gradient(ellipse 80% 60% at 20% -10%, var(--bg-active), transparent 60%),
-        radial-gradient(ellipse 70% 50% at 90% 110%, var(--bg-hover), transparent 55%),
-        var(--vignette);
+        radial-gradient(ellipse 70% 50% at 90% 110%, var(--bg-hover), transparent 55%);
     pointer-events: none;
     z-index: 0;
 }
@@ -161,75 +179,74 @@
 .app-header {
     position: sticky;
     top: 0;
-    left: 0;
-    right: 0;
-    height: var(--header-height);
+    height: var(--h-header);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 var(--space-lg);
+    padding: 0 var(--space-6);
 
-    /* House header treatment: navy gradient with gold identity */
-    background: var(--header-gradient);
-    border-bottom: var(--border-width) solid var(--border-subtle);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
-        0 1px 0 rgba(201, 168, 76, 0.25),
-        var(--shadow-lg);
+    /* House header treatment: navy chrome with gold identity */
+    background: var(--bg-chrome);
+
+    /* ONE divider, not three. The old stack — subtle border + gold ::after
+       gradient + inset highlight + gold glow + shadow-lg — was five framing
+       devices on a single edge (review §4.2). §7.3 asks for a subtler gold
+       rule and §19 puts structural chrome at elevation 0, so it collapses to
+       a single tinted hairline that still reads as the dossier rule. */
+    border-bottom: var(--border-width) solid
+        color-mix(in srgb, var(--accent-fill) 55%, transparent);
 
     z-index: var(--z-header);
-}
-
-/* Gold hairline running under the header — the dossier rule */
-.app-header::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -1px;
-    height: 1px;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        var(--identity-gold) 15%,
-        var(--identity-gold) 85%,
-        transparent 100%);
-    opacity: 0.45;
-    pointer-events: none;
 }
 
 /* Header Left */
 .header-left {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
+    gap: var(--space-2);
+}
+
+/* Every product mark gets the SAME visual box regardless of its own glyph
+   geometry (review §8.2) — a filled 20x20 nib and a stroked 24x24 briefcase
+   otherwise land at different optical weights beside their wordmarks. */
+.product-logo {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    color: var(--chrome-accent);
+}
+
+.product-logo > svg {
+    width: 100%;
+    height: 100%;
 }
 
 .logo-icon {
     width: 32px;
     height: 32px;
-    color: var(--header-gold);
-    transition: transform var(--transition-fast);
-}
-
-.logo-icon:hover {
-    transform: scale(1.1) rotate(5deg);
+    flex-shrink: 0;
+    color: var(--chrome-accent);
+    /* No hover transform: the mark is not a control, and animating it on
+       hover advertises an interaction that does not exist (review §4.7). */
 }
 
 .logo-text {
-    font-size: var(--font-xl);
+    font-size: var(--font-2xl); /* 21px — review §17 product wordmark */
     font-weight: var(--font-bold);
-    color: var(--header-text);
+    color: var(--chrome-text);
     letter-spacing: -0.02em;
     cursor: default;
 }
 
 .logo-text .logo-accent {
-    color: var(--header-gold);
+    color: var(--chrome-accent);
 }
 
 .header-tagline {
     font-size: var(--font-xs);
-    color: var(--header-subtitle);
+    color: var(--chrome-text-muted);
     letter-spacing: 0.04em;
 }
 
@@ -237,37 +254,66 @@
 .header-right {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
+    gap: var(--space-2);
 }
 
+/* Rounded-square ghost control (review §8.2 / §7.1). The button IS the 40px
+   hit target §21 asks for, but the visible surface is the 34px inset painted
+   by ::before — so the control reads compact without shrinking the target.
+   No permanent outline: the surface only exists on hover, focus, or press. */
 .icon-btn {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-full);
-    background: rgba(255, 255, 255, 0.06);
-    border: var(--border-width) solid rgba(255, 255, 255, 0.12);
-    color: var(--header-subtitle);
-    transition: color var(--transition-fast),
-                background-color var(--transition-fast),
-                border-color var(--transition-fast),
-                transform var(--transition-fast),
-                box-shadow var(--transition-fast);
+    position: relative;
+    width: var(--h-hit);
+    height: var(--h-hit);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    border-radius: var(--radius-control);
+    background: none;
+    border: 0;
+    color: var(--chrome-text-muted);
+    transition: color var(--transition-fast);
     cursor: pointer;
 }
 
-.icon-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: var(--header-gold);
-    color: var(--header-gold);
-    transform: translateY(-2px);
-    box-shadow: var(--glow-brand);
+.icon-btn::before {
+    content: '';
+    position: absolute;
+    inset: calc((var(--h-hit) - var(--h-icon-btn)) / 2);
+    border-radius: var(--radius-control);
+    background: transparent;
+    transition: background-color var(--transition-fast);
 }
 
-.icon-btn:active {
-    transform: translateY(0);
+/* The icon is in normal flow; the absolutely positioned surface would paint
+   straight over it without this. */
+.icon-btn > svg {
+    position: relative;
+}
+
+/* These washes stay literal rgba on purpose: the header always sits on
+   --bg-chrome (navy in light, near-black in dark), so a white veil is
+   correct in both themes while a page-relative token would not be. */
+.icon-btn:hover {
+    color: var(--chrome-accent);
+}
+
+.icon-btn:hover::before {
+    background: rgba(255, 255, 255, 0.10);
+}
+
+/* Pressed: a deeper surface, not a jump (review §20). */
+.icon-btn:active::before {
+    background: rgba(255, 255, 255, 0.17);
+}
+
+/* Focus-visible owns the ring — hover no longer borrows it (review §20). */
+.icon-btn:focus-visible {
+    outline: none;
+}
+
+.icon-btn:focus-visible::before {
+    box-shadow: var(--glow-brand);
 }
 
 /* Mobile-only header controls (panel toggles) — hidden on desktop */
@@ -280,8 +326,8 @@
 .theme-icon-moon { display: block; }
 .theme-icon-sun { display: none; }
 
-[data-theme="sentinel"] .theme-icon-moon { display: none; }
-[data-theme="sentinel"] .theme-icon-sun { display: block; }
+[data-theme="dark"] .theme-icon-moon { display: none; }
+[data-theme="dark"] .theme-icon-sun { display: block; }
 
 /* Scrim behind a slid-in mobile panel: tap to dismiss */
 .mobile-scrim {
@@ -299,15 +345,48 @@
     pointer-events: auto;
 }
 
-/* ===== MAIN CONTENT AREA ===== */
+/* ===== MAIN CONTENT AREA (the three-rail stage) =====
+   Review §8.4: the rails are ASYMMETRIC because their content differs — the
+   left rail holds lists and can be narrower, the right rail holds forms and
+   needs a more stable width. The old symmetric 1fr / 2fr / 1fr gave the
+   editor exactly half the stage and made the screen read as three comparable
+   dashboards (review §4.6).
+
+   Each rail track is a clamp() of its own limits held in custom properties,
+   which buys two things: the collapse states below override ONE variable
+   instead of restating the whole template, and a future rail resizer only has
+   to write --rail-left-w / --rail-right-w onto this element. §8.4's
+   min/max limits live on the track rather than on .panel-left/.panel-right,
+   because a raw min-width on the panel would make the 50px collapsed rail
+   impossible. */
 .app-main {
-    flex: 1;
-    min-height: 0; /* let the grid shrink to the flex track, never grow past it */
+    /* §8.4 base: 320px / minmax(580px, 1fr) / 372px */
+    --rail-left-w: 320px;
+    --rail-left-min: 280px;
+    --rail-left-max: 360px;
+
+    --rail-right-w: 372px;
+    --rail-right-min: 340px;
+    --rail-right-max: 420px;
+
+    --rail-left-track: clamp(var(--rail-left-min), var(--rail-left-w), var(--rail-left-max));
+    --rail-right-track: clamp(var(--rail-right-min), var(--rail-right-w), var(--rail-right-max));
+    --editor-track: minmax(580px, 1fr);
+
+    min-height: 0; /* never grow past the row the app grid hands us */
     display: grid;
-    grid-template-columns: minmax(280px, 1fr) minmax(400px, 2fr) minmax(280px, 1fr);
+    grid-template-columns: var(--rail-left-track) var(--editor-track) var(--rail-right-track);
     gap: 0;
     overflow: hidden;
     position: relative;
+
+    /* Review §20 puts sidebar collapse at 180–220ms. The track count is
+       identical in both states — only ONE track value swaps — so the
+       template interpolates cleanly and the rail glides shut instead of
+       teleporting. Zen changes the track COUNT, which is not interpolable,
+       so that transition steps discretely; that is the intent (see ZEN
+       MODE below), not a regression. */
+    transition: grid-template-columns var(--transition-panel);
 }
 
 /* Grid items default to min-height/min-width auto — tall or wide content
@@ -317,38 +396,113 @@
     min-width: 0;
 }
 
-/* When left panel is collapsed */
+/* Collapse swaps a single track, so the two states compose on their own when
+   both rails are shut — no third combined rule to keep in sync. */
 .app-main[data-left-collapsed="true"] {
-    grid-template-columns: var(--panel-collapsed-width) minmax(400px, 2fr) minmax(280px, 1fr);
+    --rail-left-track: var(--panel-collapsed-width);
 }
 
-/* When right panel is collapsed */
 .app-main[data-right-collapsed="true"] {
-    grid-template-columns: minmax(280px, 1fr) minmax(400px, 2fr) var(--panel-collapsed-width);
-}
-
-/* When both panels are collapsed */
-.app-main[data-left-collapsed="true"][data-right-collapsed="true"] {
-    grid-template-columns: var(--panel-collapsed-width) minmax(400px, 2fr) var(--panel-collapsed-width);
+    --rail-right-track: var(--panel-collapsed-width);
 }
 
 /* ===== RESPONSIVE BREAKPOINTS ===== */
 
-/* Tablet */
-@media (max-width: 1024px) {
+/* 1100–1439px (review §22). Also the floor that keeps the base template from
+   overflowing: 320 + 580 + 372 needs 1272px of stage before the rails start
+   getting clipped by .app-main's overflow:hidden. */
+@media (max-width: 1439px) {
     .app-main {
-        grid-template-columns: 240px minmax(300px, 2fr) 240px;
+        --rail-left-w: 300px;
+        --rail-left-min: 280px;
+        --rail-left-max: 320px;
+
+        --rail-right-w: 348px;
+        --rail-right-min: 330px;
+        --rail-right-max: 372px;
+
+        /* The rails' own floors already keep the editor the widest track all
+           the way down to the drawer breakpoint; a hard 580px floor here
+           would simply overflow instead. */
+        --editor-track: minmax(0, 1fr);
+    }
+}
+
+/* 800–1099px (review §22). The rails keep shrinking with the viewport, which
+   means dipping under §8.4's 280/340 minimums: honouring those here would
+   starve the editor below the rails' own width, and §5.2 says the editor wins
+   that trade. The overlay rule below governs what an EXPANDED rail does in
+   this band. */
+@media (max-width: 1099px) {
+    .app-main {
+        --rail-left-w: 24vw;
+        --rail-left-min: 232px;
+        --rail-left-max: 280px;
+
+        --rail-right-w: 27vw;
+        --rail-right-min: 264px;
+        --rail-right-max: 330px;
+    }
+}
+
+/* ===== OVERLAY RAIL EXPANSION (review §14.3 / §22, 800–1099px) =====
+   "Overlay expansion at narrower widths so the editor does not jump."
+
+   Both rail TRACKS are pinned at the collapsed width for the whole band, and
+   an expanded rail floats over the stage instead of claiming a column. The
+   editor is therefore exactly the same width whether a rail is open or shut:
+   opening Tools to run a transform no longer reflows the paragraph the user
+   was reading, which at this width was a 300px shove.
+
+   The floor is 769px so the mobile drawer rules below own everything under
+   it — a panel cannot be both an inline overlay and a slide-in drawer.
+
+   Doubled class for the same reason as the drawers: panels.css declares
+   `.panel { position: relative }` and loads AFTER this file, so at equal
+   specificity it wins and the panel never leaves the flow. */
+@media (min-width: 769px) and (max-width: 1099px) {
+    .app-main {
+        --rail-left-track: var(--panel-collapsed-width);
+        --rail-right-track: var(--panel-collapsed-width);
     }
 
-    .header-left .logo-text {
-        display: none;
+    /* Every panel is PINNED to its column here, and that is load-bearing.
+       An absolutely positioned grid child is removed from grid FLOW, so the
+       moment a rail started floating, auto-placement slid the remaining items
+       one track left and the editor rendered inside the 50px rail column —
+       a 50px-wide editor with the real one nowhere. Explicit placement makes
+       the template independent of how many rails happen to be floating. */
+    .panel.panel-left   { grid-column: 1; }
+    .panel.panel-center { grid-column: 2; }
+    .panel.panel-right  { grid-column: 3; }
+
+    .panel.panel-left:not([data-collapsed="true"]),
+    .panel.panel-right:not([data-collapsed="true"]) {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: clamp(232px, 32vw, 320px);
+
+        /* A floating surface earns level-2 elevation (review §19) — it is the
+           one moment a rail is genuinely above the page rather than beside
+           it, and without the shadow it reads as a rendering glitch. */
+        z-index: var(--z-panel);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .panel.panel-left:not([data-collapsed="true"]) {
+        left: 0;
+    }
+
+    .panel.panel-right:not([data-collapsed="true"]) {
+        right: 0;
     }
 }
 
 /* Mobile */
 @media (max-width: 768px) {
     .app-header {
-        padding: 0 var(--space-md);
+        padding: 0 var(--space-4);
     }
 
     .mobile-only {
@@ -358,31 +512,45 @@
     .app-main {
         grid-template-columns: 1fr;
         grid-template-rows: auto;
+
+        /* Drop the z-index:1 from `.app > *` so this stops being a stacking
+           context. The scrim is a fixed sibling on <body>; while .app-main
+           was a context, the drawers inside it were trapped at the context's
+           own z=1 and the scrim (z=9) painted OVER the very drawer it exists
+           to sit behind. Flattened, the three layers sort as intended at the
+           root: editor 1, scrim 9, drawer 10. */
+        z-index: auto;
     }
 
-    /* Stack panels on mobile */
-    .panel-left,
-    .panel-right {
+    /* Full-height slide-in drawers (review §22 below 800px).
+       The doubled class is load-bearing, not stylistic: panels.css declares
+       `.panel { position: relative }` and loads AFTER this file, so at equal
+       specificity it was winning and the drawers were rendering as in-flow
+       grid rows — three stacked 242px bands with the editor crushed between
+       them. .panel.panel-left raises this to 0,2,0 and takes the cascade
+       back. Same reason the transform overrides are doubled below. */
+    .panel.panel-left,
+    .panel.panel-right {
         position: absolute;
         top: 0;
         bottom: 0;
         width: 280px;
         z-index: var(--z-panel);
         transform: translateX(-100%);
-        transition: transform var(--transition-base);
+        transition: transform var(--transition-panel);
     }
 
-    .panel-left[data-mobile-open="true"] {
+    .panel.panel-left[data-mobile-open="true"] {
         transform: translateX(0);
     }
 
-    .panel-right {
+    .panel.panel-right {
         left: auto;
         right: 0;
         transform: translateX(100%);
     }
 
-    .panel-right[data-mobile-open="true"] {
+    .panel.panel-right[data-mobile-open="true"] {
         transform: translateX(0);
     }
 
@@ -395,17 +563,221 @@
 /* Small mobile */
 @media (max-width: 480px) {
     .app-header {
-        height: 56px;
+        padding: 0 var(--space-3);
     }
 
-    .icon-btn {
-        width: 36px;
-        height: 36px;
+    /* The wordmark is the first thing to go, not the controls: below this the
+       32px mark still identifies the product, and hit targets stay at 40px
+       (review §21). Previously this hid at 1024px, which cost the "[nib]
+       textMan" lockup on every tablet for no reason. */
+    .header-left .logo-text {
+        display: none;
     }
 
-    .panel-left,
-    .panel-right {
-        width: 100%;
+    .header-right {
+        gap: var(--space-1);
+    }
+
+    /* Wider drawer on a phone, but NOT full-width: a full-bleed drawer buries
+       the scrim, and tapping the scrim is how you dismiss it. Leaving a ≥48px
+       strip keeps that gesture alive. Doubled class again — it has to out-rank
+       the 768px drawer rule above, which is itself doubled to beat panels.css. */
+    .panel.panel-left,
+    .panel.panel-right {
+        width: min(320px, calc(100vw - 48px));
+    }
+}
+
+/* ===== ZEN MODE (review §14.2) =====
+   Focus mode collapses the rails and keeps the console. Zen removes the
+   console: §4.8 counted six things the old "Zen" still showed — header, pane
+   title, toolbar, rails, metric row, footer — and this block takes all six
+   away. What is left is the editor canvas, a cursor/save readout, and a hint
+   telling you how to get out.
+
+   State lives on <html> as data-zen, alongside data-theme, because the hint
+   and the readout are body-level siblings of .app and have to see it too. It
+   is written by LayoutUI at runtime and never persisted: a view state that
+   survived a reload would greet the user with a hidden interface they have no
+   memory of asking for.
+
+   Every rule here is scoped to :root[data-zen="true"], so nothing in this
+   block can affect the normal layout — and none of it mutates anything, which
+   is why leaving Zen restores the previous arrangement exactly. */
+
+/* Rails GONE, not railed — the §14.1/§14.2 distinction in one declaration. */
+:root[data-zen="true"] .app-main > .panel-left,
+:root[data-zen="true"] .app-main > .panel-right {
+    display: none;
+}
+
+/* A display:none grid item leaves the grid entirely, so the editor would slide
+   into the 320px rail track and render as a narrow column with dead space
+   beside it. Collapse the template to the one column that is left. Track
+   COUNT is not interpolable, so this swap is discrete — correct here: Zen is
+   a mode change, not a nudge, and animating the editor's width while the rails
+   vanish would read as a stumble. */
+:root[data-zen="true"] .app-main {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+/* …and the editor has to be told it is column 1 now. The overlay band above
+   pins it to column 2; left alone, entering Zen at 800–1099px would place the
+   editor in an implicit second column and leave the real one empty. */
+:root[data-zen="true"] .panel-center {
+    grid-column: 1;
+}
+
+/* The pane-title row goes with them. */
+:root[data-zen="true"] .panel-center > .panel-header {
+    display: none;
+}
+
+/* ===== ZEN STATUS (review §14.2 "essential cursor and save status") =====
+   Zen THINS the unified status bar rather than minting a second readout
+   beside it: §5.6 puts status in one place and §4.4 rules out duplicating it,
+   so a floating Zen-only pill would have traded one review finding for
+   another. Word count, character count and reading time are not essential to
+   a distraction-free write — the caret and the save state are — so the metric
+   group steps out and the doc group stays.
+
+   With one group left, space-between would pin it to the right edge; centring
+   it makes the single readout look deliberate. The band also drops its own
+   surface and rule, so the last thing on screen is a line of quiet text on
+   the canvas rather than a chrome strip. */
+:root[data-zen="true"] .statusbar-metrics {
+    display: none;
+}
+
+:root[data-zen="true"] .editor-statusbar {
+    justify-content: center;
+    background: transparent;
+    border-top-color: transparent;
+    color: var(--text-muted);
+}
+
+/* ===== ZEN CHROME PEEK =====
+   §14.2: "reveal a minimal toolbar only on hover or keyboard command." The
+   header and the editor toolbar are lifted OUT OF FLOW and parked above the
+   viewport, so the editor gets their height back; a pointer at the top edge or
+   keyboard focus landing inside either one sets data-zen-chrome and slides
+   them down over the canvas.
+
+   Out of flow rather than display:none on purpose — a display:none toolbar
+   cannot animate, cannot be measured, and cannot be reached by Tab.
+   visibility:hidden keeps the parked state out of the a11y tree and out of the
+   tab order while still leaving it animatable. */
+:root[data-zen="true"] .app > .app-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    transform: translateY(-100%);
+}
+
+/* Lifting the header out of flow leaves TWO in-flow children for a
+   three-row template, and grid auto-placement does not know which rows they
+   were meant for: the stage dropped into the `auto` header row and collapsed
+   to its content height (~110px) while the status bar inherited the 1fr row
+   and swallowed the rest of the screen. Dropping the header's row from the
+   template is the fix that needs no class names — stage takes the 1fr,
+   status bar takes the auto, both by position. */
+:root[data-zen="true"] .app {
+    grid-template-rows: minmax(0, 1fr) auto;
+}
+
+/* The toolbar parks under where the header will land, so a full reveal reads
+   as one chrome stack rather than two overlapping bands. Its hidden offset has
+   to clear its own height AND the header above it. */
+:root[data-zen="true"] .editor-header {
+    position: absolute;
+    top: var(--h-header);
+    left: 0;
+    right: 0;
+    transform: translateY(calc(-100% - var(--h-header)));
+}
+
+:root[data-zen="true"] .app > .app-header,
+:root[data-zen="true"] .editor-header {
+    z-index: var(--z-header);
+    opacity: 0;
+    visibility: hidden;
+    box-shadow: var(--shadow-lg);
+    transition: opacity var(--transition-base),
+                transform var(--transition-base),
+                visibility var(--transition-base);
+}
+
+:root[data-zen="true"][data-zen-chrome="true"] .app > .app-header,
+:root[data-zen="true"][data-zen-chrome="true"] .editor-header {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* ===== ZEN EXIT HINT (review §14.2) =====
+   Built by LayoutUI on first entry. Temporary by design: it states the exit
+   and then gets out of the way, because a permanent banner would be exactly
+   the chrome Zen just removed. role="status" carries the same message to
+   assistive tech, where the interface disappearing is otherwise silent. */
+.zen-hint {
+    position: fixed;
+    left: 50%;
+    bottom: var(--space-10);
+    z-index: var(--z-modal);
+
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+
+    background: var(--bg-pane);
+    border: var(--border-width) solid var(--border);
+    /* Floating surface → level-2 geometry (review §19), not a capsule (§4.1) */
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-lg);
+
+    color: var(--text-body);
+    font-size: var(--font-sm);
+    white-space: nowrap;
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, var(--space-2));
+    transition: opacity var(--transition-slow),
+                transform var(--transition-slow),
+                visibility var(--transition-slow);
+}
+
+.zen-hint.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+}
+
+.zen-hint-keys {
+    color: var(--text-muted);
+}
+
+.zen-hint kbd {
+    display: inline-block;
+    padding: 2px var(--space-2);
+    background: var(--bg-tag);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-kbd);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+}
+
+/* Under 768px the rails are drawers, not columns, so Zen only has the chrome
+   to take away — and the hint has to fit a phone. */
+@media (max-width: 768px) {
+    .zen-hint {
+        max-width: calc(100vw - 2 * var(--space-4));
+        white-space: normal;
+        text-align: center;
     }
 }
 
@@ -440,17 +812,17 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-lg);
-    padding: var(--space-3xl);
+    gap: var(--space-6);
+    padding: var(--space-16);
 
     /* Glass card that tracks the theme — the intro must not contradict the
        palette of the page it opens onto. */
     background: var(--loader-card-bg);
     border: var(--border-width) solid var(--loader-card-border);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-dialog);
     -webkit-backdrop-filter: var(--glass-blur);
     backdrop-filter: var(--glass-blur);
-    box-shadow: var(--shadow-2xl);
+    box-shadow: var(--shadow-dialog);
 
     min-width: 400px;
     text-align: center;
@@ -486,14 +858,14 @@
 .loader-tagline {
     font-size: var(--font-base);
     color: var(--loader-text);
-    margin-top: calc(-1 * var(--space-md));
+    margin-top: calc(-1 * var(--space-4));
 }
 
 .loader-bar {
     width: 100%;
     height: 4px;
     background: var(--loader-track);
-    border-radius: var(--radius-full);
+    border-radius: var(--radius-pill);
     overflow: hidden;
     position: relative;
 }
@@ -502,7 +874,7 @@
     height: 100%;
     width: 0;
     background: linear-gradient(90deg, var(--loader-accent), var(--loader-accent-bright));
-    border-radius: var(--radius-full);
+    border-radius: var(--radius-pill);
     transition: width var(--transition-base);
     box-shadow: 0 0 12px rgba(var(--loader-accent-rgb), 0.5);
 }
@@ -530,7 +902,7 @@
 @media (max-width: 480px) {
     .loader-card {
         min-width: 90%;
-        padding: var(--space-xl);
+        padding: var(--space-8);
     }
 
     .loader-logo {
@@ -546,39 +918,40 @@
 /* ===== TOAST NOTIFICATIONS ===== */
 .toast-stack {
     position: fixed;
-    bottom: var(--space-lg);
-    right: var(--space-lg);
+    bottom: var(--space-6);
+    right: var(--space-6);
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    gap: var(--space-2);
     z-index: var(--z-modal);
     pointer-events: none;
-    max-width: min(360px, calc(100vw - 2 * var(--space-lg)));
+    max-width: min(360px, calc(100vw - 2 * var(--space-6)));
 }
 
 .toast {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
 
-    background: var(--bg-elevated);
-    border: var(--border-width) solid var(--border-default);
-    border-left: 3px solid var(--color-brand);
-    border-radius: var(--radius-md);
+    background: var(--bg-pane);
+    border: var(--border-width) solid var(--border);
+    border-left: 3px solid var(--accent-fill);
+    /* Floating surface, so it takes the level-2 geometry (review §19). */
+    border-radius: var(--radius-panel);
     box-shadow: var(--shadow-lg);
 
-    color: var(--fg-default);
+    color: var(--text-primary);
     font-size: var(--font-sm);
     pointer-events: auto;
 
     animation: toastIn var(--transition-base) forwards;
 }
 
-.toast[data-type="success"] { border-left-color: var(--color-success); }
-.toast[data-type="error"]   { border-left-color: var(--color-danger); }
-.toast[data-type="warning"] { border-left-color: var(--color-warning); }
-.toast[data-type="info"]    { border-left-color: var(--color-info); }
+.toast[data-type="success"] { border-left-color: var(--success); }
+.toast[data-type="error"]   { border-left-color: var(--danger); }
+.toast[data-type="warning"] { border-left-color: var(--warning); }
+.toast[data-type="info"]    { border-left-color: var(--info); }
 
 .toast.toast-out {
     animation: toastOut var(--transition-base) forwards;

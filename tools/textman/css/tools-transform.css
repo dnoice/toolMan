@@ -21,8 +21,11 @@
  * ✒ Key Features:
  *     - transform-hint: small italic scope line ("acts on selection or
  *       whole document") above the button grid
- *     - flash-applied: 450ms brand border-and-glow flash on the pressed
- *       button after a transform fires (transformFlash keyframes)
+ *     - flash-applied: 450ms accent border-and-wash flash on the pressed
+ *       button after a transform fires (transformFlash keyframes), muted
+ *       to a static state under prefers-reduced-motion
+ *     - Wrapping tile labels, so the normalised sentence-style captions are
+ *       never clipped by the tile's overflow
  *     - Inherits grid, sheen, and press states from sidebar-right.css
  *
  * ✒ Usage Instructions:
@@ -43,25 +46,57 @@
  *
  * ✒ Other Important Information:
  *     - Dependencies: tools/textman/css/sidebar-right.css (tool-action-btn
- *       grid, loads first) and shared/css/tokens.css (--glow-brand, color
+ *       grid, loads first) and shared/css/tokens.css (--focus-ring, color
  *       and spacing tokens)
  *     - Compatible platforms: all evergreen browsers
  * ----------------------------------------------------------------------------
  */
 
+/* ===== PANE HINT =====
+   Helper copy has to be READABLE (review §21 / §16.2) — it was on --text-muted,
+   the dimmest ink in the system, which is the light theme's weakest link. */
 .transform-hint {
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-3);
     font-size: var(--font-xs);
-    color: var(--fg-subtle);
+    line-height: var(--leading-normal);
+    color: var(--text-secondary);
     font-style: italic;
 }
 
-/* Brief confirmation flash after applying a transform */
+/* ===== TILE GRID (review §13.1) =====
+   Geometry (40px min-height, --radius-control, 8px block padding) comes from
+   .tool-action-btn in sidebar-right.css. What is added here is what the
+   normalised captions need: labels are now full words ("Remove empty lines"),
+   so at the narrow end of the rail they must WRAP rather than be clipped by
+   the tile's overflow:hidden — a half-word label is worse than a two-line one. */
+.tool-grid-buttons .btn-label {
+    line-height: var(--leading-tight);
+    overflow-wrap: anywhere;
+}
+
+/* Equal-height rows keep the grid reading as a grid even when one tile wraps */
+[data-body="transform"] .tool-grid-buttons {
+    align-items: stretch;
+}
+
+/* ===== APPLIED FLASH =====
+   Brief confirmation that a transform actually ran. Flashes the ACCENT BORDER
+   only: the old version borrowed --focus-ring, which taught the eye that
+   "applied" and "focused" look the same (review §20). */
 .tool-action-btn.flash-applied {
     animation: transformFlash 450ms ease;
 }
 
 @keyframes transformFlash {
-    0%   { border-color: var(--color-brand); box-shadow: var(--glow-brand); }
-    100% { border-color: var(--border-muted); box-shadow: none; }
+    0%   { border-color: var(--accent-fill); background-color: var(--accent-quiet); }
+    100% { border-color: var(--border-muted); background-color: var(--bg-pane); }
+}
+
+/* Review §20: honour reduced-motion. The confirmation still lands — it just
+   arrives as a state change instead of a 450ms animation. */
+@media (prefers-reduced-motion: reduce) {
+    .tool-action-btn.flash-applied {
+        animation: none;
+        border-color: var(--accent-fill);
+    }
 }

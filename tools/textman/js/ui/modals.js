@@ -86,6 +86,14 @@
 
     const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
+    // Editor tab size is discrete; the stepper clamps to this range, matching the
+    // 2–8 guard State.updateSettings enforces on restore.
+    const TAB_MIN = 2;
+    const TAB_MAX = 8;
+
+    // The whole LocalStorage budget the usage meter measures against (~5 MB).
+    const STORAGE_BUDGET = 5 * 1024 * 1024;
+
     const ModalsUI = {
         activeModal: null,
         _restoreFocusTo: null,
@@ -116,6 +124,10 @@
             this.wireSettings();
             this.wireSnippetModal();
             this.wireTemplateModal();
+
+            // Rewrite the Help modal's shortcut chips to this platform's modifier
+            // once, up front — the kbd chips are static markup already in the DOM.
+            this.applyPlatformShortcuts();
         },
 
         /* ── Core open/close ────────────────────────── */
@@ -144,9 +156,11 @@
 
             if (this.activeModal === modal) this.activeModal = null;
 
-            // Escape, the backdrop, and the X all land here — a confirm closed
-            // this way resolves as dismissed, never as a silent side effect.
+            // Escape, the backdrop, and the X all land here — a confirm or
+            // prompt closed this way resolves as dismissed, never as a silent
+            // side effect.
             if (modal === this._confirmEl) this._resolveConfirm(this._confirmDismissValue);
+            if (modal === this._promptEl) this._resolvePrompt(null);
 
             if (this._restoreFocusTo && typeof this._restoreFocusTo.focus === 'function') {
                 this._restoreFocusTo.focus();
@@ -173,6 +187,178 @@
                 e.preventDefault();
                 first.focus();
             }
+        },
+
+        /* ── Prompt dialog ──────────────────────────── */
+
+        _promptEl: null,
+        _promptResolve: null,
+
+        /**
+         * Promise-based replacement for window.prompt(), wearing the house
+         * dialog chrome. Resolves with the entered string, or null when the
+         * user backs out via Cancel, Escape, the backdrop, or the X.
+         *
+         * opts: { title, label, hint, value, type, min, max, step,
+         *         confirmLabel, validate(raw) -> string|null error }
+         *
+         * Enter submits, Escape cancels, and the value is validated inline —
+         * an invalid entry keeps the dialog open with the message shown rather
+         * than closing and silently doing nothing.
+         */
+        prompt(opts = {}) {
+            this._resolvePrompt(null);   // any stale prompt settles first
+
+            const backdrop = this._ensurePromptDialog();
+            const input = DOM.$('.prompt-input', backdrop);
+            const errorEl = DOM.$('.prompt-error', backdrop);
+
+            DOM.$('.prompt-title', backdrop).textContent = opts.title || 'Enter a value';
+            DOM.$('.prompt-label', backdrop).textContent = opts.label || '';
+            DOM.$('.prompt-hint', backdrop).textContent = opts.hint || '';
+            DOM.$('.prompt-hint', backdrop).hidden = !opts.hint;
+            DOM.$('.prompt-submit', backdrop).textContent = opts.confirmLabel || 'OK';
+
+            input.type = opts.type || 'text';
+            input.value = opts.value === undefined ? '' : String(opts.value);
+            ['min', 'max', 'step'].forEach((attr) => {
+                if (opts[attr] === undefined) input.removeAttribute(attr);
+                else input.setAttribute(attr, String(opts[attr]));
+            });
+            errorEl.textContent = '';
+            errorEl.hidden = true;
+            input.setAttribute('aria-invalid', 'false');
+
+            const submit = () => {
+                const raw = input.value;
+                const error = typeof opts.validate === 'function' ? opts.validate(raw) : null;
+                if (error) {
+                    // Keep the dialog open and say why, rather than closing on
+                    // a value we are about to throw away.
+                    errorEl.textContent = error;
+                    errorEl.hidden = false;
+                    input.setAttribute('aria-invalid', 'true');
+                    input.focus();
+                    input.select();
+                    return;
+                }
+                this._resolvePrompt(raw);
+            };
+
+            backdrop._submit = submit;
+
+            return new Promise((resolve) => {
+                this._promptResolve = resolve;
+                this.open('modal-prompt');
+                input.focus();
+                input.select();
+            });
+        },
+
+        /** Build the shared prompt shell once; every call reuses the node. */
+        _ensurePromptDialog() {
+            if (this._promptEl) return this._promptEl;
+
+            const input = DOM.create('input', {
+                className: 'text-input prompt-input',
+                id: 'prompt-input',
+                attrs: { type: 'text', autocomplete: 'off' }
+            });
+
+            const submitBtn = DOM.create('button', {
+                className: 'btn btn-primary prompt-submit',
+                text: 'OK',
+                attrs: { type: 'button' }
+            });
+            const cancelBtn = DOM.create('button', {
+                className: 'btn btn-secondary',
+                text: 'Cancel',
+                attrs: { type: 'button' }
+            });
+
+            const panel = DOM.create('div', {
+                className: 'modal-panel modal-panel--prompt',
+                attrs: {
+                    role: 'dialog',
+                    'aria-modal': 'true',
+                    'aria-labelledby': 'prompt-title'
+                },
+                children: [
+                    DOM.create('div', {
+                        className: 'modal-header',
+                        children: [
+                            DOM.create('h3', { className: 'modal-title prompt-title', id: 'prompt-title' }),
+                            DOM.create('button', {
+                                className: 'modal-close',
+                                html: '&times;',
+                                attrs: { type: 'button', 'aria-label': 'Close' }
+                            })
+                        ]
+                    }),
+                    DOM.create('div', {
+                        className: 'modal-body',
+                        children: [
+                            DOM.create('div', {
+                                className: 'form-group',
+                                children: [
+                                    DOM.create('label', {
+                                        className: 'prompt-label',
+                                        attrs: { for: 'prompt-input' }
+                                    }),
+                                    input,
+                                    DOM.create('p', { className: 'help-text prompt-hint' }),
+                                    DOM.create('p', {
+                                        className: 'prompt-error',
+                                        attrs: { role: 'alert', hidden: 'hidden' }
+                                    })
+                                ]
+                            })
+                        ]
+                    }),
+                    DOM.create('div', {
+                        className: 'modal-footer',
+                        children: [cancelBtn, submitBtn]
+                    })
+                ]
+            });
+
+            const backdrop = DOM.create('div', {
+                className: 'modal-backdrop',
+                id: 'modal-prompt',
+                attrs: { 'aria-hidden': 'true' },
+                children: [panel]
+            });
+
+            DOM.on(cancelBtn, 'click', () => this._resolvePrompt(null));
+            DOM.on(submitBtn, 'click', () => backdrop._submit && backdrop._submit());
+
+            // Enter submits from the field — the reflex for a one-field dialog.
+            DOM.on(input, 'keydown', (e) => {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                if (backdrop._submit) backdrop._submit();
+            });
+
+            // init() already ran its backdrop sweep, so this node wires its own.
+            DOM.on(backdrop, 'click', (e) => {
+                if (e.target === backdrop) this.closeActive();
+            });
+
+            document.body.appendChild(backdrop);
+            this._promptEl = backdrop;
+            return backdrop;
+        },
+
+        /** Settle the pending prompt with a value and close its dialog. */
+        _resolvePrompt(value) {
+            const resolve = this._promptResolve;
+            this._promptResolve = null;
+
+            // close() calls back into here; the is-open check breaks the loop.
+            if (this._promptEl && this._promptEl.classList.contains('is-open')) {
+                this.close(this._promptEl);
+            }
+            if (resolve) resolve(value);
         },
 
         /* ── Confirm dialog ─────────────────────────── */
@@ -296,10 +482,15 @@
 
         /* ── Settings ───────────────────────────────── */
 
+        // Snapshot of the form as it stood when the dialog opened. Save stays
+        // disabled until the live form differs from this — settings apply on
+        // Save (staged), so an untouched dialog has nothing to commit (§15.3).
+        _settingsBaseline: null,
+
         syncSettingsForm() {
             const s = State.get().settings;
 
-            const theme = document.documentElement.getAttribute('data-theme') || 'parchment';
+            const theme = document.documentElement.getAttribute('data-theme') || 'light';
             const radio = DOM.$(`input[name="theme-pref"][value="${theme}"]`);
             if (radio) radio.checked = true;
 
@@ -309,38 +500,121 @@
             const delay = DOM.id('setting-autosave-delay');
             const delayLabel = DOM.id('autosave-delay-label');
             if (delay) delay.value = String(s.autosaveDelay);
-            if (delayLabel) delayLabel.textContent = String(s.autosaveDelay);
+            if (delayLabel) delayLabel.textContent = this._formatDelayLabel(s.autosaveDelay);
+            // The delay slider only appears while debouncing (§15.3).
+            this._syncAutosaveDelayVisibility(s.autosave);
 
             const tab = DOM.id('setting-tab-size');
-            const tabLabel = DOM.id('tab-size-label');
             if (tab) tab.value = String(s.tabSize);
-            if (tabLabel) tabLabel.textContent = String(s.tabSize);
+            this._updateTabStepper();
 
             this.updateUsageMeter();
+
+            // Baseline last, so it reflects exactly what the user is looking at,
+            // then disable Save (nothing has changed yet).
+            this._settingsBaseline = this._readSettingsSnapshot();
+            this._refreshSettingsDirty();
         },
 
-        /** Reflect stored size against the ~5 MB LocalStorage budget. */
+        /** Milliseconds as a friendly seconds label, e.g. 1000 → "1.0 s". */
+        _formatDelayLabel(ms) {
+            return `${(Number(ms) / 1000).toFixed(1)} s`;
+        },
+
+        /** Debounced mode is the only one the delay applies to; hide it otherwise. */
+        _syncAutosaveDelayVisibility(mode) {
+            const group = DOM.id('autosave-delay-group');
+            if (group) group.hidden = mode !== 'debounced';
+        },
+
+        /** Reflect the hidden tab-size value into the stepper label + bound states. */
+        _updateTabStepper() {
+            const tab = DOM.id('setting-tab-size');
+            const label = DOM.id('tab-size-label');
+            const dec = DOM.id('tab-size-dec');
+            const inc = DOM.id('tab-size-inc');
+            if (!tab) return;
+
+            const n = Number(tab.value);
+            if (label) label.textContent = String(n);
+            // Disable at the rails so the value can never leave 2–8.
+            if (dec) dec.disabled = n <= TAB_MIN;
+            if (inc) inc.disabled = n >= TAB_MAX;
+        },
+
+        /** The four staged values, read straight off the live controls. */
+        _readSettingsSnapshot() {
+            return {
+                theme: DOM.$('input[name="theme-pref"]:checked')?.value || '',
+                autosave: DOM.id('setting-autosave')?.value || '',
+                delay: Number(DOM.id('setting-autosave-delay')?.value),
+                tabSize: Number(DOM.id('setting-tab-size')?.value)
+            };
+        },
+
+        /** Enable Save only when the form differs from its opening baseline. */
+        _refreshSettingsDirty() {
+            const save = DOM.id('btn-save-settings');
+            const base = this._settingsBaseline;
+            if (!save || !base) return;
+
+            const now = this._readSettingsSnapshot();
+            const dirty = now.theme !== base.theme
+                || now.autosave !== base.autosave
+                || now.delay !== base.delay
+                || now.tabSize !== base.tabSize;
+            save.disabled = !dirty;
+        },
+
+        /**
+         * Reflect stored size against the ~5 MB LocalStorage budget. A raw 2.5 KB
+         * fill is invisible, so the number and percent carry the meaning and the
+         * bar keeps a small visible nib whenever anything at all is stored (§15.3).
+         */
         updateUsageMeter() {
             const info = Storage.getUsageInfo();
             const fill = DOM.id('usage-fill');
             const label = DOM.id('usage-label');
+            const percent = DOM.id('usage-percent');
             if (!info) return;
 
-            const pct = Math.min(100, (info.bytes / (5 * 1024 * 1024)) * 100);
-            if (fill) fill.style.width = `${Math.max(1, pct)}%`;
-            if (label) label.textContent = info.formatted;
+            const pct = Math.min(100, (info.bytes / STORAGE_BUDGET) * 100);
+            // Empty → truly empty; anything stored → at least a 4% nib so the bar
+            // never reads as broken at tiny values.
+            if (fill) fill.style.width = info.bytes === 0 ? '0%' : `${Math.max(4, pct)}%`;
+            if (label) label.textContent = `${info.formatted} used`;
+            if (percent) percent.textContent = pct > 0 && pct < 1 ? '<1%' : `${Math.round(pct)}%`;
         },
 
         wireSettings() {
-            // Live range labels
+            // Any control changing re-checks the dirty state (delegated so it
+            // covers the theme radios, the mode select, and the delay slider
+            // without a listener each). The stepper drives a hidden input that
+            // does not emit change, so it re-checks explicitly below.
+            DOM.delegate('#modal-settings', 'change', 'input, select', () => this._refreshSettingsDirty());
+
+            // Autosave mode governs whether the delay control is even shown.
+            DOM.on('#setting-autosave', 'change', (e) => this._syncAutosaveDelayVisibility(e.target.value));
+
+            // Live seconds readout as the delay slider moves.
             DOM.on('#setting-autosave-delay', 'input', (e) => {
                 const el = DOM.id('autosave-delay-label');
-                if (el) el.textContent = e.target.value;
+                if (el) el.textContent = this._formatDelayLabel(Number(e.target.value));
+                this._refreshSettingsDirty();
             });
-            DOM.on('#setting-tab-size', 'input', (e) => {
-                const el = DOM.id('tab-size-label');
-                if (el) el.textContent = e.target.value;
-            });
+
+            // Tab-size stepper: discrete 2–8, clamped; the hidden input is the
+            // single value syncSettingsForm and Save read.
+            const stepTab = (delta) => {
+                const tab = DOM.id('setting-tab-size');
+                if (!tab) return;
+                const next = Math.min(TAB_MAX, Math.max(TAB_MIN, Number(tab.value) + delta));
+                tab.value = String(next);
+                this._updateTabStepper();
+                this._refreshSettingsDirty();
+            };
+            DOM.on('#tab-size-dec', 'click', () => stepTab(-1));
+            DOM.on('#tab-size-inc', 'click', () => stepTab(1));
 
             DOM.on('#btn-save-settings', 'click', () => {
                 const themeRadio = DOM.$('input[name="theme-pref"]:checked');
@@ -440,6 +714,36 @@
             });
 
             input.click();
+        },
+
+        /* ── Help — platform-aware shortcuts ────────── */
+
+        /** True on macOS, where the primary modifier is ⌘ rather than Ctrl. */
+        _detectMac() {
+            // userAgentData.platform is the modern, non-deprecated signal; fall
+            // back to navigator.platform / userAgent on browsers without it.
+            const nav = window.navigator || {};
+            const uaData = nav.userAgentData;
+            if (uaData && typeof uaData.platform === 'string') {
+                return /mac/i.test(uaData.platform);
+            }
+            return /mac/i.test(nav.platform || nav.userAgent || '');
+        },
+
+        /**
+         * Rewrite every .kbd-shortcut chip to this platform's modifier: ⌘ (and ⇧
+         * for Shift) joined tight on macOS, Ctrl+/Shift+ spelled out on Windows
+         * and Linux (§15.4). Pass a boolean to force the platform (used by tests).
+         */
+        applyPlatformShortcuts(forceMac) {
+            const isMac = typeof forceMac === 'boolean' ? forceMac : this._detectMac();
+            DOM.$$('.kbd-shortcut').forEach((el) => {
+                const key = el.dataset.key || '';
+                const shift = el.dataset.shift === 'true';
+                el.textContent = isMac
+                    ? `⌘${shift ? '⇧' : ''}${key}`
+                    : `Ctrl+${shift ? 'Shift+' : ''}${key}`;
+            });
         },
 
         /* ── Save Snippet ───────────────────────────── */

@@ -32,31 +32,30 @@
  *       styles.
  *
  * ✒ Description:
- *     Styles for textMan's center panel: the editor toolbar with document
- *     controls, the live save-status chip, the writing surface itself, and
- *     the viewport-locked stats footer. The writing surface gets the refined
- *     treatment — gold caret, inset paper depth, and a focus glow that
- *     breathes.
+ *     Styles for textMan's center panel — the 44px document toolbar, the
+ *     writing canvas, and the app-wide unified status bar that replaced the
+ *     old metric capsules, the separate saved pill, and the three panel
+ *     footer strips. The canvas is deliberately flat: it is the product's
+ *     primary surface, not another card inside the center pane.
  *
  * ✒ Key Features:
- *     - editor-header toolbar: flex row with editor-tools and
- *       editor-controls button clusters
- *     - control-btn: 36px soft-square glass buttons with hover lift, active
- *       press scale (0.96), and a 0.35-opacity disabled state
- *     - btn-save variant tints success green on hover
- *     - status-indicator save chip with a glowing status-dot driven by
- *       data-status: saved (green), saving (amber + statusPulse animation),
- *       dirty (red)
- *     - editor-main flex column that owns the remaining viewport height
- *     - editor-textarea writing surface: mono type, brand-gold caret, inset
- *       paper shadow, tab-size 4, italic placeholder, thin token scrollbar
- *     - Focus state: focus border plus a 3px active ring and brand glow
- *       layered over the inset depth
- *     - drag-over state: dashed brand border and ring while a file is
- *       dragged over the textarea
- *     - editor-stats footer of stat-pill chips in mono with hover lift
- *     - Responsive: below 768px, tighter padding and the status chip's text
- *       label hides, leaving only the dot
+ *     - editor-header toolbar at --h-toolbar, split into four control-group
+ *       clusters (type size / document / history / view) separated by a
+ *       pseudo-element hairline that disappears with its group
+ *     - control-btn: 40px hit target painting a 32px rounded-square surface
+ *       via ::before, with rest/hover/pressed/selected/disabled states and a
+ *       focus-visible gold ring
+ *     - doc-title: editable without a permanent border — hover surface, text
+ *       cursor, focus border plus quiet gold halo
+ *     - editor-textarea writing surface: --bg-editor, 8px radius, one
+ *       hairline, no shadow, and clamp() horizontal padding for line length
+ *     - editor-statusbar: the single 28px status band (metrics left, caret
+ *       position and save state right) that sits in the .app grid's third row
+ *     - status-caret / status-save: full-band ghost controls that read as
+ *       plain text at rest and take an inset focus ring
+ *     - drag-over state: dashed brand border while a file is dragged over
+ *     - Responsive: a monotonic ladder sheds the type-size group, then the
+ *       diff control, then the title and read-time estimate
  *
  * ✒ Usage Instructions:
  *     Loaded via a link tag in tools/textman/index.html, after the shared
@@ -66,23 +65,24 @@
  *     js/ui/editor.js; this file only defines their appearance.
  *
  * ✒ Examples:
- *     The Undo control is a control-btn that lifts 1px on hover and presses
- *     with a 0.96 scale; when history is empty it is disabled and dims to
- *     0.35 opacity with a not-allowed cursor.
+ *     The Undo control is a control-btn whose 32px surface fills with
+ *     --bg-hover on hover; when history is empty it is disabled and drops to
+ *     muted ink with a not-allowed cursor — still legible as a button.
  *
- *     While a save is in flight the status-indicator carries
- *     data-status="saving": the dot turns amber and pulses on a 1-second
- *     cycle. Unsaved edits set data-status="dirty" and the dot glows red.
+ *     While a save is in flight the status-save item carries
+ *     data-status="saving" and its mark turns amber; saved shows a green
+ *     check, unsaved a red dot, and a failed write a critical "!". Nothing
+ *     glows.
  *
- *     Focusing the editor-textarea swaps its border to the focus color and
- *     adds the layered ring-plus-glow shadow; the caret renders in brand
- *     gold.
+ *     Focusing the editor-textarea swaps its border to --border-focus and
+ *     adds a 2px --accent-quiet halo; the caret renders in brand gold.
  *
  *     Dragging a text file over the editor adds the drag-over class,
- *     switching the border to dashed brand with a 4px ring until drop.
+ *     switching the border to dashed brand until drop.
  *
- *     A stat-pill in the footer reads something like "1,532 words" in mono
- *     and lifts with a small shadow on hover.
+ *     The status bar reads "1,532 words · 8,214 characters · 7 min read" on
+ *     the left and "Ln 42, Col 7 · ✓ Saved" on the right; selecting text
+ *     re-points the first two at the selection ("18 / 1,532 words").
  *
  * ✒ Other Important Information:
  *     - Dependencies: shared/css/reset.css, tokens.css, shell.css,
@@ -95,211 +95,239 @@
  * ----------------------------------------------------------------------------
  */
 
-/* ===== EDITOR HEADER / TOOLBAR ===== */
+/* ===== EDITOR TOOLBAR =====
+   Review §10.1: the toolbar has to communicate functional GROUPS —
+   type size | document | history | view — instead of one undifferentiated run
+   of identical squares. §6.3 puts the band at 44px. */
 .editor-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-md);
-    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-3);
 
-    background: var(--bg-surface);
-    border-bottom: var(--border-width) solid var(--border-muted);
+    height: var(--h-toolbar);
+    padding: 0 var(--space-4);
+
+    /* The toolbar's room is the EDITOR PANE's width, not the viewport's, and
+       the two diverge wildly: between 769 and 1099px the shell floats the
+       rails over the stage so the pane is viewport-100px, while at 1100px it
+       is viewport-648px. A viewport media query therefore strips controls at
+       widths where there is plenty of room and keeps them at widths where
+       there is none. Making the toolbar its own container lets the shed
+       ladder at the foot of this file measure the space it actually has. */
+    container-type: inline-size;
+    container-name: editortoolbar;
+
+    background: var(--bg-pane);
+    border-bottom: var(--border-width) solid var(--border);
     flex-shrink: 0;
 
-    /* Dense toolbar: scroll horizontally when it can't fit rather than
-       clip controls off-canvas or steal vertical height from the editor. */
+    /* Last-resort overflow. The responsive ladder at the foot of this file
+       sheds the secondary groups long before this fires, and the scrollbar is
+       suppressed because a visible one would eat a quarter of a 44px band. */
     overflow-x: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) transparent;
+    overflow-y: hidden;
+    scrollbar-width: none;
 }
 
-/* The controls keep their size; the title container absorbs the squeeze. */
-.editor-controls {
-    flex-shrink: 0;
+.editor-header::-webkit-scrollbar {
+    height: 0;
 }
 
-.editor-tools,
+/* The title absorbs the squeeze; the controls never shrink. */
+.editor-tools {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 .editor-controls {
     display: flex;
     align-items: center;
-    gap: var(--space-xs);
+    flex-shrink: 0;
 }
 
-.editor-tools {
-    flex: 1 1 auto;
-    min-width: 0; /* allow the title to shrink below its content width */
+/* No gap inside a group: each button's 40px hit box already leaves 8px
+   between the 32px painted surfaces, which IS the intra-group rhythm. */
+.control-group {
+    display: flex;
+    align-items: center;
 }
 
-/* Editable document title */
+/* The group separator is a pseudo-element rather than a markup divider, so a
+   group that the responsive ladder hides takes its rule with it instead of
+   leaving a stranded hairline. */
+.control-group + .control-group::before {
+    content: '';
+    width: var(--border-width);
+    height: 20px;
+    margin-inline: var(--space-2);
+    background: var(--border);
+    flex-shrink: 0;
+}
+
+/* ===== DOCUMENT TITLE (review §10.4) =====
+   It is editable, so it has to LOOK editable — without wearing a permanent
+   input border at rest. Hover paints a surface, the pointer is a text caret,
+   and focus adds the border plus a quiet gold halo. */
 .doc-title {
     width: 100%;
+    max-width: 320px;
     min-width: 0; /* shrinks first when the toolbar runs short on room */
-    max-width: 280px;
-    padding: var(--space-xs) var(--space-sm);
+    height: var(--h-chip);
+    padding: 0 var(--space-2);
+
     background: transparent;
     border: var(--border-width) solid transparent;
-    border-radius: var(--radius-sm);
-    color: var(--fg-default);
+    border-radius: var(--radius-control);
+
+    color: var(--text-primary);
     font-size: var(--font-sm);
     font-weight: var(--font-semibold);
     text-overflow: ellipsis;
-    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+    cursor: text;
+
+    transition: background-color var(--transition-fast),
+                border-color var(--transition-fast),
+                box-shadow var(--transition-fast);
 }
 
 .doc-title::placeholder {
-    color: var(--fg-subtle);
+    color: var(--text-muted);
+    font-weight: var(--font-normal);
 }
 
 .doc-title:hover {
-    border-color: var(--border-muted);
+    background: var(--bg-hover);
 }
 
 .doc-title:focus {
     outline: none;
-    border-color: var(--border-focus);
     background: var(--bg-input);
+    box-shadow: var(--glow-brand);
 }
 
-/* Font-size readout between the steppers */
+/* Type-size readout between the steppers. Tabular so stepping 9px → 10px
+   does not shove the buttons sideways (review §17). */
 .font-size-label {
-    min-width: 34px;
+    min-width: 38px;
     text-align: center;
-    font-family: var(--font-mono);
     font-size: var(--font-xs);
-    color: var(--fg-muted);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
     -webkit-user-select: none;
     user-select: none;
 }
 
-/* Vertical divider between toolbar groups */
-.control-divider {
-    width: 1px;
-    height: 22px;
-    margin: 0 var(--space-xs);
-    background: var(--border-muted);
+/* ===== TOOLBAR BUTTONS (review §10.2) =====
+   The <button> IS the 40px pointer target §21 requires; the visible surface is
+   the 32px rounded square painted by ::before. Same construction as the global
+   header's .icon-btn, so both toolbars read as one component family. */
+.control-btn {
+    position: relative;
+    width: var(--h-hit);
+    height: var(--h-hit);
+    display: grid;
+    place-items: center;
     flex-shrink: 0;
+
+    background: none;
+    border: 0;
+    border-radius: var(--radius-control);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color var(--transition-fast);
 }
 
-/* Control buttons — soft squares with press feedback */
-.control-btn {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-md);
+.control-btn::before {
+    content: '';
+    position: absolute;
+    inset: calc((var(--h-hit) - 32px) / 2);
+    border-radius: var(--radius-control);
     background: transparent;
-    border: var(--border-width) solid transparent;
-    color: var(--fg-muted);
-    transition: color var(--transition-fast),
-                background-color var(--transition-fast),
-                border-color var(--transition-fast),
-                transform var(--transition-fast);
+    transition: background-color var(--transition-fast),
+                box-shadow var(--transition-fast);
+}
+
+/* The icon is in normal flow; the absolute surface would paint over it. */
+.control-btn > svg {
     position: relative;
 }
 
+/* Rest → hover → pressed → selected → disabled, all five (review §20). */
 .control-btn:hover:not(:disabled) {
+    color: var(--text-primary);
+}
+
+.control-btn:hover:not(:disabled)::before {
     background: var(--bg-hover);
-    border-color: var(--border-default);
-    color: var(--color-brand);
-    transform: translateY(-1px);
 }
 
-.control-btn:active:not(:disabled) {
-    transform: translateY(0) scale(0.96);
-}
-
-.control-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-}
-
-.control-btn.btn-save:hover:not(:disabled) {
-    color: var(--color-success);
-}
-
-/* Active toggle state (word wrap) */
-.control-btn[data-active="true"] {
-    color: var(--color-brand);
+.control-btn:active:not(:disabled)::before {
     background: var(--bg-active);
 }
 
-/* ===== SAVE STATUS CHIP ===== */
-.status-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-sm);
-    margin-left: var(--space-sm);
-    padding: var(--space-xs) var(--space-md);
-
-    background: var(--bg-tag);
-    border: var(--border-width) solid var(--border-muted);
-    border-radius: var(--radius-full);
-
-    font-size: var(--font-xs);
-    font-weight: var(--font-medium);
-    color: var(--fg-muted);
-    white-space: nowrap;
-    -webkit-user-select: none;
-    user-select: none;
+/* Focus-visible owns the ring; hover does not borrow it. */
+.control-btn:focus-visible {
+    outline: none;
 }
 
-.status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: var(--radius-full);
-    background: var(--color-success);
-    box-shadow: 0 0 8px var(--color-success);
-    transition: background var(--transition-fast), box-shadow var(--transition-fast);
+.control-btn:focus-visible::before {
+    box-shadow: var(--glow-brand);
 }
 
-.status-indicator[data-status="saved"] .status-dot {
-    background: var(--color-success);
-    box-shadow: 0 0 8px var(--color-success);
+/* Selected (word wrap): accent-tinted surface AND an accent edge, so the
+   state is not carried by colour alone. */
+.control-btn[data-active="true"] {
+    color: var(--accent-text);
 }
 
-.status-indicator[data-status="saving"] .status-dot {
-    background: var(--color-warning);
-    box-shadow: 0 0 8px var(--color-warning);
-    animation: statusPulse 1s ease-in-out infinite;
+.control-btn[data-active="true"]::before {
+    background: var(--accent-quiet);
+    box-shadow: inset 0 0 0 var(--border-width) var(--accent-fill);
 }
 
-.status-indicator[data-status="dirty"] .status-dot {
-    background: var(--color-danger);
-    box-shadow: 0 0 8px var(--color-danger);
+/* Review §10.3: a disabled Undo must still read as a CONTROL. The old 0.35
+   opacity turned it into empty spacing, so the inactive state is an ink change
+   (secondary → muted) with no hover surface — clearly unavailable, still
+   clearly a button. */
+.control-btn:disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
 }
 
-@keyframes statusPulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-}
-
-/* ===== EDITOR MAIN ===== */
+/* ===== WRITING CANVAS (review §11) ===== */
 .editor-main {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
-    padding: var(--space-md);
-    gap: var(--space-md);
+    padding: var(--space-3);
 }
 
+/* §11.1 — the canvas is the product's primary surface, so it is FLAT: 8px
+   radius, one hairline border, no shadow, separated from the pane by tone
+   alone. §11.2 — --bg-editor is the warm near-white the parchment shell
+   needs; the old --bg-input was a cool white fighting it. */
 .editor-textarea {
     flex: 1;
     width: 100%;
     min-height: 0;
     resize: none;
 
-    padding: var(--space-lg);
+    /* §11.4 — horizontal padding grows with the viewport so a line does not
+       run the full width of a 1600px screen once both rails collapse. */
+    padding-block: var(--space-6);
+    padding-inline: clamp(24px, 5vw, 96px);
 
-    background: var(--bg-input);
-    border: var(--border-width) solid var(--border-default);
-    border-radius: var(--radius-lg);
-    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
+    background: var(--bg-editor);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: none;
 
-    color: var(--fg-body);
-    caret-color: var(--color-brand);
+    color: var(--text-body);
+    caret-color: var(--accent-fill);
     font-family: var(--font-mono);
     font-size: var(--font-sm);
     line-height: var(--leading-relaxed);
@@ -310,8 +338,9 @@
     scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
+/* §11.3 — the italic mono flourish stays; the copy is the plainer sentence. */
 .editor-textarea::placeholder {
-    color: var(--fg-subtle);
+    color: var(--text-muted);
     font-style: italic;
 }
 
@@ -321,106 +350,195 @@
     overflow-x: auto;
 }
 
+/* Focus: a soft gold glow, no hard edge. The border stays neutral and the
+   emphasis is carried by the halo alone (the one cue kept from the original). */
 .editor-textarea:focus {
     outline: none;
-    border-color: var(--border-focus);
-    box-shadow:
-        inset 0 2px 8px rgba(0, 0, 0, 0.04),
-        0 0 0 3px var(--bg-active),
-        var(--glow-brand);
+    box-shadow: var(--glow-brand);
 }
 
-/* File drag-over state */
+/* File drag-over: the dashed gold edge stays (it reads as "drop here"), but the
+   hard ring softens to the shared glow. */
 .editor-textarea.drag-over {
-    border-color: var(--color-brand);
+    border-color: var(--accent-fill);
     border-style: dashed;
-    box-shadow: 0 0 0 4px var(--bg-active);
+    box-shadow: var(--glow-brand);
 }
 
-/* ===== STATS FOOTER (viewport-locked) ===== */
-.editor-stats {
+/* ===== UNIFIED STATUS BAR (review §12) =====
+   ONE home for every piece of document state. This replaces the metric
+   capsules under the editor, the separate green "Saved" pill in the toolbar,
+   and all three panel footer strips (review §4.4).
+
+   It is the THIRD row of the .app grid, so it spans the full width beneath the
+   rails. shell.css declares that row `auto` and hardcodes no band height — the
+   28px comes from here, and from --h-statusbar. */
+.editor-statusbar {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-sm);
-    flex-shrink: 0;
+    justify-content: space-between;
+    gap: var(--space-4);
+
+    height: var(--h-statusbar);
+    padding-inline: var(--space-4);
+
+    background: var(--bg-pane);
+    border-top: var(--border-width) solid var(--border);
+
+    font-size: var(--font-xs);
+    font-variant-numeric: tabular-nums; /* counts must not jitter (§17) */
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+
+    -webkit-user-select: none;
+    user-select: none;
 }
 
-.stat-pill {
+.statusbar-group {
+    display: flex;
+    align-items: center;
+    align-self: stretch; /* status-bar items are full-band click targets */
+    min-width: 0;
+}
+
+/* The metric separator belongs to the item that FOLLOWS it, so shedding a
+   metric at a narrow width takes its dot along and never strands one. The
+   right-hand group has a single fixed separator, so it uses a plain span. */
+.status-metric + .status-metric::before {
+    content: '·';
+}
+
+.status-metric + .status-metric::before,
+.status-sep {
+    margin-inline: var(--space-2);
+    color: var(--text-muted);
+}
+
+/* A live selection re-points the word and character counts at it — say so.
+   Colour only: a weight change here would shove the numbers sideways. */
+.statusbar-metrics[data-selecting="true"] #stat-words,
+.statusbar-metrics[data-selecting="true"] #stat-chars {
+    color: var(--accent-text);
+}
+
+/* §12 — the line/column value stays interactive for Go to Line, but it reads
+   as PLAIN TEXT at rest: the affordance is hover and focus, not a pill. It is
+   a real <button>, so the keyboard reaches it. Padding plus a matching
+   negative margin makes the hit surface a full-height band without moving the
+   text off its baseline rhythm. */
+.status-caret,
+.status-save {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-xs);
-    padding: var(--space-xs) var(--space-md);
+    align-self: stretch;
 
-    background: var(--bg-tag);
-    border: var(--border-width) solid var(--border-muted);
-    border-radius: var(--radius-full);
+    padding-inline: var(--space-2);
+    margin-inline: calc(-1 * var(--space-2));
 
-    font-family: var(--font-mono);
-    font-size: var(--font-xs);
-    color: var(--fg-meta);
+    background: none;
+    border: 0;
+    border-radius: 0;
 
-    transition: color var(--transition-fast),
-                border-color var(--transition-fast),
-                transform var(--transition-fast),
-                box-shadow var(--transition-fast);
-    cursor: default;
-}
-
-.stat-pill:hover {
-    border-color: var(--color-brand);
-    color: var(--fg-default);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-}
-
-/* Caret readout leans on mono numerals and a click affordance */
-.stat-caret {
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    color: inherit;
     cursor: pointer;
+
+    transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
-/* When a selection is active, the word/char pills read as "live" */
-.editor-stats[data-selecting="true"] #stat-words,
-.editor-stats[data-selecting="true"] #stat-chars {
-    border-color: var(--color-brand);
-    color: var(--color-brand);
+.status-save {
+    gap: var(--space-1);
 }
+
+.status-caret:hover,
+.status-save:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.status-caret:active,
+.status-save:active {
+    background: var(--bg-active);
+}
+
+/* The ring is drawn INSIDE the item: the band is only 28px tall, so an
+   outward 2px offset would be clipped by the bar's own edge. */
+.status-caret:focus-visible,
+.status-save:focus-visible {
+    box-shadow: var(--glow-brand-inset);
+    color: var(--text-primary);
+}
+
+/* §10.5 / §16.1 — NO glow. A flat glyph whose colour carries the state, with
+   the label beside it saying the same thing in words. */
+.status-mark {
+    font-size: var(--font-xs);
+    line-height: 1;
+    color: var(--text-muted);
+    transition: color var(--transition-fast);
+}
+
+.status-save[data-status="saved"] .status-mark  { color: var(--success); }
+.status-save[data-status="saving"] .status-mark { color: var(--warning); }
+.status-save[data-status="dirty"] .status-mark  { color: var(--danger); }
+.status-save[data-status="failed"] .status-mark { color: var(--critical); }
 
 /* ===== RESPONSIVE =====
-   The editor toolbar is dense (title + font stepper + wrap + 7 doc controls
-   + status). As width shrinks, shed the genuinely-secondary controls so the
-   essential set (open/download/copy/undo/redo/diff/save) fits WITHOUT
-   horizontal scroll; overflow-x:auto on .editor-header remains the fallback
-   for anything that still doesn't fit. Font size and wrap stay available on
-   desktop, where there's room. */
+   The toolbar is dense even after losing Save: four groups, nine controls, and
+   an editable title. As the PANE narrows, shed the genuinely secondary
+   controls so the essential set always fits without horizontal scroll.
 
-/* Tablet: drop the font stepper, wrap toggle, divider, and the "Saved"
-   label (the status dot still shows). */
-@media (max-width: 1024px) {
-    #btn-font-dec,
-    #btn-font-inc,
-    .font-size-label,
-    #btn-wrap,
-    .control-divider,
-    .status-indicator .status-label {
+   These are container queries, not media queries, because the toolbar's room
+   is the editor pane (see the note on .editor-header). Shedding is monotonic:
+   a control that reappears at a narrower width is harder to learn than one
+   that simply stays gone. */
+
+/* Type size goes first — it is a preference, it also lives in Settings, and
+   Ctrl+scroll is not a habit anyone is losing. Neutralise the next group's
+   leading rule so the toolbar never opens on a stranded hairline. */
+@container editortoolbar (max-width: 520px) {
+    .control-group[data-group="type"] {
+        display: none;
+    }
+
+    .control-group[data-group="doc"]::before {
+        display: none;
+    }
+}
+
+/* Diff is the most niche control on the bar and has no keyboard route, so it
+   is the last thing to go before the title. */
+@container editortoolbar (max-width: 390px) {
+    #btn-diff {
+        display: none;
+    }
+}
+
+/* Below this the title cannot hold a readable string anyway; it stays
+   reachable through the tab title and the download filename. */
+@container editortoolbar (max-width: 300px) {
+    .doc-title {
         display: none;
     }
 }
 
 @media (max-width: 768px) {
     .editor-main {
-        padding: var(--space-sm);
+        padding: var(--space-2);
     }
 
     .editor-textarea {
-        padding: var(--space-md);
+        padding-block: var(--space-4);
     }
 }
 
-/* Phones: hide the document title too — the toolbar is then just the
-   seven core controls plus the status dot. */
+/* The status bar spans the whole app, so it IS a viewport question. §22:
+   below the drawer breakpoint it carries only what matters, and the read-time
+   estimate is the first thing that stops earning its width. */
 @media (max-width: 480px) {
-    .doc-title {
+    #stat-read-time {
         display: none;
     }
 }

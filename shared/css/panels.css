@@ -65,12 +65,16 @@
  *
  * ✒ Key Features:
  *     - Panel base with left/right/center variants and collapse states
+ *     - Collapsed rail (review §14.3): 50px column, body-ink vertical label,
+ *       and a 40px expand button held on the same optical line as its
+ *       expanded position so collapsing never appears to move the control
  *     - House-styled panel headers: navy gradient, gold titles, sheen on
  *       hover
  *     - Diagonal reflection sweep on panel and tool headers driven by the
  *       reflection-gradient token
  *     - Collapsible tool sections with rotating chevrons
- *     - Panel footers with mono-spaced stat readouts
+ *     - No per-panel footer strip: every readout lives in the one status bar
+ *       (review §4.4 / §5.6), so this file styles no footer band
  *     - Thin token-colored scrollbars on panel and tool bodies via
  *       scrollbar-width and scrollbar-color
  *     - Button variants: primary (gold), secondary (surface), danger
@@ -84,7 +88,7 @@
  * ✒ Usage Instructions:
  *     Load via a link tag after reset.css, tokens.css, and shell.css — load
  *     order matters. Expects the shell's panel markup: each .panel contains a
- *     .panel-header, .panel-content, and optional .panel-footer; side-panel
+ *     .panel-header and a .panel-content; side-panel
  *     content stacks .tool-section blocks, each with a .tool-header and
  *     .tool-body. Collapse is state-driven through the data-collapsed
  *     attribute on panels and sections.
@@ -137,16 +141,16 @@
 /* Panel variants */
 .panel-left,
 .panel-right {
-    background: var(--bg-panel);
+    background: var(--bg-pane);
     border: var(--border-width) solid var(--border-muted);
 }
 
 .panel-left {
-    border-right: var(--border-width) solid var(--border-default);
+    border-right: var(--border-width) solid var(--border);
 }
 
 .panel-right {
-    border-left: var(--border-width) solid var(--border-default);
+    border-left: var(--border-width) solid var(--border);
 }
 
 .panel-center {
@@ -154,46 +158,33 @@
     z-index: 1; /* Above side panels */
 }
 
-/* ===== PANEL HEADER ===== */
+/* ===== PANEL HEADER (pane heading row) =====
+   Review §8.3: navy belongs to the GLOBAL header only. A second full navy
+   band directly beneath it made the top of the app top-heavy in the light
+   theme, so the pane heading is a neutral surface separated by a hairline —
+   gold is spent on the ACTIVE pane's title instead of on all three at once. */
 .panel-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 56px;
-    padding: 0 var(--space-lg);
+    height: var(--h-pane-head);
+    padding: 0 var(--space-5);
 
-    /* House treatment: navy gradient, gold title */
-    background: var(--header-gradient);
-    border-bottom: var(--border-width) solid var(--border-subtle);
+    background: var(--bg-pane);
+    border-bottom: var(--border-width) solid var(--border);
 
     position: relative;
-    overflow: hidden;
     cursor: default;
     flex-shrink: 0;
-}
 
-/* Diagonal reflection sweep — a ONE-SHOT animation on hover-in.
-   Leaving mid-sweep cancels to the invisible rest state instantly;
-   there is no reverse pass and nothing to jitter on rapid re-hovers. */
-.panel-header::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: var(--reflection-gradient);
-    opacity: 0;
-    transform: translateX(-100%) rotate(45deg);
-    pointer-events: none;
-}
-
-.panel-header:hover::before {
-    animation: sheenSweep 900ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    transition: box-shadow var(--transition-fast),
+                border-color var(--transition-fast);
 }
 
 /* A single soft glint: opacity rises to a gentle peak at mid-cross and eases
-   back out — no bright hold, so the highlight glides rather than flashes. */
+   back out — no bright hold, so the highlight glides rather than flashes.
+   Used by the tool (accordion) headers; the pane heading dropped its sweep
+   with the navy it was designed to catch. */
 @keyframes sheenSweep {
     0%   { opacity: 0; transform: translateX(-100%) rotate(45deg); }
     50%  { opacity: 1; }
@@ -203,21 +194,32 @@
 .panel-title {
     font-size: var(--font-lg);
     font-weight: var(--font-semibold);
-    color: var(--header-gold);
+    color: var(--text-primary);
     letter-spacing: -0.01em;
+    transition: color var(--transition-fast);
 }
 
-/* Collapse button (only on side panels) */
+/* ACTIVE pane: the one holding focus wears the gold title and a gold rule.
+   Two signals, not colour alone (review §20). */
+.panel:focus-within .panel-title {
+    color: var(--accent-text);
+}
+
+.panel:not([data-collapsed="true"]):focus-within > .panel-header {
+    box-shadow: inset 0 -2px 0 var(--accent-fill);
+}
+
+/* Collapse button (only on side panels) — rounded-square ghost, review §6.6 */
 .collapse-btn {
-    width: 32px;
-    height: 32px;
+    width: var(--h-icon-btn);
+    height: var(--h-icon-btn);
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-control);
     background: transparent;
     border: var(--border-width) solid transparent;
-    color: var(--header-subtitle);
+    color: var(--text-muted);
     transition: color var(--transition-fast),
                 background-color var(--transition-fast),
                 border-color var(--transition-fast);
@@ -225,9 +227,13 @@
 }
 
 .collapse-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-    color: var(--header-gold);
+    background: var(--bg-hover);
+    border-color: var(--border);
+    color: var(--accent-text);
+}
+
+.collapse-btn:active {
+    background: var(--bg-active);
 }
 
 .collapse-btn .chevron {
@@ -239,50 +245,122 @@
     transform: rotate(180deg);
 }
 
-/* ===== COLLAPSED RAIL (48px click-to-expand) =====
+/* ===== COLLAPSED RAIL (review §14.3) =====
    The whole header becomes a full-height vertical rail: chevron on top,
-   vertical title beneath, every pixel a click target to re-expand. */
+   vertical title beneath, every pixel a click target to re-expand. It sits on
+   the recessed surface rather than navy — §8.3 keeps navy on the global
+   header, so the rail earns its separation from tone, not from hue.
+
+   §14.3 asks for a 48–52px rail; --panel-collapsed-width is 50px, dead
+   centre, so the width itself needs nothing. What it did need: a real 40px
+   target on the expand button, an expand button that does not visibly jump
+   when the panel collapses, and a label that survives the light theme.
+
+   The top padding is the alignment fix. Expanded, the button is centred in
+   the 46px pane-head; collapsed, the header becomes full-height and the
+   button would ride up to the top edge. Reserving (46 − 40)/2 above it lands
+   the chevron on the SAME optical line in both states, so collapsing reads as
+   the rail closing around a fixed control rather than the control moving. */
 .panel[data-collapsed="true"] .panel-header {
     flex-direction: column;
     justify-content: flex-start;
-    gap: var(--space-md);
+    align-items: center;
+    gap: var(--space-4);
     height: 100%;
-    padding: var(--space-sm) 0;
+    padding: calc((var(--h-pane-head) - var(--h-hit)) / 2) 0 var(--space-2);
+    background: var(--bg-surface-alt);
+    border-bottom: 0;
     cursor: pointer;
+    transition: background-color var(--transition-fast);
 }
 
+.panel[data-collapsed="true"] .panel-header:hover {
+    background: var(--bg-hover);
+}
+
+/* Stronger label contrast (§14.3). --text-secondary is tuned for helper copy
+   sitting next to a primary line; the rail label has no primary line beside
+   it and is set at 13px, uppercase, letterspaced and ROTATED — every one of
+   those costs legibility, so it steps up to body ink. */
 .panel[data-collapsed="true"] .panel-title {
     writing-mode: vertical-rl;
     font-size: var(--font-sm);
     font-weight: var(--font-medium);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--header-subtitle);
+    color: var(--text-body);
     transition: color var(--transition-fast);
     -webkit-user-select: none;
     user-select: none;
 }
 
 .panel[data-collapsed="true"] .panel-header:hover .panel-title {
-    color: var(--header-gold);
+    color: var(--accent-text);
 }
 
+/* §21's 40px pointer target. Expanded it is a 34px control in a crowded pane
+   head; collapsed it is the ONLY control in a 50px rail and the one thing
+   standing between the user and a panel they cannot see, so it takes the full
+   hit size — 5px of rail either side.
+
+   order:-1 is the OTHER half of §14.3's "consistent expand-button alignment".
+   In source order the heading comes first, so in a column rail the chevron
+   was pushed down by the label above it — and since the two rails' labels are
+   different lengths ("WORKSPACE" vs "TOOLS"), the two expand buttons landed
+   at different heights, 64px apart. Hoisting the button to the top of the
+   rail pins it to one fixed offset in both rails and on the same optical line
+   as its own expanded position. Visual order only: the DOM, the reading
+   order, and the tab order are untouched. */
 .panel[data-collapsed="true"] .collapse-btn {
+    order: -1;
+    width: var(--h-hit);
+    height: var(--h-hit);
     flex-shrink: 0;
-    color: var(--header-gold);
-    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--accent-text);
+    border-color: var(--border);
 }
 
-/* ===== PANEL CONTENT ===== */
+/* The rail is one big button, so its own focus ring belongs on the control
+   inside it, not on the 50px column (review §20). */
+.panel[data-collapsed="true"] .collapse-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+/* ===== PANEL CONTENT — the ONE scroll region per rail (review §9.3) =====
+   The rail is the only vertically scrollable box in a sidebar: accordion
+   bodies expand naturally inside it (see TOOL BODY below) instead of each
+   growing its own nested scrollbar. */
 .panel-content {
     flex: 1;
+    min-height: 0; /* a flex child must be allowed to shrink below content */
     overflow-y: auto;
     overflow-x: hidden;
-    padding: var(--space-md);
+    padding: var(--space-3);
 
-    /* Custom scrollbar */
+    /* Narrow neutral thumb (review §9.4) — the old gold thumbs read as
+       decorative rules. Firefox: thin + token colour. */
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* WebKit/Blink half of §9.4: a 7px neutral thumb, inset from the edge, that
+   only firms up while the pointer is in the rail. */
+.panel-content::-webkit-scrollbar {
+    width: 7px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: var(--radius-pill);
+}
+
+.panel-content:hover::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-hover);
 }
 
 /* Hide content when panel is collapsed */
@@ -290,13 +368,14 @@
     display: none;
 }
 
-/* Side panel content uses vertical flex layout */
+/* Side panel content uses vertical flex layout.
+   Gap is the accordion gap — review §18.1 asks for 10–12px, not 16. */
 .panel-left .panel-content,
 .panel-right .panel-content {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
-    padding: var(--space-md);
+    gap: var(--space-3);
+    padding: var(--space-3);
 }
 
 /* Center panel content has no gap */
@@ -306,63 +385,43 @@
     flex-direction: column;
 }
 
-/* ===== PANEL FOOTER ===== */
-.panel-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: var(--footer-height);
-    padding: 0 var(--space-lg);
-
-    background: var(--bg-panel-footer);
-    border-top: var(--border-width) solid var(--border-muted);
-
-    font-size: var(--font-xs);
-    color: var(--fg-meta);
-    flex-shrink: 0;
-}
-
-.footer-left,
-.footer-right {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-}
-
-.footer-right {
-    font-family: var(--font-mono);
-}
-
-/* Hide footer when panel is collapsed */
-.panel[data-collapsed="true"] .panel-footer {
-    display: none;
-}
+/* NOTE: the per-panel footer strip is gone. Review §4.4 / §5.6 put every
+   readout in ONE status bar, and the §12 work deleted all three .panel-footer
+   blocks from the markup — so .panel-footer, .footer-left, .footer-right and
+   their collapsed-state rule matched nothing and were deleted with them.
+   Panel-level stats now live in .editor-statusbar (tools/textman/css). */
 
 /* ===== TOOL SECTIONS (accordion panes in side panels) =====
-   Each section is a two-row grid (header / body). The body row animates
-   0fr↔1fr for the accordion reveal; the OPEN section also takes the
-   sidebar's remaining height (flex:1) and scrolls internally. */
+   Each section is a two-row grid (header / body) whose body row animates
+   0fr↔1fr for the reveal.
+
+   §9.3 rewrite: the section is now CONTENT-HEIGHT (flex: 0 0 auto) instead of
+   claiming the rail's leftover height (flex: 1 1 auto). That single change is
+   what moves the scrollbar out of the pane and into the rail — with an
+   indefinite container height the 1fr body track resolves to exactly the
+   body's natural height, so an open pane is as tall as its content and
+   .panel-content scrolls when the stack overflows.
+
+   Level 0 surface (review §19): border + tonal change, no shadow. */
 .tool-section {
     display: grid;
     grid-template-rows: auto 1fr;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 0;
 
-    background: var(--card-gradient);
+    background: var(--bg-pane);
     border: var(--border-width) solid var(--border-muted);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-card);
     overflow: hidden;
 
-    box-shadow: var(--card-inset), var(--card-shadow);
     transition: grid-template-rows var(--transition-base),
                 border-color var(--transition-fast),
-                box-shadow var(--transition-fast),
                 opacity var(--transition-fast);
 }
 
-.tool-section:hover {
-    border-color: var(--border-focus);
-    box-shadow: var(--card-inset), var(--card-shadow-hover);
+/* The open pane is the active one — a quiet border lift, no shadow, no lift */
+.tool-section:not([data-collapsed="true"]) {
+    border-color: var(--border);
 }
 
 /* ===== SECTION DRAG & DROP (manipulate your workspace) ===== */
@@ -374,28 +433,50 @@
     cursor: grabbing;
 }
 
+/* A dragged section is genuinely floating, so it is the one in-rail surface
+   allowed a level-2 shadow (review §19). */
 .tool-section.dragging {
     opacity: 0.55;
     border-style: dashed;
-    border-color: var(--color-brand);
-    box-shadow: var(--glow-brand);
+    border-color: var(--accent-fill);
+    box-shadow: var(--shadow-lg);
 }
 
-/* ===== TOOL HEADER ===== */
+/* ===== TOOL HEADER (accordion row) =====
+   Review §9.1: 44px tall, 12px inline padding, flat — a compact section
+   header, not a card. The WHOLE row is the toggle target (§9.2 / §21);
+   the chevron button is decoration on top of it. */
 .tool-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: var(--space-md);
+    gap: var(--space-2);
+    height: var(--h-accordion);
+    padding: 0 var(--space-3);
 
     background: var(--bg-surface-alt);
-    border-bottom: var(--border-width) solid var(--border-muted);
+    /* Transparent at rest so opening/closing never shifts the row by 1px */
+    border-bottom: var(--border-width) solid transparent;
 
     cursor: pointer;
     position: relative;
     overflow: hidden;
     -webkit-user-select: none;
     user-select: none;
+    transition: background-color var(--transition-fast),
+                border-color var(--transition-fast);
+}
+
+.tool-header:hover {
+    background: var(--bg-hover);
+}
+
+.tool-header:focus-visible {
+    box-shadow: var(--glow-brand-inset);
+}
+
+/* Only an OPEN pane draws the rule between header and body */
+.tool-section:not([data-collapsed="true"]) .tool-header {
+    border-bottom-color: var(--border-muted);
 }
 
 /* Diagonal reflection sweep — same one-shot treatment as panel headers */
@@ -421,75 +502,124 @@
     animation: none;
 }
 
+/* Review §9.1 label spec: 12px / 650 / 0.045em */
 .tool-title {
-    font-size: var(--font-sm);
-    font-weight: var(--font-semibold);
-    color: var(--fg-muted);
-    letter-spacing: 0.04em;
+    margin-right: auto;
+    font-size: var(--font-label);
+    font-weight: var(--font-label-weight);
+    color: var(--text-secondary);
+    letter-spacing: 0.045em;
     text-transform: uppercase;
     transition: color var(--transition-fast);
 }
 
+/* Gold marks the OPEN pane — active selection, not every heading (§5.4) */
+.tool-section:not([data-collapsed="true"]) .tool-title {
+    color: var(--accent-text);
+}
+
 .tool-header:hover .tool-title {
-    color: var(--color-brand);
+    color: var(--text-primary);
+}
+
+.tool-section:not([data-collapsed="true"]) .tool-header:hover .tool-title {
+    color: var(--accent-text);
+}
+
+/* Section count badge (rendered into the header by the pane's JS) —
+   review §9.8 / §12: the count belongs in the header, not a footer strip. */
+.tool-count {
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+    flex: 0 0 auto;
 }
 
 .tool-collapse {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-sm);
+    flex: 0 0 auto;
+    border-radius: var(--radius-control);
     background: transparent;
-    color: var(--fg-subtle);
+    color: var(--text-muted);
     transition: color var(--transition-fast),
                 background-color var(--transition-fast);
 }
 
 .tool-collapse:hover {
-    background: var(--bg-hover);
-    color: var(--color-brand);
+    background: var(--bg-active);
+    color: var(--accent-text);
 }
 
 .tool-collapse .chevron {
+    /* Review §9.2: one icon, rotated. ~140ms = --transition-base. */
     transition: transform var(--transition-base);
 }
 
-/* Rotate chevron when section is collapsed */
+/* Expanded = the source chevron's own down-facing direction; collapsed
+   swings it a quarter turn to point right (review §9.2). */
 .tool-section[data-collapsed="true"] .tool-collapse .chevron {
-    transform: rotate(-180deg);
+    transform: rotate(-90deg);
 }
 
-/* ===== TOOL BODY ===== */
+/* ===== TOOL BODY — the clipping wrapper for the reveal =====
+   THE 0fr↔1fr / OVERFLOW CONFLICT, resolved:
+
+   The grid reveal needs a child that clips while the row is mid-animation,
+   which is why this box used to carry `overflow-y: auto`. But `auto` also
+   let a tall pane keep its own scrollbar forever — the nested scrolling
+   review §9.3 wants gone.
+
+   Because .tool-section is now content-height, the open 1fr track resolves
+   to EXACTLY this box's natural height. So `overflow: hidden` clips nothing
+   at rest — scrollHeight === clientHeight — and only does work during the
+   140ms animation. One scroll region per rail, animation intact, no clipping.
+
+   scrollbar-gutter went with it: there is no scrollbar left to reserve. */
 .tool-body {
     min-height: 0; /* let the 0fr row actually reach zero */
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: var(--space-md);
-    scrollbar-gutter: stable; /* opening a scrolling pane never shifts layout */
+    overflow: hidden;
+    padding: var(--space-3);
 
-    visibility: visible;
+    display: block;
     transition: padding-block var(--transition-base),
-                visibility 0s linear 0s;
+                display var(--transition-base) allow-discrete;
+}
 
-    /* Custom scrollbar */
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) transparent;
+/* An element arriving from display:none has no previous style to transition
+   FROM, so its 12px block padding would snap in and pop the row open by 24px
+   before the reveal even starts. @starting-style hands it a zero-padding
+   origin so the open animates as smoothly as the close. */
+@starting-style {
+    .tool-body {
+        padding-block: 0;
+    }
 }
 
 /* Collapsed: shrink to the header row; the body row animates shut */
 .tool-section[data-collapsed="true"] {
     grid-template-rows: auto 0fr;
-    flex: 0 0 auto;
 }
 
+/* A closed pane is display:none, so it is out of layout, out of the a11y
+   tree, out of the tab order — and reports 0/0 rather than "0 tall wrapped
+   around 600px of clipped content". Nothing in a rail reports overflow but
+   the rail itself.
+
+   allow-discrete is what keeps the reveal: display flips to block
+   immediately on open, and is deferred to the END of the close, so both
+   directions animate over real content. Engines without allow-discrete just
+   snap the body in and out while the row animates — a degradation, not a
+   break. */
 .tool-section[data-collapsed="true"] .tool-body {
-    visibility: hidden; /* removed from the a11y tree and tab order */
+    display: none;
     padding-block: 0;   /* padding would otherwise hold the 0fr row open */
-    overflow-y: hidden;
     transition: padding-block var(--transition-base),
-                visibility 0s linear 250ms; /* hide only after the reveal closes */
+                display var(--transition-base) allow-discrete;
 }
 
 /* ===== EMPTY STATE ===== */
@@ -498,130 +628,185 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--space-md);
-    padding: var(--space-xl);
+    gap: var(--space-3);
+    padding: var(--space-6) var(--space-4);
     text-align: center;
-    /* No min-height: empty panes must never inflate past the viewport —
-       the open accordion pane already provides the vertical room. */
+    /* No min-height: an empty pane is now content-height inside the rail's
+       single scroll region, so anything reserved here is dead space. */
 }
 
 .empty-title {
     font-size: var(--font-base);
     font-weight: var(--font-semibold);
-    color: var(--fg-default);
+    color: var(--text-primary);
 }
 
 .empty-text {
     font-size: var(--font-sm);
-    color: var(--fg-muted);
+    color: var(--text-secondary);
     line-height: var(--leading-relaxed);
     max-width: 300px;
 }
 
-/* ===== BUTTONS ===== */
+/* ===== BUTTONS =====
+   Review §5.1 / §6.3: 6px rounded rectangles at 36px. Review §20: hover is a
+   surface shift, pressed is an inset, and the gold ring belongs to
+   focus-visible alone — it used to double as a hover glow, which made every
+   hovered button look focused. */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-2);
+    min-height: var(--h-button);
+    padding: var(--space-2) var(--space-4);
 
     font-size: var(--font-sm);
     font-weight: var(--font-medium);
 
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-control);
     border: var(--border-width) solid transparent;
 
     cursor: pointer;
     transition: color var(--transition-fast),
                 background-color var(--transition-fast),
-                border-color var(--transition-fast),
-                transform var(--transition-fast),
-                box-shadow var(--transition-fast);
+                border-color var(--transition-fast);
     white-space: nowrap;
 }
 
+.btn:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+/* Disabled must stay READABLE, not ghosted away (review §10.3 / §21) */
 .btn:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
 }
 
 /* Primary button — house gold */
 .btn-primary {
-    background: var(--color-brand);
-    color: var(--fg-on-emphasis);
-    border-color: var(--color-brand);
+    background: var(--accent-fill);
+    color: var(--on-accent);
+    border-color: var(--accent-fill);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: var(--color-brand-emphasis);
-    border-color: var(--color-brand-emphasis);
-    transform: translateY(-1px);
-    box-shadow: var(--glow-brand);
+    background: var(--accent-fill-hover);
+    border-color: var(--accent-fill-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+    background: var(--accent-text);
+    border-color: var(--accent-text);
 }
 
 /* Secondary button */
 .btn-secondary {
     background: var(--bg-button);
-    color: var(--fg-default);
-    border-color: var(--border-default);
+    color: var(--text-primary);
+    border-color: var(--border);
 }
 
 .btn-secondary:hover:not(:disabled) {
     background: var(--bg-button-hover);
-    border-color: var(--color-brand);
-    transform: translateY(-1px);
+    border-color: var(--border-strong);
+}
+
+.btn-secondary:active:not(:disabled) {
+    background: var(--bg-active);
 }
 
 /* Danger button */
 .btn-danger {
-    background: var(--color-danger);
-    color: var(--fg-inverse);
-    border-color: var(--color-danger);
+    background: var(--danger);
+    color: var(--on-accent);
+    border-color: var(--danger);
 }
 
 .btn-danger:hover:not(:disabled) {
-    background: var(--color-critical);
-    transform: translateY(-1px);
-    box-shadow: var(--glow-danger);
+    background: var(--critical);
+    border-color: var(--critical);
+}
+
+.btn-danger:active:not(:disabled) {
+    background: var(--critical);
+    filter: brightness(0.92);
+}
+
+/* Outlined danger — transparent at rest, fills on hover. For destructive
+   actions that should read as available-but-deliberate (the Settings Danger
+   Zone reset, review §15.3) rather than shouting in solid red. */
+.btn-danger-outline {
+    background: transparent;
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+.btn-danger-outline:hover:not(:disabled) {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: var(--on-accent);
+}
+
+.btn-danger-outline:active:not(:disabled) {
+    background: var(--critical);
+    border-color: var(--critical);
+    color: var(--on-accent);
 }
 
 /* ===== FORM CONTROLS (shared across tool panes) ===== */
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xs);
-    margin-bottom: var(--space-md);
+    gap: var(--space-2);           /* 8px label→field (review §13.2); 4px read as stuck-together */
+    margin-bottom: var(--space-4);
+}
+
+/* .form-group's flex display overrides the UA [hidden] rule, so a group JS
+   hides (e.g. the autosave-delay group in non-debounced modes) would stay
+   visible without this. Lives here so every form-group honours [hidden]. */
+.form-group[hidden] {
+    display: none;
 }
 
 .form-group label {
-    font-size: var(--font-xs);
-    font-weight: var(--font-medium);
-    color: var(--fg-muted);
+    font-size: var(--font-label);
+    font-weight: var(--font-label-weight);
+    color: var(--text-secondary);
     letter-spacing: 0.03em;
     text-transform: uppercase;
 }
 
+/* Soft rectangular inputs at 36px (review §5.1 / §6.3 / §13.2) */
 .text-input,
 .select-input {
     width: 100%;
-    padding: var(--space-sm) var(--space-md);
+    min-height: var(--h-input);
+    padding: var(--space-2) var(--space-3);
     background: var(--bg-input);
-    border: var(--border-width) solid var(--border-default);
-    border-radius: var(--radius-md);
-    color: var(--fg-default);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-control);
+    color: var(--text-primary);
     font-size: var(--font-sm);
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .text-input::placeholder {
-    color: var(--fg-subtle);
+    color: var(--text-muted);
 }
 
+.text-input:hover:not(:focus),
+.select-input:hover:not(:focus) {
+    border-color: var(--border-strong);
+}
+
+/* Accent-tinted halo rather than the neutral bg-active one — the focused
+   field now reads as focused instead of merely shaded. */
 .text-input:focus,
 .select-input:focus {
-    border-color: var(--border-focus);
-    box-shadow: 0 0 0 3px var(--bg-active);
+    box-shadow: var(--glow-brand);
     outline: none;
 }
 
@@ -632,47 +817,137 @@ textarea.text-input {
     line-height: var(--leading-normal);
 }
 
-/* Toggle pills (option switches) */
+/* ===== OPTION CHIPS (independent switches) =====
+   Review §6.6: Match case / Whole word / Regex are INDEPENDENT options, so
+   they are compact chips at --h-chip — square-ish, not capsules, because a
+   capsule reads as a badge (§4.1). Selected = accent tint + accent border,
+   never the focus ring (§20). */
 .toggle-pill {
-    padding: var(--space-xs) var(--space-md);
-    border-radius: var(--radius-full);
-    border: var(--border-width) solid var(--border-default);
+    display: inline-flex;
+    align-items: center;
+    height: var(--h-chip);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-control);
+    border: var(--border-width) solid var(--border);
     background: var(--bg-tag);
-    color: var(--fg-muted);
+    color: var(--text-secondary);
     font-size: var(--font-xs);
     font-weight: var(--font-medium);
     transition: color var(--transition-fast),
                 background-color var(--transition-fast),
-                border-color var(--transition-fast),
-                box-shadow var(--transition-fast);
+                border-color var(--transition-fast);
     cursor: pointer;
     white-space: nowrap;
 }
 
 .toggle-pill:hover {
-    border-color: var(--color-brand);
-    color: var(--fg-default);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
 }
 
 .toggle-pill[data-active="true"] {
-    background: var(--color-brand);
-    border-color: var(--color-brand);
-    color: var(--fg-on-emphasis);
-    box-shadow: var(--glow-brand);
+    background: var(--accent-quiet);
+    border-color: var(--accent-fill);
+    color: var(--accent-text);
+    font-weight: var(--font-semibold);
 }
 
-.options-row,
-.scope-pills {
+.toggle-pill:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+.options-row {
     flex-direction: row;
     flex-wrap: wrap;
-    gap: var(--space-sm);
+    gap: var(--space-2);
+}
+
+/* ===== SEGMENTED CONTROL (mutually exclusive choice) =====
+   Review §6.6 / §13.3: a set of exclusive options (Prefix scope Each line /
+   Selection / Whole document; Encoding direction All / Encode / Decode)
+   becomes ONE joined container with a shared border and no gaps — separate
+   pills implied you could pick several. The JS that builds each control gives
+   it real radiogroup semantics (role, aria-checked, roving tabindex); these
+   rules dress it. Shared here so every tool that needs the pattern inherits
+   one silhouette. */
+.segmented {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0;
+
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--bg-input);
+    overflow: hidden;   /* clips the segment corners to the shared radius */
+}
+
+.segmented .segmented-option {
+    flex: 1 1 0;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--h-input);
+    padding: 0 var(--space-2);
+
+    /* The divider is a LEFT border on every segment but the first — one
+       hairline between neighbours, never a doubled 2px seam. */
+    border: 0;
+    border-left: var(--border-width) solid var(--border);
+    border-radius: 0;
+    background: transparent;
+
+    font-size: var(--font-xs);
+    font-weight: var(--font-medium);
+    color: var(--text-secondary);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: color var(--transition-fast),
+                background-color var(--transition-fast);
+}
+
+.segmented .segmented-option:first-child {
+    border-left: 0;
+}
+
+/* Review §20 — rest / hover / selected / focus-visible, all distinct */
+.segmented .segmented-option:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.segmented .segmented-option:active {
+    background: var(--bg-active);
+}
+
+/* SELECTED: accent-tinted surface + accent ink + heavier weight, so the
+   chosen segment survives a colour-blind read (review §20). */
+.segmented .segmented-option[aria-checked="true"] {
+    background: var(--accent-quiet);
+    color: var(--accent-text);
+    font-weight: var(--font-semibold);
+}
+
+.segmented .segmented-option[aria-checked="true"]:hover {
+    background: var(--accent-quiet);
+    color: var(--accent-text);
+}
+
+/* Inset ring: an outset ring would be clipped by the container's overflow */
+.segmented .segmented-option:focus-visible {
+    box-shadow: var(--glow-brand-inset);
 }
 
 /* Action button rows */
 .action-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-sm);
+    gap: var(--space-2);
 }
 
 .action-buttons .btn {
@@ -682,8 +957,7 @@ textarea.text-input {
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
     .panel-header {
-        height: 48px;
-        padding: 0 var(--space-md);
+        padding: 0 var(--space-4);
     }
 
     .panel-title {

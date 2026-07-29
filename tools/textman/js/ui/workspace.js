@@ -86,16 +86,18 @@
 (function () {
     'use strict';
 
-    /** "5m ago"-style relative timestamps. */
+    /** Elapsed time in one dense column — "now", "5m", "2h", "3d".
+        Review §9.7 wants the history list to read as a timeline, and the
+        absolute timestamp is already on every row's tooltip. */
     function relativeTime(iso) {
         const then = new Date(iso).getTime();
         if (!Number.isFinite(then)) return '';
         const diff = Date.now() - then;
 
-        if (diff < 60000) return 'just now';
-        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-        return `${Math.floor(diff / 86400000)}d ago`;
+        if (diff < 60000) return 'now';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
+        return `${Math.floor(diff / 86400000)}d`;
     }
 
     const STAR_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
@@ -118,6 +120,29 @@
         return `<div class="ws-search"><input type="search" id="${id}" class="ws-search-input" placeholder="${placeholder}" value="${Text.escapeHtml(value || '')}" aria-label="${placeholder}" autocomplete="off"></div>`;
     }
 
+    /**
+     * Write a count into an accordion header (review §9.8 / §12: counts live
+     * in the section header, not in a separate footer strip). Numbers only —
+     * set through textContent, so nothing here can carry markup.
+     */
+    function setSectionCount(section, count) {
+        const header = DOM.$(`.tool-section[data-section="${section}"] .tool-header`);
+        if (!header) return;
+
+        let badge = DOM.$('.tool-count', header);
+        if (!count) {
+            if (badge) badge.remove();
+            return;
+        }
+        if (!badge) {
+            badge = DOM.create('span', { className: 'tool-count', attrs: { 'aria-hidden': 'true' } });
+            // Sit between the title and the chevron.
+            const chevron = DOM.$('.tool-collapse', header);
+            header.insertBefore(badge, chevron || null);
+        }
+        badge.textContent = String(count);
+    }
+
     const WorkspaceUI = {
         // Per-list filters (kept in memory, not persisted)
         templateFilter: '',
@@ -137,7 +162,6 @@
             this.renderHistory();
             this.renderFavorites();
             this.renderAnalytics();
-            this.updateFooter();
         },
 
         /* ── Templates ──────────────────────────────── */
@@ -165,6 +189,8 @@
                 }));
             }
 
+            // Compact list rows (review §9.5): name + star, one-line
+            // description, then the visible primary action and its siblings.
             shown.forEach((t) => {
                 const card = DOM.create('article', {
                     className: 'workspace-card',
@@ -174,11 +200,12 @@
                 card.innerHTML = `
                     <div class="card-title-row">
                         <h5 class="card-title">${Text.escapeHtml(t.name)}</h5>
+                        ${used}
                         <button class="fav-btn" data-action="fav-template" data-active="${t.isFavorite}" title="Favorite" aria-label="Toggle favorite">${STAR_SVG}</button>
                     </div>
-                    <p class="card-desc">${Text.escapeHtml(t.description)} ${used}</p>
+                    <p class="card-desc" title="${Text.escapeHtml(t.description)}">${Text.escapeHtml(t.description)}</p>
                     <div class="card-actions">
-                        <button class="card-btn" data-action="use-template">Use template</button>
+                        <button class="card-btn card-btn-primary" data-action="use-template">Use template</button>
                         <button class="card-btn" data-action="duplicate-template">Duplicate</button>
                         ${t.isSeed ? '' : '<button class="card-btn card-btn-danger" data-action="delete-template">Delete</button>'}
                     </div>
@@ -192,7 +219,7 @@
             frag.appendChild(actions);
 
             list.appendChild(frag);
-            this.updateFooter();
+            setSectionCount('templates', all.length);
         },
 
         /* ── Snippets ───────────────────────────────── */
@@ -212,7 +239,7 @@
                     <button class="btn btn-primary" data-action="save-snippet">Save current selection</button>
                 `;
                 list.appendChild(empty);
-                this.updateFooter();
+                setSectionCount('snippets', 0);
                 return;
             }
 
@@ -254,6 +281,8 @@
                     .map((tag) => `<button class="tag-chip" data-action="filter-tag" data-tag="${Text.escapeHtml(tag)}" title="Filter by ${Text.escapeHtml(tag)}">${Text.escapeHtml(tag)}</button>`)
                     .join('');
 
+                // Same compact row language as Templates (review §9.6) — one
+                // preview line at rest, Insert as the visible primary action.
                 card.innerHTML = `
                     <div class="card-title-row">
                         <h5 class="card-title">${Text.escapeHtml(s.name)}</h5>
@@ -262,7 +291,7 @@
                     <div class="card-preview ${isOpen ? 'is-expanded' : ''}" data-action="toggle-expand" title="${isOpen ? 'Collapse' : 'Expand'}">${Text.escapeHtml(isOpen ? s.content : Text.truncate(s.content, 120))}</div>
                     ${tags ? `<div class="tag-row">${tags}</div>` : ''}
                     <div class="card-actions">
-                        <button class="card-btn" data-action="insert-snippet">Insert</button>
+                        <button class="card-btn card-btn-primary" data-action="insert-snippet">Insert</button>
                         <button class="card-btn" data-action="copy-snippet">Copy</button>
                         <button class="card-btn card-btn-danger" data-action="delete-snippet">Delete</button>
                     </div>
@@ -275,7 +304,7 @@
             frag.appendChild(actions);
 
             list.appendChild(frag);
-            this.updateFooter();
+            setSectionCount('snippets', snippets.length);
         },
 
         /* ── History ────────────────────────────────── */
@@ -294,30 +323,41 @@
                     <p class="empty-text">Your recent edits and snapshots will appear here.</p>
                 `;
                 list.appendChild(empty);
+                setSectionCount('history', 0);
                 return;
             }
 
             const frag = document.createDocumentFragment();
 
+            // One dense line per event (review §9.7): marker, description,
+            // elapsed time. The restore affordance is its own element so the
+            // description can ellipsize without swallowing it.
             history.slice(0, 30).forEach((h) => {
                 const restorable = typeof h.snapshot === 'string';
                 const entry = DOM.create('div', {
                     className: `history-entry${restorable ? ' is-restorable' : ''}`,
                     data: restorable ? { type: h.type, id: h.id, action: 'restore-history' } : { type: h.type },
-                    attrs: { title: absoluteTime(h.timestamp) + (restorable ? ' · click to restore this version' : '') }
+                    attrs: Object.assign(
+                        { title: absoluteTime(h.timestamp) + (restorable ? ' · click to restore this version' : '') },
+                        restorable ? { role: 'button', tabindex: '0' } : {}
+                    )
                 });
                 entry.innerHTML = `
-                    <span class="history-desc">${Text.escapeHtml(h.description)}${restorable ? ' <span class="restore-tag">↺ restore</span>' : ''}</span>
+                    <span class="history-desc">${Text.escapeHtml(h.description)}</span>
+                    ${restorable ? '<span class="restore-tag" title="Restore this version">↺</span>' : ''}
                     <span class="history-time">${relativeTime(h.timestamp)}</span>
                 `;
                 frag.appendChild(entry);
             });
 
-            const actions = DOM.create('div', { className: 'section-actions' });
+            // Compact secondary action, right-aligned — not a big centered
+            // button (review §9.7).
+            const actions = DOM.create('div', { className: 'section-actions section-actions--end' });
             actions.innerHTML = '<button class="btn btn-secondary" data-action="clear-history">Clear history</button>';
             frag.appendChild(actions);
 
             list.appendChild(frag);
+            setSectionCount('history', history.length);
         },
 
         /* ── Favorites ──────────────────────────────── */
@@ -336,11 +376,13 @@
                     <p class="empty-text">Mark templates, snippets, or tools you use the most.</p>
                 `;
                 list.appendChild(empty);
+                setSectionCount('favorites', 0);
                 return;
             }
 
             const frag = document.createDocumentFragment();
 
+            // Same flat row language as the lists they came from (review §9.8).
             templates.forEach((t) => {
                 const card = DOM.create('article', {
                     className: 'workspace-card',
@@ -348,11 +390,11 @@
                 });
                 card.innerHTML = `
                     <div class="card-title-row">
-                        <h5 class="card-title">★ ${Text.escapeHtml(t.name)}</h5>
+                        <h5 class="card-title">${Text.escapeHtml(t.name)}</h5>
+                        <span class="tag-chip">Template</span>
                     </div>
-                    <p class="card-desc">Template</p>
                     <div class="card-actions">
-                        <button class="card-btn" data-action="use-template">Use template</button>
+                        <button class="card-btn card-btn-primary" data-action="use-template">Use template</button>
                     </div>
                 `;
                 frag.appendChild(card);
@@ -365,11 +407,11 @@
                 });
                 card.innerHTML = `
                     <div class="card-title-row">
-                        <h5 class="card-title">★ ${Text.escapeHtml(s.name)}</h5>
+                        <h5 class="card-title">${Text.escapeHtml(s.name)}</h5>
+                        <span class="tag-chip">Snippet</span>
                     </div>
-                    <p class="card-desc">Snippet</p>
                     <div class="card-actions">
-                        <button class="card-btn" data-action="insert-snippet">Insert</button>
+                        <button class="card-btn card-btn-primary" data-action="insert-snippet">Insert</button>
                         <button class="card-btn" data-action="copy-snippet">Copy</button>
                     </div>
                 `;
@@ -377,6 +419,7 @@
             });
 
             list.appendChild(frag);
+            setSectionCount('favorites', templates.length + snippets.length);
         },
 
         /* ── Analytics ──────────────────────────────── */
@@ -391,31 +434,35 @@
 
             const read = window.EditorUI ? Text.readability(EditorUI.getValue()) : null;
             const readValue = read ? `${read.score}` : '—';
-            const readLabel = read ? read.label : 'Readability';
+            // The row already carries the word "Readability" on the left; a
+            // fallback label here would print it twice.
+            const readLabel = read ? read.label : '';
 
             const top3 = State.topTransforms(3);
 
+            // Flat label/value rows (review §9.8) — label first so the row
+            // reads left to right for screen readers too.
             list.innerHTML = `
                 <div class="analytics-grid">
                     <div class="stat-block">
-                        <span class="stat-value">${Text.formatNumber(a.totalWords)}</span>
                         <span class="stat-label">Words</span>
+                        <span class="stat-value">${Text.formatNumber(a.totalWords)}</span>
                     </div>
                     <div class="stat-block">
-                        <span class="stat-value">${Text.formatNumber(a.totalChars)}</span>
                         <span class="stat-label">Characters</span>
+                        <span class="stat-value">${Text.formatNumber(a.totalChars)}</span>
                     </div>
                     <div class="stat-block">
-                        <span class="stat-value">${Text.formatNumber(sessions)}</span>
                         <span class="stat-label">Sessions</span>
+                        <span class="stat-value">${Text.formatNumber(sessions)}</span>
                     </div>
                     <div class="stat-block">
-                        <span class="stat-value">${Text.formatNumber(perSession)}</span>
                         <span class="stat-label">Words / session</span>
+                        <span class="stat-value">${Text.formatNumber(perSession)}</span>
                     </div>
                     <div class="stat-block stat-block-wide" title="Flesch Reading Ease (0 hard – 100 easy)">
-                        <span class="stat-value">${readValue} <span class="stat-sub">${Text.escapeHtml(readLabel)}</span></span>
                         <span class="stat-label">Readability</span>
+                        <span class="stat-value">${readValue}<span class="stat-sub">${Text.escapeHtml(readLabel)}</span></span>
                     </div>
                 </div>
                 ${top3.length ? `
@@ -426,14 +473,6 @@
                     </ol>
                 </div>` : ''}
             `;
-        },
-
-        updateFooter() {
-            const el = DOM.id('workspace-stats');
-            if (el) {
-                const s = State.get();
-                el.textContent = `Templates: ${s.templates.length} | Snippets: ${s.snippets.length}`;
-            }
         },
 
         /* ── Actions (delegated once) ───────────────── */
@@ -470,6 +509,14 @@
                     case 'clear-history': this.doClearHistory(); break;
                     default: break;
                 }
+            });
+
+            // A restorable history row is a role="button" (review §21), so it
+            // has to answer Enter and Space, not just the pointer.
+            DOM.delegate(panel, 'keydown', '.history-entry.is-restorable', (e, entry) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+                this.restoreHistory(entry.dataset.id);
             });
 
             // Live search filters (debounced so typing stays smooth)

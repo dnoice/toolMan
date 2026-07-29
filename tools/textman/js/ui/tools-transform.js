@@ -28,12 +28,14 @@
  *     state, and autosave handled centrally.
  *
  * ✒ Key Features:
- *     - Case: UPPERCASE, lowercase, Title Case, Sentence case
+ *     - Case: uppercase, lowercase, title case, sentence case
  *     - Cleanup: trim whitespace, collapse spaces
  *     - Lines: remove empty, deduplicate, reverse, shuffle
  *     - Order: locale-aware natural sort A→Z / Z→A
  *     - Usage tallies feed the Analytics pane's "Top transform"
  *     - Applied-flash feedback on the clicked button
+ *     - Runtime relabelling: the tile captions are normalised to one
+ *       sentence-style voice on init (review §13.1)
  *
  * ✒ Usage Instructions:
  *     Script-tag module exposing window.TransformUI — load after shared/js,
@@ -155,10 +157,67 @@
             .replace(/[“”]/g, '"').replace(/[‘’]/g, "'")
     };
 
+    /* ===== TILE CAPTIONS (review §13.1) =====
+       The grid used to demonstrate each operation with its own label casing —
+       "UPPERCASE", "lowercase", "Title Case", "camelCase". Read as a column
+       that is a genuine problem: every tile has a different optical weight and
+       cap-height, so a 20-tile grid looks ragged even though the tiles are
+       identical boxes. The review asks for one consistent sentence-style
+       voice, with the demonstration moved to a secondary channel.
+       The canonical form each operation produces now lives in the tooltip,
+       which is where a demonstration belongs once it stops being the label.
+
+       These captions live in index.html, which this pass does not own, so
+       they are rewritten here at init instead. */
+    const LABELS = {
+        uppercase:          ['Uppercase',        'Convert the text to UPPERCASE'],
+        lowercase:          ['Lowercase',        'Convert the text to lowercase'],
+        titlecase:          ['Title case',       'Convert To Title Case'],
+        sentencecase:       ['Sentence case',    'Convert to Sentence case'],
+
+        trim:               ['Trim whitespace',  'Trim leading and trailing whitespace on every line'],
+        collapse:           ['Collapse spaces',  'Collapse repeated spaces to a single space'],
+
+        removeempty:        ['Remove empty lines', 'Remove blank lines'],
+        dedupe:             ['Deduplicate lines',  'Remove duplicate lines, keeping the first'],
+        'reverse-lines':    ['Reverse lines',    'Reverse the order of the lines'],
+        shuffle:            ['Shuffle lines',    'Shuffle the lines into random order'],
+
+        'sort-asc':         ['Sort A → Z',       'Sort lines A to Z (natural order)'],
+        'sort-desc':        ['Sort Z → A',       'Sort lines Z to A (natural order)'],
+
+        camel:              ['Camel case',       'Convert to camelCase'],
+        pascal:             ['Pascal case',      'Convert to PascalCase'],
+        snake:              ['Snake case',       'Convert to snake_case'],
+        kebab:              ['Kebab case',       'Convert to kebab-case'],
+        constant:           ['Constant case',    'Convert to CONSTANT_CASE'],
+
+        'strip-accents':    ['Strip accents',    'Remove accents and diacritics (é → e)'],
+        'smart-quotes':     ['Smart quotes',     'Straight quotes → curly quotes'],
+        'straight-quotes':  ['Straight quotes',  'Curly quotes → straight quotes']
+    };
+
     const TransformUI = {
         init() {
+            this.relabel();
+
             DOM.delegate('[data-body="transform"]', 'click', '[data-transform]', (e, btn) => {
                 this.apply(btn.dataset.transform, btn);
+            });
+        },
+
+        /** Normalise every tile caption to the sentence-style voice. */
+        relabel() {
+            DOM.$$('[data-body="transform"] [data-transform]').forEach((btn) => {
+                const entry = LABELS[btn.dataset.transform];
+                if (!entry) return;
+
+                const label = DOM.$('.btn-label', btn);
+                if (label) label.textContent = entry[0];
+                btn.setAttribute('title', entry[1]);
+                // Icon-free tiles read their label, but the tooltip carries the
+                // demonstration — name the button by both.
+                btn.setAttribute('aria-label', `${entry[0]} — ${entry[1]}`);
             });
         },
 

@@ -13,15 +13,17 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Description:
- *     Text Formatting pane specifics layered on the shared tool-button
- *     grid: literal-preview labels for heading/list buttons rendered in
- *     mono type so each button shows the markup it produces. The buttons
+ *     Text Formatting pane specifics layered on the shared tool-button grid:
+ *     the two-part tile caption — a quiet mono marker showing the markup the
+ *     button inserts, followed by the operation's plain name. The buttons
  *     themselves come entirely from sidebar-right.css.
  *
  * ✒ Key Features:
  *     - formatting-hint: small italic guidance line above the button grid
- *     - Mono btn-label variant for markup-literal buttons (#, ##, -, 1.),
- *       opted in per button via the data-format attribute
+ *     - btn-marker: fixed-width mono marker column (#, ##, -, 1., ```) so
+ *       the names beside it stay aligned down the grid
+ *     - btn-name: the plain-cased operation name, wrapping rather than
+ *       clipping at narrow rail widths
  *     - Inherits grid, sheen, and press states from sidebar-right.css
  *
  * ✒ Usage Instructions:
@@ -32,10 +34,12 @@
  *     opts in per button with a data-format attribute.
  *
  * ✒ Examples:
- *     The H1 button is a tool-action-btn carrying data-format, so its
- *     btn-label "#" renders in mono type — the button literally shows the
- *     markup it inserts. The bullet-list and numbered-list buttons do the
- *     same with "-" and "1." labels.
+ *     The H1 tile reads as a muted mono "#" followed by "Heading 1" — the
+ *     button still shows the markup it inserts, but the name beside it lines
+ *     up with "Heading 2", "Quote" and "Bullet list" down the column.
+ *
+ *     Strip markdown has no marker, so its name starts at the same x
+ *     position as every other name in the grid.
  *
  *     The formatting-hint above the grid notes in quiet italics what the
  *     actions operate on.
@@ -45,19 +49,51 @@
  *       grid, loads first) and shared/css/tokens.css (--font-mono, spacing
  *       and color tokens)
  *     - Compatible platforms: all evergreen browsers
- *     - Limitations: buttons without a data-format attribute keep the
- *       shared sans label style
+ *     - Limitations: the marker/name split is written by
+ *       js/ui/tools-formatting.js at init — without it the raw index.html
+ *       captions render as one plain string
  * ----------------------------------------------------------------------------
  */
 
 .formatting-hint {
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-3);
     font-size: var(--font-xs);
-    color: var(--fg-subtle);
+    line-height: var(--leading-normal);
+    color: var(--text-secondary);
     font-style: italic;
 }
 
-/* Markup-literal labels read best in mono */
-.tool-action-btn[data-format] .btn-label {
+/* ===== MARKER + NAME (review §13.1) =====
+   The tile caption is now two parts: the markdown literal as a quiet mono
+   marker, and the operation's name in the same plain sentence-style voice
+   every other pane uses. The name column stays optically even; the marker
+   still tells you exactly what gets inserted. */
+[data-body="formatting"] .tool-action-btn .btn-label {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    line-height: var(--leading-tight);
+}
+
+[data-body="formatting"] .btn-marker {
+    flex: 0 0 auto;
+    /* ch, not em: the widest marker is three mono characters ("###", "```"),
+       and 1ch IS one character of THIS element's mono face — so the names all
+       start at the same x whatever marker precedes them. */
+    min-width: 3.25ch;
     font-family: var(--font-mono);
+    font-weight: var(--font-normal);
+    color: var(--text-muted);
+    transition: color var(--transition-fast);
+}
+
+/* The marker is decoration at rest and a cue on hover — it tracks the
+   caption's own hover treatment rather than inventing a third state. */
+[data-body="formatting"] .tool-action-btn:hover .btn-marker {
+    color: var(--text-secondary);
+}
+
+[data-body="formatting"] .btn-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }

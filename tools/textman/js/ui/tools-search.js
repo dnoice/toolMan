@@ -20,7 +20,9 @@
  *     throw.
  *
  * ✒ Key Features:
- *     - Live match counter ("3 of 12") recomputed as you type (debounced)
+ *     - Live match count as flat helper text ("No matches yet" → "12
+ *       matches" → "3 of 12"), announced through an aria-live region
+ *     - Independent options rendered as real checkboxes, not chips
  *     - Validated regex mode with visible invalid-pattern state
  *     - Whole-word and match-case options composable with literal or regex
  *     - Prev/Next with wrap-around; textarea selection tracks the hit
@@ -33,9 +35,10 @@
  * ✒ Usage Instructions:
  *     Script-tag module exposing window.SearchUI — load after shared/js,
  *     js/state.js, and ui/editor.js in tools/textman/index.html. Booted by
- *     app.js calling SearchUI.init(), which injects its match counter into
- *     .search-container, wires the option pills and action buttons, and
- *     recounts (debounced 250ms) on both search-field and editor input.
+ *     app.js calling SearchUI.init(), which upgrades the option chips into
+ *     checkboxes, injects its match counter under the search field, wires the
+ *     action buttons, and recounts (debounced 250ms) on both search-field and
+ *     editor input.
  *
  * ✒ Examples:
  *     - Type "TODO" in #search-input → counter reads "7 matches"; Enter
@@ -81,6 +84,7 @@
             this.replaceInput = DOM.id('replace-input');
             if (!this.searchInput) return;
 
+            this.enhanceOptions();
             this.ensureCounter();
             this.wireOptions();
             this.wireActions();
@@ -99,30 +103,121 @@
             });
         },
 
+        /* ===== OPTIONS: CHIPS → CHECKBOXES (review §6.6 / §13.2) =====
+           Match case, Whole word and Regex are INDEPENDENT switches, but as
+           three same-sized chips sitting shoulder to shoulder they read as a
+           segmented control — exactly the "independent check options look like
+           segmented controls" failure in review §4.7. It matters twice over
+           here, because the very next pane (Prefix/Suffix) now uses a REAL
+           joined segmented control for its mutually exclusive scope: two
+           different behaviours must not share one silhouette.
+
+           The review offers chips or checkboxes. Checkboxes win: a tick box is
+           unambiguously a multi-select, it is natively keyboard- and
+           AT-operable with no ARIA of our own, and it cannot be mistaken for
+           the joined control two panes down.
+
+           The markup lives in index.html, which this pass does not own, so the
+           buttons are upgraded in place here. The ids survive the swap, and
+           data-active is mirrored onto the input so anything still reading the
+           old attribute keeps working. */
+        enhanceOptions() {
+            const specs = [
+                ['opt-match-case', 'Match case', 'Only match text with the same capitalisation'],
+                ['opt-whole-word', 'Whole word', 'Only match whole words, not fragments'],
+                ['opt-regex', 'Regex', 'Read the search term as a regular expression']
+            ];
+
+            // Find the row through the controls themselves, not through a
+            // class name: the class belongs to markup this pass does not own.
+            const anchor = DOM.id(specs[0][0]);
+            if (!anchor) return;
+            if (anchor.tagName === 'INPUT') return;     // already upgraded
+
+            const row = anchor.parentElement;
+            if (!row) return;
+
+            const wasActive = {};
+            specs.forEach(([id]) => {
+                const old = DOM.id(id);
+                wasActive[id] = old ? old.dataset.active === 'true' : false;
+                if (old) old.remove();
+            });
+
+            row.classList.remove('options-row');
+            row.classList.add('option-checks');
+            row.setAttribute('role', 'group');
+            row.setAttribute('aria-label', 'Search options');
+
+            specs.forEach(([id, text, hint]) => {
+                const input = DOM.create('input', {
+                    id,
+                    attrs: { type: 'checkbox' },
+                    data: { active: String(wasActive[id]) }
+                });
+                input.checked = wasActive[id];
+
+                row.appendChild(DOM.create('label', {
+                    className: 'option-check',
+                    attrs: { for: id, title: hint },
+                    children: [input, DOM.create('span', { text })]
+                }));
+            });
+        },
+
+        /* Flat status TEXT, not a pill (review §6.6: "Status text → flat text,
+           not pills"). It sits directly under the search field because that is
+           the field it reports on, and it is a live region so the count is
+           announced as it changes. */
         ensureCounter() {
             const container = DOM.$('.search-container');
             if (!container || DOM.id('match-counter')) return;
 
-            this.counterEl = DOM.create('span', {
+            this.counterEl = DOM.create('p', {
                 className: 'match-counter',
                 id: 'match-counter',
-                text: 'No search yet',
-                data: { hasMatches: 'false' }
+                text: 'No matches yet',
+                data: { hasMatches: 'false' },
+                attrs: { role: 'status', 'aria-live': 'polite' }
             });
-            container.insertBefore(this.counterEl, container.firstChild);
+
+            const searchGroup = this.searchInput.closest('.form-group');
+            if (searchGroup) {
+                searchGroup.appendChild(this.counterEl);
+            } else {
+                container.insertBefore(this.counterEl, container.firstChild);
+            }
         },
 
         wireOptions() {
-            ['opt-match-case', 'opt-whole-word', 'opt-regex'].forEach((id) => {
-                DOM.on(`#${id}`, 'click', (e) => {
-                    const btn = e.currentTarget;
-                    const active = btn.dataset.active !== 'true';
-                    btn.dataset.active = String(active);
+            const flags = {
+                'opt-match-case': 'matchCase',
+                'opt-whole-word': 'wholeWord',
+                'opt-regex': 'regex'
+            };
 
-                    if (id === 'opt-match-case') this.options.matchCase = active;
-                    if (id === 'opt-whole-word') this.options.wholeWord = active;
-                    if (id === 'opt-regex') this.options.regex = active;
+            Object.entries(flags).forEach(([id, flag]) => {
+                const box = DOM.id(id);
+                if (!box) return;
 
+                // Normal path: enhanceOptions has already made this a checkbox.
+                if (box.type === 'checkbox') {
+                    this.options[flag] = box.checked;   // adopt the markup's state
+                    DOM.on(box, 'change', () => {
+                        this.options[flag] = box.checked;
+                        box.dataset.active = String(box.checked); // legacy mirror
+                        this.recompute();
+                    });
+                    return;
+                }
+
+                // Fallback: if the upgrade could not run (markup changed under
+                // us), the control is still the original toggle button — wire
+                // it the old way rather than leaving the option dead.
+                DOM.on(box, 'click', () => {
+                    const active = box.dataset.active !== 'true';
+                    box.dataset.active = String(active);
+                    this.options[flag] = active;
                     this.recompute();
                 });
             });
@@ -166,7 +261,9 @@
 
             const re = this.buildRegex(true);
             if (!re || !window.EditorUI) {
-                if (!this.searchInput.value) this.setCounter('No search yet', false);
+                // Review §23.3: the resting state is about MATCHES, not about
+                // whether a search has been performed.
+                if (!this.searchInput.value) this.setCounter('No matches yet', false);
                 return;
             }
 

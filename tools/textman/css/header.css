@@ -52,33 +52,64 @@
  */
 
 /* ===== BACK TO HUB LINK ===== */
+/* Review §8.2 wants Hub as a compact ghost-navigation BUTTON, not a text
+   link. It takes the same 34px optical height and 6px rounded-rectangle
+   geometry as the header's icon buttons, so the whole chrome row — Hub, the
+   product lockup, the utility cluster — sits on one visual rhythm. The
+   margin-right is larger than .header-left's gap on purpose: it separates
+   the breadcrumb from the product lockup it navigates away from. */
 .hub-link {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-xs);
-    margin-right: var(--space-sm);
-    padding: var(--space-xs) var(--space-sm);
+    justify-content: center;
+    gap: var(--space-1);
+    height: var(--h-icon-btn);
+    margin-right: var(--space-3);
+    padding-inline: var(--space-3);
 
-    border-radius: var(--radius-md);
-    color: var(--header-subtitle);
-    font-size: var(--font-xs);
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--chrome-text-muted);
+    font-size: var(--font-sm);
     font-weight: var(--font-medium);
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
 
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast),
+                background-color var(--transition-fast);
 }
 
 .hub-link .hub-link-arrow {
     transition: transform var(--transition-fast);
 }
 
+/* Same white veil as .icon-btn — this control also lives on --bg-chrome. */
 .hub-link:hover {
-    color: var(--header-gold);
-    background: rgba(255, 255, 255, 0.07);
+    color: var(--chrome-accent);
+    background: rgba(255, 255, 255, 0.10);
 }
 
 .hub-link:hover .hub-link-arrow {
     transform: translateX(-3px);
+}
+
+.hub-link:active {
+    background: rgba(255, 255, 255, 0.17);
+}
+
+.hub-link:focus-visible {
+    box-shadow: var(--glow-brand);
+}
+
+/* ===== PRODUCT MARK ===== */
+/* The shared .product-logo box (shell.css) is 32px for every tool. The nib is
+   a FILLED glyph that runs corner to corner, so at a literal 32px it out-
+   weighs the stroked marks the other tools use and swamps the 21px wordmark
+   beside it. Inset it inside the shared box — same footprint, matched
+   optical weight, which is the whole reason the box exists. */
+.product-logo > .logo-icon {
+    width: 28px;
+    height: 28px;
 }
 
 /* ===== WORDMARK INK UNDERLINE ===== */
@@ -93,7 +124,7 @@
     bottom: -3px;
     width: 100%;
     height: 2px;
-    background: linear-gradient(90deg, var(--header-gold), transparent);
+    background: linear-gradient(90deg, var(--chrome-accent), transparent);
     transform: scaleX(0);
     transform-origin: left;
     transition: transform var(--transition-base);
@@ -107,5 +138,14 @@
 @media (max-width: 480px) {
     .hub-link .hub-link-label {
         display: none;
+    }
+
+    /* Label gone means this is now a small icon control, so it has to carry
+       the full 40px square target (review §21). */
+    .hub-link {
+        width: var(--h-hit);
+        height: var(--h-hit);
+        padding-inline: 0;
+        margin-right: var(--space-2);
     }
 }

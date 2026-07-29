@@ -73,29 +73,35 @@
 .tool-grid-buttons {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-sm);
+    gap: var(--space-2);
 }
 
+/* Review §13.1 tile geometry (40px min, 8/10 padding, 6px radius) and §19
+   level 1: a 1px border with a subtle shadow on hover only — the permanent
+   2px lift made a 20-tile grid feel like a card dashboard. */
 .tool-action-btn {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    justify-content: center;
     gap: 2px;
-    padding: var(--space-sm) var(--space-md);
+    min-height: var(--h-hit);
+    padding: var(--space-2) var(--space-3);
 
-    background: var(--bg-elevated);
+    background: var(--bg-pane);
     border: var(--border-width) solid var(--border-muted);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-control);
     overflow: hidden;
 
     text-align: left;
     transition: border-color var(--transition-fast),
-                transform var(--transition-fast),
+                background-color var(--transition-fast),
                 box-shadow var(--transition-fast);
 }
 
-/* Gold sheen sweep on hover */
+/* Gold sheen sweep on hover — now off the accent token instead of a
+   hard-coded gold, so it tracks the theme. */
 .tool-action-btn::before {
     content: '';
     position: absolute;
@@ -103,7 +109,7 @@
     background: linear-gradient(
         110deg,
         transparent 30%,
-        rgba(201, 168, 76, 0.12) 50%,
+        rgba(var(--accent-rgb), 0.10) 50%,
         transparent 70%
     );
     transform: translateX(-100%);
@@ -112,23 +118,29 @@
 }
 
 .tool-action-btn:hover {
-    border-color: var(--color-brand);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-sm), var(--glow-brand);
 }
 
 .tool-action-btn:hover::before {
     transform: translateX(100%);
 }
 
+/* Pressed reads as an inset, not a shrink (review §20) */
 .tool-action-btn:active {
-    transform: translateY(0) scale(0.97);
+    background: var(--bg-active);
+    box-shadow: none;
+}
+
+.tool-action-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
 }
 
 .tool-action-btn .btn-label {
     font-size: var(--font-xs);
     font-weight: var(--font-semibold);
-    color: var(--fg-default);
+    color: var(--text-primary);
 }
 
 .tool-action-btn .btn-category {
@@ -136,20 +148,20 @@
     font-weight: var(--font-medium);
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--fg-subtle);
+    color: var(--text-muted);
     transition: color var(--transition-fast);
 }
 
 .tool-action-btn:hover .btn-category {
-    color: var(--color-brand);
+    color: var(--accent-text);
 }
 
 /* ===== TOOL FEEDBACK STRIP ===== */
 .tool-feedback {
     display: none;
-    margin-top: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    border-radius: var(--radius-sm);
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-control);
     font-size: var(--font-xs);
     line-height: var(--leading-normal);
 }
@@ -157,20 +169,20 @@
 .tool-feedback[data-state="success"] {
     display: block;
     background: var(--wash-tip);
-    color: var(--color-success);
-    border-left: 3px solid var(--color-success);
+    color: var(--success);
+    border-left: 3px solid var(--success);
 }
 
 .tool-feedback[data-state="error"] {
     display: block;
     background: var(--wash-danger);
-    color: var(--color-danger);
-    border-left: 3px solid var(--color-danger);
+    color: var(--danger);
+    border-left: 3px solid var(--danger);
 }
 
 .tool-feedback[data-state="info"] {
     display: block;
     background: var(--wash-note);
-    color: var(--color-info);
-    border-left: 3px solid var(--color-info);
+    color: var(--info);
+    border-left: 3px solid var(--info);
 }

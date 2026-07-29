@@ -94,7 +94,6 @@
     const EditorUI = {
         textarea: null,
         statusEl: null,
-        footerStatusEl: null,
         lastSavedContent: '',
 
         undoStack: [],
@@ -103,8 +102,9 @@
 
         init() {
             this.textarea = DOM.id('editor-textarea');
+            // ONE status readout now (review §12): the unified status bar's
+            // save item. The old footer strip it used to mirror is gone.
             this.statusEl = DOM.id('save-status');
-            this.footerStatusEl = DOM.id('editor-footer-status');
 
             if (!this.textarea) {
                 console.warn('[EditorUI] Textarea not found');
@@ -253,7 +253,10 @@
                 // Brief "saving" beat so the state change reads visually
                 setTimeout(() => this.setStatus('saved'), 250);
             } else {
-                this.setStatus('dirty');
+                // §23.4 names three save states, and "Save failed" is not the
+                // same news as "you have unsaved edits" — a storage failure
+                // will not clear itself by typing less.
+                this.setStatus('failed');
             }
             return ok;
         },
@@ -278,21 +281,39 @@
 
         /* ── Status chrome ──────────────────────────── */
 
+        /**
+         * Drive the ONE save readout in the unified status bar (review §12).
+         * Every save path funnels through here, so there is no second
+         * saved-state location left to drift out of sync — that duplication
+         * (floppy icon + green pill + two footer labels) was review §4.4.
+         */
         setStatus(status) {
-            if (this.statusEl) {
-                this.statusEl.setAttribute('data-status', status);
-                const label = DOM.$('.status-label', this.statusEl);
-                if (label) {
-                    label.textContent = status === 'saved' ? 'Saved'
-                        : status === 'saving' ? 'Saving…'
-                        : 'Not saved';
-                }
-            }
-            if (this.footerStatusEl) {
-                this.footerStatusEl.textContent = status === 'saved' ? 'All changes saved'
+            if (!this.statusEl) return;
+
+            this.statusEl.setAttribute('data-status', status);
+
+            const label = DOM.$('.status-label', this.statusEl);
+            if (label) {
+                label.textContent = status === 'saved' ? 'Saved'
                     : status === 'saving' ? 'Saving…'
-                    : 'Unsaved changes';
+                    : status === 'failed' ? 'Save failed'
+                    : 'Not saved';
             }
+
+            // A flat glyph, never a glow (§10.5 / §16.1). Colour alone is not
+            // the signal — the label beside it says the same thing in words.
+            const mark = DOM.$('.status-mark', this.statusEl);
+            if (mark) {
+                mark.textContent = status === 'saved' ? '✓'
+                    : status === 'failed' ? '!'
+                    : '•';
+            }
+
+            this.statusEl.title = status === 'saved'
+                ? 'All changes saved — save again (Ctrl+S)'
+                : status === 'saving' ? 'Saving…'
+                : status === 'failed' ? 'Save failed — try again (Ctrl+S)'
+                : 'Unsaved changes — save now (Ctrl+S)';
         },
 
         /* ── Stats ──────────────────────────────────── */
@@ -303,24 +324,38 @@
             const docChars = Text.countChars(value);
             const readTime = Text.estimateReadTime(value);
 
-            // Selection-aware: when text is selected, stats reflect it and
-            // annotate with the document total (e.g. "Words: 14 / 1,204").
+            // Selection-aware: with a selection live the counts describe the
+            // SELECTION and annotate the document total ("3 / 1,204 words").
             const { text: selText, start, end } = Text.getSelection(this.textarea);
             const hasSel = start !== end;
             const words = hasSel ? Text.countWords(selText) : docWords;
             const chars = hasSel ? selText.length : docChars;
-            const suffix = (total) => hasSel ? ` / ${Text.formatNumber(total)}` : '';
+
+            const count = (n, total) => hasSel
+                ? `${Text.formatNumber(n)} / ${Text.formatNumber(total)}`
+                : Text.formatNumber(n);
+            // Pluralise off the DOCUMENT total while a selection is live, so
+            // the unit agrees with the number the reader ends the phrase on.
+            const unit = (n, one, many) => (n === 1 ? one : many);
 
             const wordsEl = DOM.id('stat-words');
             const charsEl = DOM.id('stat-chars');
             const readEl = DOM.id('stat-read-time');
 
-            if (wordsEl) wordsEl.textContent = `Words: ${Text.formatNumber(words)}${suffix(docWords)}`;
-            if (charsEl) charsEl.textContent = `Characters: ${Text.formatNumber(chars)}${suffix(docChars)}`;
-            if (readEl) readEl.textContent = `Est. read time: ${readTime} min`;
+            // §12 phrasing: "0 words · 0 characters · 0 min read". The unit is
+            // part of the sentence now, not a "Label:" prefix on a capsule.
+            if (wordsEl) {
+                wordsEl.textContent =
+                    `${count(words, docWords)} ${unit(hasSel ? docWords : words, 'word', 'words')}`;
+            }
+            if (charsEl) {
+                charsEl.textContent =
+                    `${count(chars, docChars)} ${unit(hasSel ? docChars : chars, 'character', 'characters')}`;
+            }
+            if (readEl) readEl.textContent = `${readTime} min read`;
 
-            const stats = DOM.$('.editor-stats');
-            if (stats) stats.setAttribute('data-selecting', String(hasSel));
+            const metrics = DOM.$('.statusbar-metrics');
+            if (metrics) metrics.setAttribute('data-selecting', String(hasSel));
 
             State.updateAnalytics(docWords, docChars);
             if (window.WorkspaceUI) WorkspaceUI.renderAnalytics();
@@ -337,6 +372,9 @@
             const line = before.split('\n').length;
             const col = pos - before.lastIndexOf('\n');
             el.textContent = `Ln ${line}, Col ${col}`;
+            // The visible text is terse by design; the accessible name has to
+            // say what the control DOES, not only where the caret sits.
+            el.setAttribute('aria-label', `Line ${line}, column ${col} — go to line`);
         },
 
         /** Move the caret to the start of a 1-based line and center it. */
@@ -356,10 +394,36 @@
 
         promptGoToLine() {
             const total = this.textarea.value.split('\n').length;
-            const answer = window.prompt(`Go to line (1–${total}):`, '');
-            if (answer === null) return;
-            const n = parseInt(answer, 10);
-            if (Number.isFinite(n)) this.goToLine(n);
+            const current = this.textarea.value
+                .slice(0, this.textarea.selectionStart)
+                .split('\n').length;
+
+            ModalsUI.prompt({
+                title: 'Go to line',
+                label: 'Line number',
+                hint: `Available range: 1–${total}`,
+                type: 'number',
+                min: 1,
+                max: total,
+                step: 1,
+                value: current,
+                confirmLabel: 'Go',
+                validate(raw) {
+                    const n = Number(raw);
+                    if (raw.trim() === '' || !Number.isFinite(n)) return 'Enter a line number.';
+                    if (!Number.isInteger(n)) return 'Line numbers are whole numbers.';
+                    if (n < 1 || n > total) return `That line does not exist — pick 1 to ${total}.`;
+                    return null;
+                }
+            }).then((answer) => {
+                if (answer === null) {
+                    // Cancelled: hand focus back to the control that opened this.
+                    const caret = DOM.id('stat-caret');
+                    if (caret && typeof caret.focus === 'function') caret.focus();
+                    return;
+                }
+                this.goToLine(Number(answer));
+            });
         },
 
         /* ── Undo / Redo ────────────────────────────── */
@@ -423,7 +487,10 @@
         /* ── Toolbar ────────────────────────────────── */
 
         wireToolbar() {
-            DOM.on('#btn-save', 'click', () => this.saveNow());
+            // No toolbar Save button any more (review §10.5) — it duplicated
+            // autosave. The manual-save routes are Ctrl+S and the status
+            // bar's save item, which is the one place the state already lives.
+            DOM.on('#save-status', 'click', () => this.saveNow());
             DOM.on('#btn-undo', 'click', () => this.undo());
             DOM.on('#btn-redo', 'click', () => this.redo());
             DOM.on('#btn-diff', 'click', () => this.showDiff());

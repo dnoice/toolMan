@@ -20,22 +20,27 @@
  *     they exist.
  *
  * ✒ Key Features:
- *     - Scopes: each line (skips blanks) / selection / whole document
+ *     - Scopes: each line (skips blanks) / selection / whole document, as one
+ *       joined segmented control with true radiogroup semantics
+ *     - Arrow-key / Home / End navigation over a roving tabindex, so the
+ *       group is a single tab stop with exactly one checked option
  *     - Non-destructive Preview of the first 8 lines
  *     - Clear removes only the entered prefix/suffix where actually present
- *     - Single-select scope pills with persisted active state
  *
  * ✒ Usage Instructions:
  *     Script-tag module exposing window.PrefixUI — load after shared/js,
  *     js/state.js, and ui/editor.js in tools/textman/index.html. Booted by
- *     app.js calling PrefixUI.init(), which wires the scope pills and the
- *     Preview/Apply/Clear buttons and injects the aria-live preview box.
+ *     app.js calling PrefixUI.init(), which rebuilds the three scope buttons
+ *     into a labelled radiogroup, wires the Preview/Apply/Clear buttons, and
+ *     injects the aria-live preview box.
  *
  * ✒ Examples:
  *     - Prefix "- " with scope "lines" → bullets every non-blank line;
  *       blank lines stay untouched
  *     - Prefix "<li>" + suffix "</li>" with scope "lines" → HTML list items
- *     - Scope pill data-scope="document" → wraps the whole text exactly once
+ *     - Segment data-scope="document" → wraps the whole text exactly once
+ *     - Focus the group and press ArrowRight → selection moves one segment
+ *       right and aria-checked follows it
  *     - Clicking #btn-prefix-preview → shows the first 8 lines of the
  *       pending result plus "…and N more lines"
  *     - Clear with prefix "- " → strips exactly "- " only from lines that
@@ -55,25 +60,135 @@
     'use strict';
 
     const PREVIEW_LINES = 8;
+    // A "line" in whole-document scope can be the entire document, which would
+    // grow the preview box until it needed its own scrollbar — the nested
+    // scrolling review §9.3 wants gone. Clip each line so the box stays
+    // bounded by content rather than by an overflow rule.
+    const PREVIEW_LINE_CHARS = 120;
+
+    const SCOPE_LABEL_ID = 'prefix-scope-label';
 
     const PrefixUI = {
         scope: 'lines',
+        scopeBar: null,
 
         init() {
-            this.wireScopePills();
+            this.buildScopeControl();
+            this.wireScopeControl();
             DOM.on('#btn-prefix-preview', 'click', () => this.preview());
             DOM.on('#btn-prefix-apply', 'click', () => this.apply());
             DOM.on('#btn-prefix-clear', 'click', () => this.clear());
             this.ensurePreviewBox();
         },
 
-        wireScopePills() {
-            DOM.delegate('.scope-pills', 'click', '.scope-btn', (e, btn) => {
-                DOM.$$('.scope-pills .scope-btn').forEach((b) => { b.dataset.active = 'false'; });
-                btn.dataset.active = 'true';
-                this.scope = btn.dataset.scope || 'lines';
-                this.hidePreview();
+        /* ===== SEGMENTED SCOPE CONTROL (review §6.6 / §13.3) =====
+           Each line / Selection / Whole document are MUTUALLY EXCLUSIVE, so
+           they must look and behave like one control with three positions —
+           not like three independent toggles that happen to be adjacent
+           (review §4.7). Joining them visually is only half the job: without
+           radio semantics a screen reader still hears three unrelated buttons
+           and a keyboard user still has to Tab through all three.
+
+           So the three buttons are wrapped into a radiogroup here, in JS,
+           because the markup lives in index.html which this pass does not own.
+           The buttons themselves are MOVED, not recreated — their data-scope
+           values and any listener already attached to them survive.
+
+           Roving tabindex: the group is ONE tab stop and the arrow keys move
+           between positions, which is the expected radio-group behaviour and
+           the reason a segmented control beats three buttons. */
+        buildScopeControl() {
+            // Located through the scope BUTTONS, not through a container class:
+            // the class belongs to markup this pass does not own.
+            const buttons = DOM.$$('.prefix-container [data-scope]');
+            if (!buttons.length) return;
+
+            const group = buttons[0].parentElement;
+            if (!group || group.getAttribute('role') === 'radiogroup') return;
+
+            // The form-group goes back to being a plain labelled field…
+            group.classList.remove('scope-pills');
+
+            // …with a section label the radiogroup can be named by.
+            const label = DOM.create('span', {
+                className: 'field-label',
+                id: SCOPE_LABEL_ID,
+                text: 'Apply to'
             });
+
+            // …and the joined control itself. The .segmented class carries the
+            // shared styling (panels.css); the JS below gives it real radiogroup
+            // semantics on top.
+            const bar = DOM.create('div', {
+                className: 'segmented',
+                attrs: { role: 'radiogroup', 'aria-labelledby': SCOPE_LABEL_ID }
+            });
+
+            buttons.forEach((btn) => {
+                btn.classList.add('segmented-option');
+                btn.setAttribute('type', 'button');
+                btn.setAttribute('role', 'radio');
+                bar.appendChild(btn);
+            });
+
+            group.appendChild(label);
+            group.appendChild(bar);
+            this.scopeBar = bar;
+
+            this.select(this.scope, false);
+        },
+
+        wireScopeControl() {
+            const bar = this.scopeBar || DOM.$('.prefix-container [role="radiogroup"]');
+            if (!bar) return;
+
+            DOM.delegate(bar, 'click', '[data-scope]', (e, btn) => {
+                this.select(btn.dataset.scope || 'lines', false);
+            });
+
+            // Arrow keys move the selection, Home/End jump to the ends — the
+            // group is a single tab stop (review §21: one selected value).
+            DOM.on(bar, 'keydown', (e) => {
+                const keys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
+                if (!keys.includes(e.key)) return;
+
+                const options = DOM.$$('[data-scope]', bar);
+                const current = options.findIndex((b) => b.getAttribute('aria-checked') === 'true');
+                let next;
+
+                if (e.key === 'Home') next = 0;
+                else if (e.key === 'End') next = options.length - 1;
+                else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    next = (current + 1) % options.length;
+                } else {
+                    next = (current - 1 + options.length) % options.length;
+                }
+
+                e.preventDefault();
+                this.select(options[next].dataset.scope, true);
+            });
+        },
+
+        /** The ONE place scope selection is expressed — exactly one winner. */
+        select(scope, moveFocus) {
+            const bar = this.scopeBar || DOM.$('.prefix-container .segmented');
+            if (!bar) { this.scope = scope || 'lines'; return; }
+
+            const options = DOM.$$('[data-scope]', bar);
+            let chosen = null;
+
+            options.forEach((btn) => {
+                const on = btn.dataset.scope === scope;
+                if (on) chosen = btn;
+                btn.setAttribute('aria-checked', String(on));
+                btn.dataset.active = String(on);       // legacy styling hook
+                btn.tabIndex = on ? 0 : -1;            // roving tabindex
+            });
+
+            if (!chosen) return;
+            this.scope = scope;
+            if (moveFocus) chosen.focus();
+            this.hidePreview();
         },
 
         ensurePreviewBox() {
@@ -143,7 +258,12 @@
 
             const result = this.transform(this.sourceText(), prefix, suffix);
             const lines = result.split('\n');
-            const shown = lines.slice(0, PREVIEW_LINES).join('\n');
+            const shown = lines
+                .slice(0, PREVIEW_LINES)
+                .map((line) => (line.length > PREVIEW_LINE_CHARS
+                    ? `${line.slice(0, PREVIEW_LINE_CHARS)}…`
+                    : line))
+                .join('\n');
 
             DOM.empty(box);
             box.appendChild(document.createTextNode(shown || '(empty result)'));
