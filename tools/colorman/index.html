@@ -1,0 +1,654 @@
+<!--
+✒ Metadata
+    - Title: ColorManApp (colorMan Edition - v1.0)
+    - File Name: index.html
+    - Relative Path: tools/colorman/index.html
+    - Artifact Type: markup
+    - Version: 1.0.0
+    - Date: 11/17/2026
+    - Update: Tuesday, November 17, 2026
+    - Author: Dennis 'dendogg' Smaltz
+    - A.I. Acknowledgement: Anthropic - Claude
+    - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+
+✒ Description:
+    colorMan's application page: the three-panel color workspace in the
+    toolMan house style. The left rail keeps palettes, saved colors, recent
+    colors, and the named CSS colors; the center holds the picker, every
+    format of the active color, and the working palette; the right rail
+    holds the color tools. Each pane module builds its own content inside
+    the mounts declared here.
+
+✒ Key Features:
+    - Library rail: Palettes, Saved Colors, Recent, Named Colors, each with
+      a live count in its header
+    - Workbench: active-color chip, a color field that takes any CSS color,
+      eyedropper, random, undo/redo, copy, save, add-to-palette, save pill
+    - Stage cards for the Picker, Formats, and the Working palette
+    - Tools rail: Adjust, Contrast, Harmonies, Shades & Tints, Mix,
+      Gradient, Color Vision, Export
+    - Collapsible, reorderable accordion rails and mobile drawers
+    - Settings: theme, primary format, hex case, decimal places, recent
+      colors, contrast target, export prefix, picker model, backup and
+      restore, storage meter, and a guarded reset
+    - Help: layout, a short how-to for every pane, accepted color formats,
+      and every keyboard shortcut
+    - Loader with the palette mark and the "Command the spectrum" tagline
+
+✒ Usage Instructions:
+    Launch from the hub (../../index.html) or open this file directly; no
+    build step and no network. The ecosystem kernel
+    (../../shared/js/toolman.js) must stay first in <head> so the saved
+    theme applies before first paint; tool scripts load at the end of
+    <body> in the order the colorMan contract fixes.
+
+✒ Other Important Information:
+    - Dependencies: ../../shared/css/*, ../../shared/js/*, ./css/*, ./js/*
+    - Compatible platforms: all evergreen browsers; file:// or any static
+      host
+    - Limitations: the eyedropper needs a browser with the EyeDropper API
+      (Chrome or Edge on desktop); everything else works offline everywhere
+---------
+-->
+<!DOCTYPE html>
+<html lang="en" data-theme="parchment">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="colorMan - Command the spectrum. Pick, convert, check contrast, build palettes, scales, gradients, and exports. Part of the toolMan ecosystem.">
+    <meta name="author" content="Dennis 'dnoice' Smaltz">
+    <title>colorMan – Command the spectrum</title>
+
+    <!-- Favicon: the colorMan palette mark -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C9A84C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='13.5' cy='6.5' r='2.5'/%3E%3Ccircle cx='17.5' cy='12.5' r='2.5'/%3E%3Ccircle cx='8.5' cy='7.5' r='2.5'/%3E%3Ccircle cx='6.5' cy='13.5' r='2.5'/%3E%3Cpath d='M12 22a10 10 0 1 1 10-10c0 2-1.5 3-3 3h-2a2 2 0 0 0-2 2c0 .5.2 1 .5 1.5.3.5.5 1 .5 1.5 0 1-1 2-4 2z'/%3E%3C/svg%3E">
+
+    <!-- Ecosystem kernel FIRST: applies saved theme before first paint -->
+    <script src="../../shared/js/toolman.js"></script>
+
+    <!-- Shared styles (order matters) -->
+    <link rel="stylesheet" href="../../shared/css/reset.css">
+    <link rel="stylesheet" href="../../shared/css/tokens.css">
+    <link rel="stylesheet" href="../../shared/css/shell.css">
+    <link rel="stylesheet" href="../../shared/css/panels.css">
+    <link rel="stylesheet" href="../../shared/css/workbench.css">
+
+    <!-- Tool styles -->
+    <link rel="stylesheet" href="css/colorman.css">
+    <link rel="stylesheet" href="css/picker.css">
+    <link rel="stylesheet" href="css/library.css">
+    <link rel="stylesheet" href="css/tools-a.css">
+    <link rel="stylesheet" href="css/tools-b.css">
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- LOADING SCREEN -->
+    <!-- ============================================ -->
+    <div id="loader-screen" class="loader-screen" role="status" aria-live="polite">
+        <div class="loader-card">
+            <div class="loader-logo" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="12.5" r="2.5"></circle><circle cx="8.5" cy="7.5" r="2.5"></circle><circle cx="6.5" cy="13.5" r="2.5"></circle><path d="M12 22a10 10 0 1 1 10-10c0 2-1.5 3-3 3h-2a2 2 0 0 0-2 2c0 .5.2 1 .5 1.5.3.5.5 1 .5 1.5 0 1-1 2-4 2z"></path></svg>
+            </div>
+            <h1 class="loader-title">color<span class="logo-accent">Man</span></h1>
+            <p class="loader-tagline">Command the spectrum</p>
+            <div class="loader-bar"><div class="loader-progress" id="loader-progress"></div></div>
+            <p class="loader-status" id="loader-status">Loading…</p>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MAIN APPLICATION -->
+    <!-- ============================================ -->
+    <div class="app" id="app" style="opacity: 0;">
+
+        <header class="app-header" role="banner">
+            <div class="header-left">
+                <a class="hub-link" href="../../index.html" title="Back to the toolMan hub" aria-label="Back to the toolMan hub">
+                    <span class="hub-link-arrow" aria-hidden="true">←</span>
+                    <span class="hub-link-label">Hub</span>
+                </a>
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="12.5" r="2.5"></circle><circle cx="8.5" cy="7.5" r="2.5"></circle><circle cx="6.5" cy="13.5" r="2.5"></circle><path d="M12 22a10 10 0 1 1 10-10c0 2-1.5 3-3 3h-2a2 2 0 0 0-2 2c0 .5.2 1 .5 1.5.3.5.5 1 .5 1.5 0 1-1 2-4 2z"></path></svg>
+                <span class="logo-text" title="colorMan · Command the spectrum">color<span class="logo-accent">Man</span></span>
+            </div>
+
+            <div class="header-right">
+                <button class="icon-btn mobile-only" id="btn-mobile-left" title="Library panel" aria-label="Toggle the Library panel" aria-controls="panel-library" aria-expanded="false">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+                </button>
+                <button class="icon-btn mobile-only" id="btn-mobile-right" title="Tools panel" aria-label="Toggle the Tools panel" aria-controls="panel-tools" aria-expanded="false">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                </button>
+                <button class="icon-btn" id="btn-settings" title="Settings (Ctrl+,)" aria-label="Open settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+                <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Toggle light/dark theme">
+                    <svg class="theme-icon theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    <svg class="theme-icon theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+                </button>
+                <button class="icon-btn" id="btn-help" title="Help (?)" aria-label="Open help">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="app-main">
+
+            <!-- ======================================== -->
+            <!-- LEFT RAIL — LIBRARY -->
+            <!-- ======================================== -->
+            <section class="panel panel-left" id="panel-library" data-panel="library" aria-label="Library">
+                <header class="panel-header" data-collapsible="true">
+                    <h2 class="panel-title">Library</h2>
+                    <button class="collapse-btn" aria-label="Collapse the Library panel" aria-expanded="true">
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                </header>
+                <div class="panel-content">
+
+                    <div class="tool-section" data-section="palettes">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="true" aria-controls="body-palettes">
+                            <h4 class="tool-title">Palettes</h4>
+                            <span class="tool-count" id="count-palettes" title="Palettes in your library">0</span>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-palettes">
+                            <div class="cm-mount" id="mount-palettes" data-empty="The palette library did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="swatches">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-swatches">
+                            <h4 class="tool-title">Saved Colors</h4>
+                            <span class="tool-count" id="count-swatches" title="Colors you have saved">0</span>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-swatches">
+                            <div class="cm-mount" id="mount-swatches" data-empty="Saved colors did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="history">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-history">
+                            <h4 class="tool-title">Recent</h4>
+                            <span class="tool-count" id="count-history" title="Recently used colors">0</span>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-history">
+                            <div class="cm-mount" id="mount-history" data-empty="Recent colors did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="named">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-named">
+                            <h4 class="tool-title">Named Colors</h4>
+                            <span class="tool-count" title="CSS named colors">148</span>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-named">
+                            <div class="cm-mount" id="mount-named" data-empty="The named-color list did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                </div>
+                <footer class="panel-footer">
+                    <span class="footer-left">Library</span>
+                    <span class="footer-right" id="library-stats">Palettes: 0 | Saved: 0</span>
+                </footer>
+            </section>
+
+            <!-- ======================================== -->
+            <!-- CENTER — WORKBENCH -->
+            <!-- ======================================== -->
+            <section class="panel panel-center" id="panel-stage" data-panel="stage" aria-label="Workbench">
+                <header class="panel-header">
+                    <h2 class="panel-title">Workbench</h2>
+                </header>
+                <div class="panel-content">
+                    <div class="stage-toolbar">
+                        <div class="toolbar-lead">
+                            <button class="active-chip" id="active-chip" style="--c:#C9A84C" title="Active color #C9A84C" aria-label="Active color #C9A84C"></button>
+                            <input type="text" id="color-input" class="text-input mono color-input" aria-label="Color value — type any CSS color" aria-describedby="input-error" title="Type any CSS color and press Enter (Ctrl+K)" placeholder="#C9A84C, rgb(…), oklch(…), goldenrod" spellcheck="false" autocomplete="off" autocapitalize="off">
+                            <span id="input-error" class="error-text" role="status" aria-live="polite"></span>
+                        </div>
+                        <div class="toolbar-controls">
+                            <button class="control-btn" id="btn-eyedropper" title="Pick a color from the screen (E)" aria-label="Pick a color from the screen">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 22 1-1h3l9-9"></path><path d="M3 21v-3l9-9"></path><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"></path></svg>
+                            </button>
+                            <button class="control-btn" id="btn-random" title="Random color (R)" aria-label="Random color">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"></path><path d="m18 2 4 4-4 4"></path><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"></path><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"></path><path d="m18 14 4 4-4 4"></path></svg>
+                            </button>
+                            <button class="control-btn" id="btn-undo" title="Undo color change (Ctrl+Z)" aria-label="Undo color change" disabled>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+                            </button>
+                            <button class="control-btn" id="btn-redo" title="Redo color change (Ctrl+Y)" aria-label="Redo color change" disabled>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path></svg>
+                            </button>
+                            <span class="control-divider" aria-hidden="true"></span>
+                            <button class="control-btn" id="btn-copy-primary" title="Copy the active color (C)" aria-label="Copy the active color">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                            <button class="control-btn" id="btn-star" title="Save this color (F)" aria-label="Save this color" aria-pressed="false">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                            </button>
+                            <button class="control-btn" id="btn-add-to-palette" title="Add to the working palette (A)" aria-label="Add the active color to the working palette">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                            </button>
+                            <div class="status-indicator" id="save-status" data-status="saved"><span class="status-dot"></span><span class="status-label">Saved</span></div>
+                        </div>
+                    </div>
+
+                    <div class="stage" id="stage-main">
+                        <section class="stage-card" id="card-picker" aria-labelledby="title-picker">
+                            <header class="stage-card-head">
+                                <h3 class="stage-card-title" id="title-picker">Picker</h3>
+                                <div class="stage-card-actions" id="actions-picker"></div>
+                            </header>
+                            <div class="cm-mount" id="mount-picker" data-empty="The picker did not load. Type a color in the field above, or reload the page."></div>
+                        </section>
+
+                        <section class="stage-card" id="card-formats" aria-labelledby="title-formats">
+                            <header class="stage-card-head">
+                                <h3 class="stage-card-title" id="title-formats">Formats</h3>
+                                <div class="stage-card-actions" id="actions-formats"></div>
+                            </header>
+                            <div class="cm-mount" id="mount-formats" data-empty="The format list did not load. Reload the page to try again."></div>
+                        </section>
+
+                        <section class="stage-card" id="card-working" aria-labelledby="title-working">
+                            <header class="stage-card-head">
+                                <h3 class="stage-card-title" id="title-working">Working palette</h3>
+                                <div class="stage-card-actions" id="actions-working"></div>
+                            </header>
+                            <div class="cm-mount" id="mount-working" data-empty="The working palette did not load. Reload the page to try again."></div>
+                        </section>
+                    </div>
+
+                    <div class="stage-stats" id="mount-stats" aria-label="Active color summary"></div>
+                </div>
+                <footer class="panel-footer">
+                    <span class="footer-left">Workbench</span>
+                    <span class="footer-right" id="stage-footer-status">Ready</span>
+                </footer>
+            </section>
+
+            <!-- ======================================== -->
+            <!-- RIGHT RAIL — TOOLS -->
+            <!-- ======================================== -->
+            <section class="panel panel-right" id="panel-tools" data-panel="tools" aria-label="Tools">
+                <header class="panel-header" data-collapsible="true">
+                    <h2 class="panel-title">Tools</h2>
+                    <button class="collapse-btn" aria-label="Collapse the Tools panel" aria-expanded="true">
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                </header>
+                <div class="panel-content">
+
+                    <div class="tool-section" data-section="adjust">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-adjust">
+                            <h4 class="tool-title">Adjust</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-adjust">
+                            <div class="cm-mount" id="mount-adjust" data-empty="The Adjust tool did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="contrast">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="true" aria-controls="body-contrast">
+                            <h4 class="tool-title">Contrast</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-contrast">
+                            <div class="cm-mount" id="mount-contrast" data-empty="The Contrast checker did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="harmony">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-harmony">
+                            <h4 class="tool-title">Harmonies</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-harmony">
+                            <div class="cm-mount" id="mount-harmony" data-empty="The Harmonies tool did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="scale">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-scale">
+                            <h4 class="tool-title">Shades &amp; Tints</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-scale">
+                            <div class="cm-mount" id="mount-scale" data-empty="The Shades &amp; Tints tool did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="mix">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-mix">
+                            <h4 class="tool-title">Mix</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-mix">
+                            <div class="cm-mount" id="mount-mix" data-empty="The Mix tool did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="gradient">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-gradient">
+                            <h4 class="tool-title">Gradient</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-gradient">
+                            <div class="cm-mount" id="mount-gradient" data-empty="The Gradient tool did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="vision">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-vision">
+                            <h4 class="tool-title">Color Vision</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-vision">
+                            <div class="cm-mount" id="mount-vision" data-empty="The Color Vision preview did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="export">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-export">
+                            <h4 class="tool-title">Export</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-export">
+                            <div class="cm-mount" id="mount-export" data-empty="The Export tool did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                </div>
+                <footer class="panel-footer">
+                    <span class="footer-left">Tools</span>
+                    <span class="footer-right">8 panes</span>
+                </footer>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SETTINGS MODAL -->
+    <!-- ============================================ -->
+    <div class="modal-backdrop" id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="modal-panel">
+            <header class="modal-header">
+                <h3 class="modal-title" id="settings-title">Settings</h3>
+                <button class="modal-close" aria-label="Close settings">×</button>
+            </header>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label id="theme-heading">Theme</label>
+                    <div class="radio-group" role="radiogroup" aria-labelledby="theme-heading">
+                        <label class="radio-label"><input type="radio" name="theme-pref" value="parchment"> <span>Parchment Dossier (light)</span></label>
+                        <label class="radio-label"><input type="radio" name="theme-pref" value="sentinel"> <span>Sentinel Obsidian (dark)</span></label>
+                    </div>
+                    <p class="help-text">Applies across every toolMan tool.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="setting-primary-format">Primary format</label>
+                    <select class="select-input" id="setting-primary-format" data-setting="primaryFormat" aria-describedby="help-primary-format">
+                        <option value="hex">HEX — #C9A84C</option>
+                        <option value="rgb">RGB — rgb(201 168 76)</option>
+                        <option value="hsl">HSL — hsl(44 54% 54%)</option>
+                        <option value="hwb">HWB — hwb(44 30% 21%)</option>
+                        <option value="lab">Lab — lab(70.53 4.79 50.96)</option>
+                        <option value="lch">LCH — lch(70.53 51.18 84.63)</option>
+                        <option value="oklab">OKLab — oklab(0.7432 0.001 0.117)</option>
+                        <option value="oklch">OKLCH — oklch(0.7432 0.1171 89.51)</option>
+                    </select>
+                    <p class="help-text" id="help-primary-format">What Copy (C) puts on the clipboard, and the format the color field shows.</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="check-row"><input type="checkbox" data-setting="hexUpper"> <span>Uppercase hex (#C9A84C instead of #c9a84c)</span></label>
+                </div>
+
+                <div class="form-group">
+                    <div class="field-row">
+                        <label for="setting-precision">Decimal places</label>
+                        <span class="field-value" data-display="precision">2</span>
+                    </div>
+                    <input type="range" class="range-input" id="setting-precision" data-setting="precision" min="0" max="4" step="1" aria-describedby="help-precision">
+                    <p class="help-text" id="help-precision">For fractional values such as OKLCH lightness and Lab channels.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="setting-picker-mode">Picker model</label>
+                    <select class="select-input" id="setting-picker-mode" data-setting="pickerMode" aria-describedby="help-picker-mode">
+                        <option value="hsv">HSV — saturation across, brightness up</option>
+                        <option value="hsl">HSL — saturation across, lightness up</option>
+                        <option value="oklch">OKLCH — chroma across, lightness up</option>
+                    </select>
+                    <p class="help-text" id="help-picker-mode">What the Picker's color area shows; the chips in the Picker card switch it too. OKLCH steps look even to the eye.</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="check-row"><input type="checkbox" data-setting="recordHistory"> <span>Record recent colors</span></label>
+                    <div class="field-row">
+                        <span class="mini-label" id="history-size-heading">Recent colors to keep</span>
+                        <div class="stepper" data-stepper="historySize" data-min="10" data-max="100" data-step="10" role="group" aria-labelledby="history-size-heading">
+                            <button type="button" class="stepper-btn" data-dir="down" aria-label="Keep 10 fewer recent colors">&minus;</button>
+                            <span class="stepper-value" data-display="historySize" aria-live="polite">40 colors</span>
+                            <button type="button" class="stepper-btn" data-dir="up" aria-label="Keep 10 more recent colors">+</button>
+                        </div>
+                    </div>
+                    <input type="hidden" data-setting="historySize" data-type="number" value="40">
+                    <p class="help-text">A color is added to Recent once you settle on it for about a second.</p>
+                </div>
+
+                <div class="form-group">
+                    <label id="contrast-target-heading">Contrast target</label>
+                    <div class="radio-group" role="radiogroup" aria-labelledby="contrast-target-heading">
+                        <label class="radio-label"><input type="radio" name="contrast-target" value="AA" data-setting="contrastTarget"> <span>AA — 4.5:1 for text</span></label>
+                        <label class="radio-label"><input type="radio" name="contrast-target" value="AAA" data-setting="contrastTarget"> <span>AAA — 7:1 for text</span></label>
+                    </div>
+                    <p class="help-text">The level the Contrast tool aims for when it fixes a color.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="setting-export-prefix">Export name prefix</label>
+                    <input type="text" class="text-input mono" id="setting-export-prefix" data-setting="exportPrefix" maxlength="32" spellcheck="false" autocomplete="off" aria-describedby="help-export-prefix">
+                    <p class="help-text" id="help-export-prefix">Names exported variables, e.g. --color-1 or $color-1. Start with a letter; spaces become dashes.</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Backup &amp; restore</label>
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-secondary" data-settings-export>Download backup</button>
+                        <button type="button" class="btn btn-secondary" data-settings-import>Import &amp; merge backup</button>
+                    </div>
+                    <p class="help-text">A backup holds your palettes, saved and recent colors, gradient, and settings. Importing adds to what is here; it does not delete anything.</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Local storage</label>
+                    <div class="usage-meter" title="colorMan's share of this browser's storage"><div class="usage-fill" data-usage-fill></div></div>
+                    <div class="usage-row"><span data-usage-label>0 bytes used</span><span data-usage-percent>&lt;1%</span></div>
+                    <p class="help-text">Of roughly 5 MB. Everything stays in this browser; nothing is uploaded.</p>
+                </div>
+
+                <section class="danger-zone" aria-labelledby="danger-title">
+                    <h4 class="danger-zone-title" id="danger-title">Danger zone</h4>
+                    <div class="danger-zone-action">
+                        <div class="danger-zone-copy">
+                            <p class="danger-zone-heading">Reset colorMan</p>
+                            <p class="help-text">Deletes your palettes, saved and recent colors, gradient, and settings in this browser, then restores the starter palette. Panel layout is kept.</p>
+                        </div>
+                        <button type="button" class="btn btn-danger-outline" data-settings-reset>Reset</button>
+                    </div>
+                </section>
+            </div>
+            <footer class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" data-settings-save disabled>Save</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- HELP MODAL -->
+    <!-- ============================================ -->
+    <div class="modal-backdrop" id="modal-help" role="dialog" aria-modal="true" aria-labelledby="help-title">
+        <div class="modal-panel modal-panel--wide">
+            <header class="modal-header">
+                <h3 class="modal-title" id="help-title">Help &amp; Shortcuts</h3>
+                <button class="modal-close" aria-label="Close help">×</button>
+            </header>
+            <div class="modal-body">
+                <section class="help-section">
+                    <h4>Layout</h4>
+                    <dl class="help-list">
+                        <dt>Library (left)</dt><dd>Your palettes, saved colors, recently used colors, and all 148 named CSS colors. Click any color to make it the active color.</dd>
+                        <dt>Workbench (center)</dt><dd>The active color: its picker, every format it can be written in, and the working palette you are building.</dd>
+                        <dt>Tools (right)</dt><dd>Adjust, check, and extend the active color: contrast, harmonies, shades, mixing, gradients, color-vision previews, and export.</dd>
+                    </dl>
+                    <p>Click a pane's title to open it; one pane per side is open at a time. Drag a title to reorder the panes. On a phone, the two buttons at the top right slide each side in.</p>
+                </section>
+
+                <section class="help-section">
+                    <h4>Workbench</h4>
+                    <dl class="help-list">
+                        <dt>Color field</dt><dd>Type or paste any color; it applies as you type. Enter keeps it and rewrites it in your primary format, Escape goes back to the color you had before the edit. If colorMan can't read it, a note under the field says why and nothing changes.</dd>
+                        <dt>Toolbar</dt><dd>Click the color chip to copy the color. The buttons pick from the screen, give a random color, undo or redo a color change, copy, save the color to Saved Colors (star), or add it to the working palette.</dd>
+                        <dt>Picker</dt><dd>Drag in the color area or slide the hue and opacity bars. The HSV, HSL, and OKLCH chips in the card header change what the area shows. With a thumb focused, arrow keys move one step, Shift + arrow ten, and Home, End, Page Up, and Page Down jump to the edges. Click Before to go back to the color you started from. Edit as gives number fields for RGB, HSL, HWB, OKLCH, or Lab plus alpha.</dd>
+                        <dt>Formats</dt><dd>The active color as HEX, RGB, HSL, HWB, HSV, CMYK, Lab, LCH, OKLab, OKLCH, and its CSS name. Each row has a copy button; Copy all copies every row. The tiles below show black and white text on the color with their contrast.</dd>
+                        <dt>Working palette</dt><dd>The palette you are building. Click a color to use it; hover or focus one to set it to the current color, rename it, or remove it. Drag to reorder, or press Alt + ← / → on a focused color; F2 renames and Delete removes. Sort, save to the library, or drop an image on the card (or use From image…) to pull its main colors.</dd>
+                    </dl>
+                </section>
+
+                <section class="help-section">
+                    <h4>Library</h4>
+                    <dl class="help-list">
+                        <dt>Palettes</dt><dd>Open a palette to edit it in the working palette; saving updates the palette it came from. Rename, duplicate, download, or delete from each card. Import… reads pasted text or a file (hex lists, CSS or SCSS variables, JSON, GIMP .gpl); you can also drop a palette file on this pane.</dd>
+                        <dt>Saved Colors</dt><dd>Colors you starred. Click one to use it; double-click or F2 renames it and Delete removes it.</dd>
+                        <dt>Recent</dt><dd>Colors you settled on, newest first. Turn recording off or change how many are kept in Settings.</dd>
+                        <dt>Named Colors</dt><dd>The 148 CSS color names. Filter by name or hex, or turn on Nearest to current to see the closest names, and click one to use it.</dd>
+                    </dl>
+                </section>
+
+                <section class="help-section">
+                    <h4>Tools</h4>
+                    <dl class="help-list">
+                        <dt>Adjust</dt><dd>Lighten, darken, saturate, desaturate, rotate the hue, invert, grey out, complement, or make the active color opaque, in perceptual OKLCH steps. Turn on Apply to working palette to change every palette color at once.</dd>
+                        <dt>Contrast</dt><dd>Checks text against a background with the WCAG 2 ratio and APCA, shows which levels pass, and can suggest the nearest passing text or background color. Palette grid compares every pair of working colors.</dd>
+                        <dt>Harmonies</dt><dd>Complementary, analogous, triadic, split, tetradic, square, and monochromatic sets built from the active color, in OKLCH or HSL hues.</dd>
+                        <dt>Shades &amp; Tints</dt><dd>A 50–950 scale in the style of Tailwind, or tints and shades in even steps, each with its contrast against white and black. Copy the scale as CSS variables.</dd>
+                        <dt>Mix</dt><dd>Blends the active color with a second color in a color space you choose and shows the steps between them.</dd>
+                        <dt>Gradient</dt><dd>Linear, radial, or conic gradients with editable stops, ready to copy as CSS or download as SVG.</dd>
+                        <dt>Color Vision</dt><dd>Shows how the working palette or the active color looks with protanopia, deuteranopia, tritanopia, their milder forms, and achromatopsia, and flags colors that become hard to tell apart.</dd>
+                        <dt>Export</dt><dd>Copies or downloads the working palette or your saved colors as CSS variables, SCSS, Less, Tailwind config, JSON, a hex list, CSV, GIMP .gpl, SVG, or PNG.</dd>
+                    </dl>
+                    <p>Most tools offer a way to send their results to the working palette or make one of them the active color.</p>
+                </section>
+
+                <section class="help-section">
+                    <h4>Color formats you can type</h4>
+                    <dl class="help-list">
+                        <dt>Hex</dt><dd><code>#C9A84C</code>, <code>#c9a84c80</code>, <code>#CA5</code>, with or without the <code>#</code></dd>
+                        <dt>RGB</dt><dd><code>rgb(201 168 76)</code>, <code>rgb(201 168 76 / 50%)</code>, <code>rgba(201, 168, 76, 0.5)</code></dd>
+                        <dt>HSL / HWB</dt><dd><code>hsl(44 54% 54%)</code>, <code>hsla(44, 54%, 54%, .5)</code>, <code>hwb(44 30% 21%)</code></dd>
+                        <dt>Lab / LCH</dt><dd><code>lab(70.53 4.79 50.96)</code>, <code>lch(70.53 51.18 84.63)</code></dd>
+                        <dt>OKLab / OKLCH</dt><dd><code>oklab(0.7432 0.001 0.117)</code>, <code>oklch(74.3% 0.117 89.5deg)</code></dd>
+                        <dt>color()</dt><dd><code>color(display-p3 0.77 0.66 0.35)</code>, also <code>srgb</code> and <code>srgb-linear</code></dd>
+                        <dt>CMYK</dt><dd><code>cmyk(0% 16% 62% 21%)</code> or <code>device-cmyk(…)</code></dd>
+                        <dt>Names</dt><dd>Any of the 148 CSS names, such as <code>goldenrod</code> or <code>rebeccapurple</code>, plus <code>transparent</code></dd>
+                        <dt>Plain numbers</dt><dd><code>201, 168, 76</code> or <code>201 168 76</code> (0–255 red, green, blue)</dd>
+                    </dl>
+                    <p>Hue accepts deg, rad, grad, and turn. Colors outside what a screen can show (for example wide-gamut P3) are brought into range, and colorMan tells you when it did.</p>
+                </section>
+
+                <section class="help-section">
+                    <h4>Keyboard shortcuts</h4>
+                    <dl class="help-list">
+                        <dt><kbd data-key="K">Ctrl + K</kbd></dt><dd>Go to the color field</dd>
+                        <dt><kbd>C</kbd></dt><dd>Copy the active color in your primary format</dd>
+                        <dt><kbd>R</kbd></dt><dd>Random color</dd>
+                        <dt><kbd>E</kbd></dt><dd>Pick a color from the screen (Chrome and Edge)</dd>
+                        <dt><kbd>F</kbd></dt><dd>Save or unsave the active color</dd>
+                        <dt><kbd>A</kbd></dt><dd>Add the active color to the working palette</dd>
+                        <dt><kbd data-key="Z">Ctrl + Z</kbd></dt><dd>Undo the last color change</dd>
+                        <dt><kbd data-key="Y">Ctrl + Y</kbd> or <kbd data-key="Z" data-shift="true">Ctrl + Shift + Z</kbd></dt><dd>Redo a color change</dd>
+                        <dt><kbd data-key="S">Ctrl + S</kbd></dt><dd>Save now (colorMan also saves on its own)</dd>
+                        <dt><kbd data-key=",">Ctrl + ,</kbd></dt><dd>Open Settings</dd>
+                        <dt><kbd data-key="[">Ctrl + [</kbd></dt><dd>Show or hide the Library panel</dd>
+                        <dt><kbd data-key="]">Ctrl + ]</kbd></dt><dd>Show or hide the Tools panel</dd>
+                        <dt><kbd data-key="\">Ctrl + \</kbd></dt><dd>Focus mode: hide both side panels; press again to bring them back</dd>
+                        <dt><kbd>?</kbd></dt><dd>Open this help</dd>
+                        <dt><kbd>Esc</kbd></dt><dd>Close a dialog or a phone drawer</dd>
+                    </dl>
+                    <p>Single-letter shortcuts work whenever you are not typing in a field. While typing, Ctrl + Z undoes your typing instead of the color.</p>
+                </section>
+
+                <section class="help-section">
+                    <h4>Your data</h4>
+                    <p>colorMan saves to this browser as you work; the dot in the toolbar shows when it has. Use Settings → Download backup to keep a copy or move it to another browser.</p>
+                </section>
+            </div>
+            <footer class="modal-footer">
+                <button type="button" class="btn btn-primary modal-cancel">Got it</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Shared libraries -->
+    <script src="../../shared/js/dom.js"></script>
+    <script src="../../shared/js/storage.js"></script>
+    <script src="../../shared/js/loader.js"></script>
+    <script src="../../shared/js/workbench.js"></script>
+    <script src="../../shared/js/dialogs.js"></script>
+    <script src="../../shared/js/toolapp.js"></script>
+
+    <!-- Color engine + state -->
+    <script src="js/color.js"></script>
+    <script src="js/state.js"></script>
+
+    <!-- UI modules -->
+    <script src="js/ui/swatch.js"></script>
+    <script src="js/ui/picker.js"></script>
+    <script src="js/ui/working.js"></script>
+    <script src="js/ui/library.js"></script>
+    <script src="js/ui/adjust.js"></script>
+    <script src="js/ui/contrast.js"></script>
+    <script src="js/ui/harmony.js"></script>
+    <script src="js/ui/scale.js"></script>
+    <script src="js/ui/mix.js"></script>
+    <script src="js/ui/gradient.js"></script>
+    <script src="js/ui/vision.js"></script>
+    <script src="js/ui/export.js"></script>
+
+    <!-- Boot -->
+    <script src="js/app.js"></script>
+</body>
+</html>

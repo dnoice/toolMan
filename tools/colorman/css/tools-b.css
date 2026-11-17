@@ -1,0 +1,653 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: ToolsBStyles (colorMan Edition - v1.0)
+ *     - File Name: tools-b.css
+ *     - Relative Path: tools/colorman/css/tools-b.css
+ *     - Artifact Type: stylesheet
+ *     - Version: 1.0.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Styles for four Tools-rail panes: Mix, Gradient, Color Vision, and
+ *     Export. It adds only the layout those panes need (blend rows, stop
+ *     rows, simulation bars, the export preview) and uses the shared chips,
+ *     buttons, fields, badges, code blocks, and swatch primitives for the
+ *     rest. Spacing is a step tighter than the shared defaults so the panes
+ *     read compact inside the rail.
+ *
+ * ✒ Key Features:
+ *     - .tb-* pane kit: compact column rhythm, inline and stacked fields,
+ *       smaller inputs and selects, wrapping action rows, an inline Undo
+ *       strip, and compact empty states
+ *     - Hidden really means hidden inside these panes, even on elements
+ *       whose shared class sets a display value
+ *     - Mix: A / B rows with letter tags, a result card, a stepper, and a
+ *       blend row whose swatches share one line at any step count
+ *     - Gradient: 80px preview over the checkerboard, angle slider with a
+ *       number field, and a five-column stop row (swatch, color, position,
+ *       %, remove)
+ *     - Color Vision: flush simulation bars, badge buttons that open the
+ *       pair list with a turning chevron, and single-color rows
+ *     - Export: meta line, a shorter code preview, and the PNG preview over
+ *       the checkerboard
+ *     - Visible focus rings on every control, including sliders, badge
+ *       buttons, and the scrollable code blocks
+ *     - Phone widths: action grids drop to one column and stop rows stay on
+ *       one line down to 320px
+ *
+ * ✒ Usage Instructions:
+ *     Load last among the tool styles, after css/colorman.css, picker.css,
+ *     library.css, and tools-a.css:
+ *         <link rel="stylesheet" href="css/tools-b.css">
+ *     js/ui/mix.js, gradient.js, vision.js, and export.js write the matching
+ *     markup; no classes here need to be added by hand.
+ *
+ * ✒ Examples:
+ *     <div class="tb-pane mx"> … </div>                    → compact pane column
+ *     <div class="tb-field tb-field--inline"> label + select </div>
+ *     <div class="mx-blend" style="--n:7"> 7 swatches </div> → one even row
+ *     <li class="gr-stop"> swatch · color · position · % · remove </li>
+ *     <button class="badge cv-pairs-btn" data-tone="warn" aria-expanded="false">2 pairs collide</button>
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/tokens.css, panels.css, workbench.css;
+ *       css/colorman.css (.swatch, .swatch-strip, .checker, .tool-count)
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: no literal colors; the checkerboard comes from the
+ *       .checker utility in colorman.css and every other color is a token
+ * ----------------------------------------------------------------------------
+ */
+
+/* ═══════════════════════════════════════════════════════════
+   PANE KIT — shared by Mix, Gradient, Color Vision, Export
+   ═══════════════════════════════════════════════════════════ */
+
+.tb-pane {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+/* Shared classes set display values that beat the [hidden] attribute. */
+.tb-pane [hidden] {
+    display: none !important;
+}
+
+.tb-pane .mini-label {
+    margin-bottom: 0;
+}
+
+.tb-pane .section-label {
+    margin: var(--space-xs) 0 0;
+}
+
+.tb-pane .chip-row {
+    margin-bottom: 0;
+}
+
+.tb-pane .pane-hint {
+    margin: 0;
+    line-height: var(--leading-normal);
+}
+
+.tb-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.tb-field--inline {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.tb-field--inline > .mini-label {
+    flex-shrink: 0;
+}
+
+.tb-field--inline > .tb-select {
+    flex: 0 1 60%;
+}
+
+.tb-field-head,
+.tb-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+.tb-head .tool-count {
+    margin-right: 0;
+}
+
+.tb-input,
+.tb-select,
+.tb-num {
+    height: 32px;
+    padding: var(--space-xs) var(--space-sm);
+}
+
+.tb-num {
+    width: 64px;
+    flex-shrink: 0;
+    font-size: var(--font-xs);
+    text-align: right;
+}
+
+.tb-pane .range-input {
+    min-width: 0;
+}
+
+.tb-pane .range-input:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+.tb-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.tb-actions--center {
+    justify-content: center;
+}
+
+.tb-actions .btn svg,
+.tb-buttons .btn svg {
+    flex-shrink: 0;
+}
+
+.tb-buttons .btn {
+    gap: var(--space-xs);
+}
+
+.tb-error {
+    margin: 0;
+}
+
+.tb-error:empty {
+    display: none;
+}
+
+.tb-note {
+    margin: 0;
+}
+
+.tb-code {
+    max-height: 240px;
+    padding: var(--space-sm);
+}
+
+.tb-code:focus-visible {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--bg-active);
+}
+
+.tb-check {
+    min-height: 24px;
+    font-size: var(--font-xs);
+}
+
+.tb-stepper .stepper-btn {
+    width: 30px;
+    min-height: 28px;
+}
+
+.tb-stepper .stepper-value {
+    min-width: 64px;
+}
+
+/* Inline Undo strip: message on the left, button on the right. */
+.tb-undo[data-state] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-top: 0;
+    padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm);
+}
+
+.tb-undo .btn {
+    flex-shrink: 0;
+    color: inherit;
+}
+
+.tb-undo-text {
+    min-width: 0;
+}
+
+/* Compact empty state: the shared one is sized for a whole pane. */
+.tb-empty {
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-sm);
+    border: var(--border-width) dashed var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface-alt);
+}
+
+.tb-empty .empty-title {
+    font-size: var(--font-sm);
+}
+
+.tb-empty .empty-text {
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MIX
+   ═══════════════════════════════════════════════════════════ */
+
+.mx-pair {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.mx-line {
+    display: grid;
+    grid-template-columns: 12px auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.mx-tag {
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    font-weight: var(--font-semibold);
+    color: var(--fg-subtle);
+    text-align: center;
+}
+
+.mx-line-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.mx-hex {
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    color: var(--fg-default);
+    line-height: 32px;
+}
+
+.mx-b-actions {
+    justify-content: flex-end;
+}
+
+.mx-result {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+}
+
+.mx-result-body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+}
+
+.mx-result-top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.mx-result-hex {
+    font-family: var(--font-mono);
+    font-size: var(--font-base);
+    font-weight: var(--font-semibold);
+    color: var(--fg-default);
+    overflow-wrap: anywhere;
+}
+
+.mx-result-top .icon-action {
+    width: 26px;
+    height: 26px;
+}
+
+.mx-result-note {
+    font-size: var(--font-xs);
+    color: var(--fg-muted);
+}
+
+.mx-result-body .btn {
+    margin-top: 2px;
+    gap: var(--space-xs);
+}
+
+.mx-blend {
+    display: grid;
+    grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr));
+    gap: var(--space-xs);
+}
+
+.mx-blend > .swatch {
+    width: 100%;
+    height: 32px;
+}
+
+.mx-ends {
+    display: flex;
+    justify-content: space-between;
+    margin-top: calc(var(--space-xs) * -1);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--fg-subtle);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GRADIENT
+   ═══════════════════════════════════════════════════════════ */
+
+.gr-preview {
+    position: relative;
+    height: 80px;
+    overflow: hidden;
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-md);
+    box-shadow: var(--card-inset);
+}
+
+.gr-preview-fill {
+    position: absolute;
+    inset: 0;
+}
+
+.gr-angle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+.gr-angle .range-input {
+    flex: 1 1 auto;
+}
+
+.gr-stops {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.gr-stop {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) 60px 10px 30px;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+/* Inputs keep an intrinsic minimum width in a grid; let them shrink so the
+   remove button never slips past the pane edge on a 320px phone. */
+.gr-stop .tb-input,
+.gr-stop .tb-num {
+    width: 100%;
+    min-width: 0;
+}
+
+.gr-pct {
+    font-size: var(--font-xs);
+}
+
+.gr-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+.gr-actions .btn {
+    width: 100%;
+    white-space: normal;
+    text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COLOR VISION
+   ═══════════════════════════════════════════════════════════ */
+
+.cv-summary {
+    margin: 0;
+    font-size: var(--font-xs);
+    color: var(--fg-muted);
+    line-height: var(--leading-normal);
+}
+
+.cv-summary:empty {
+    display: none;
+}
+
+.cv-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.cv-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.cv-row-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+.cv-name {
+    font-size: var(--font-xs);
+    font-weight: var(--font-semibold);
+    color: var(--fg-default);
+    cursor: help;
+}
+
+.cv-bar {
+    height: 28px;
+}
+
+.cv-bar > .swatch {
+    height: 100%;
+    min-width: 0;
+    cursor: help;
+}
+
+.cv-pairs-btn {
+    cursor: pointer;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.cv-pairs-btn::after {
+    content: '▾';
+    margin-left: 2px;
+    font-size: 0.625rem;
+    transition: transform var(--transition-fast);
+}
+
+.cv-pairs-btn[aria-expanded="true"]::after {
+    transform: rotate(180deg);
+}
+
+.cv-pairs-btn:hover {
+    box-shadow: var(--shadow-sm);
+}
+
+.cv-pairs-btn:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+}
+
+.cv-pairs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    max-height: 200px;
+    margin: 0;
+    padding: var(--space-xs) var(--space-sm);
+    overflow-y: auto;
+    list-style: none;
+    background: var(--bg-surface-alt);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-sm);
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.cv-pair {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--font-xs);
+    color: var(--fg-body);
+}
+
+.cv-pair--more {
+    display: block;
+    color: var(--fg-subtle);
+    font-style: italic;
+}
+
+.cv-pair-chips {
+    flex-wrap: nowrap;
+    gap: 2px;
+}
+
+.cv-pair-text {
+    overflow-wrap: anywhere;
+}
+
+.cv-pair-de {
+    font-family: var(--font-mono);
+    color: var(--fg-meta);
+    white-space: nowrap;
+}
+
+.cv-rows--single {
+    gap: var(--space-xs);
+}
+
+.cv-row--single {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    grid-template-areas:
+        'chip name hex'
+        'chip name shift';
+    align-items: center;
+    column-gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-xs);
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+}
+
+.cv-row--single > .swatch {
+    grid-area: chip;
+}
+
+.cv-row--single > .cv-name {
+    grid-area: name;
+}
+
+.cv-hex {
+    grid-area: hex;
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--fg-default);
+    text-align: right;
+}
+
+.cv-shift {
+    grid-area: shift;
+    font-size: 0.6875rem;
+    color: var(--fg-muted);
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EXPORT
+   ═══════════════════════════════════════════════════════════ */
+
+.ex .tb-pair {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+
+.ex-meta {
+    margin: 0;
+    font-size: var(--font-xs);
+    color: var(--fg-muted);
+    overflow-wrap: anywhere;
+}
+
+.ex-meta:empty {
+    display: none;
+}
+
+.ex-code {
+    max-height: 260px;
+}
+
+.ex-png {
+    padding: var(--space-xs);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+}
+
+.ex-png-img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+}
+
+.ex-empty-wrap:empty {
+    display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 360px) {
+    .gr-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .gr-stop {
+        grid-template-columns: 28px minmax(0, 1fr) 50px 10px 30px;
+    }
+}
