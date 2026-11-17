@@ -102,3 +102,30 @@ first, under the file's path.
 - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Layered the per-theme vignette token into the canvas washes for stronger figure/ground separation, most visibly in Sentinel Obsidian.
 - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Relocated to shared/css/ for the toolMan ecosystem. All colors now resolve from the house token system (navy/gold, parchment/sentinel themes). Loader background and progress bar recolored to the digiSpace identity.
 - 1.0.0 (2025-11-18) [model not recorded] — Initial app shell: sticky header, three-column grid, loading screen, responsive breakpoints.
+
+## `index.html`
+
+- 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Replaced the fountain-pen mark (textMan's identity) with the placeholder toolbox mark (logo-toolMan.svg) in the loader, header, hero, and favicon.
+- 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial hub page: loading screen, registry-driven tool grid, theme toggle.
+
+## `shared/css/hub.css`
+
+- 1.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Hub QoL batch: header tool-search field, continue chip, card overlay launch link (cards are now articles), pin/reset card actions, stored-data and last-used badges, empty-filter message, and the footer meta line.
+- 1.1.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the tool-card transition:all to named properties (motion-polish pass).
+- 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Tool cards now ride the theme depth tokens (card gradient, inset edge highlight, layered shadows, stronger hover elevation) for real figure/ground contrast on the Sentinel canvas; icon tiles gain a hairline border.
+- 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial hub styles: hero, tool card grid, live/coming-soon states, footer.
+
+## `shared/js/dom.js`
+
+- 1.0.0 (2025-11-18) [model not recorded] — Initial DOM helpers and text utilities.
+
+## `shared/js/loader.js`
+
+- 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Relocated to shared/js/ for the toolMan ecosystem and hardened: added a fail-safe timeout that force-completes the loader if the app never reports ready (the exact failure mode that used to strand users on the load screen), configurable status messages, guarded double-init, reduced-motion support, and full timer cleanup on hide.
+- 1.0.0 (2025-11-18) [model not recorded] — Initial loading screen with progress bar and rotating status messages.
+
+## `tools/textman/js/state.js`
+
+- 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Added ui.sectionOrder (workspace/tools) with the setSectionOrder helper and restore-merge support, persisting the user's drag-and-drop section arrangement — the first "manipulate your workspace" feature.
+- 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Moved into the toolMan ecosystem (tools/textman/). Storage now namespaced under 'toolman.textman.state' with automatic migration from the legacy 'textman-state' key. Hardened: collision-proof IDs via crypto.randomUUID, input validation on all mutators, allowlisted restore merge, transform usage tallies for analytics, and theme moved to the ecosystem level.
+- 1.0.0 (2025-11-18) [model not recorded] — Initial centralized state with four seed templates and CRUD helpers.

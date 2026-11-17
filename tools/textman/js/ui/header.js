@@ -4,7 +4,7 @@
  *     - Title: HeaderController (textMan Edition - v1.0)
  *     - File Name: header.js
  *     - Relative Path: tools/textman/js/ui/header.js
- *     - Artifact Type: script
+ *     - Artifact Type: javascript
  *     - Version: 1.0.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026

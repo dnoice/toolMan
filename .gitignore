@@ -1,27 +1,52 @@
 # ==============================================================================
 # ✒ Metadata
-#     - Title: GitIgnore (toolMan Edition - v1.0)
+#     - Title: GitIgnore (toolMan Edition - v1.1)
 #     - File Name: .gitignore
 #     - Relative Path: .gitignore
 #     - Artifact Type: config
-#     - Version: 1.0.0
-#     - Date: 2026-07-22
-#     - Update: Wednesday, July 22, 2026
+#     - Version: 1.1.0
+#     - Date: 11/17/2026
+#     - Update: Tuesday, November 17, 2026
 #     - Author: Dennis 'dendogg' Smaltz
-#     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+#     - A.I. Acknowledgement: Anthropic - Claude
 #     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+#
+# ✒ Changelog:
+#     - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Ignore the
+#       browser-test outputs (e2e-shots/, test-results/) and a locally built
+#       toolman-site.zip; header brought up to the full standard.
+#     - 1.0.0 (2026-07-22) [dendogg + Anthropic - Claude] — Initial ignore
+#       patterns.
 #
 # ✒ Description:
 #     Git ignore patterns for the toolMan ecosystem. The project is pure
 #     static HTML/CSS/JS with no build step, so this mostly excludes OS and
-#     editor litter, plus tooling artifacts if node_modules ever appears for
-#     local testing.
+#     editor litter, plus the ad hoc test tooling and its outputs.
+#
+# ✒ Key Features:
+#     - Node tooling stays out of the repo: Playwright is installed ad hoc
+#       for browser tests, and no package.json is ever committed
+#     - Test outputs (screenshots, Playwright results) never get staged
+#     - OS and editor litter from macOS, Windows, and JetBrains IDEs
+#     - Keeps the shared .vscode/settings.json while ignoring personal
+#       *.local.json overrides
+#
+# ✒ Other Important Information:
+#     - Dependencies: git
+#     - Compatible platforms: any git client
+#     - The zero-install rule is deliberate: scripts/check.mjs needs only
+#       Node, and scripts/e2e.mjs explains how to add Playwright ad hoc
 # ==============================================================================
 
 # Node tooling (only ever used ad hoc for testing — never committed)
 node_modules/
 package.json
 package-lock.json
+
+# Test outputs
+e2e-shots/
+test-results/
+toolman-site.zip
 
 # OS litter
 .DS_Store

@@ -1,3 +1,44 @@
+<!--
+✒ Metadata
+    - Title: ReadMe (toolMan Edition - v1.1)
+    - File Name: README.md
+    - Relative Path: README.md
+    - Artifact Type: docs
+    - Version: 1.1.0
+    - Date: 11/17/2026
+    - Update: Tuesday, November 17, 2026
+    - Author: Dennis 'dendogg' Smaltz
+    - A.I. Acknowledgement: Anthropic - Claude
+    - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+
+✒ Changelog:
+    - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Metadata moved into
+      the standard header comment; project structure now shows the shared
+      workbench kit, scripts, tests, and CI; new Contributing and security
+      section pointing at CONTRIBUTING.md and SECURITY.md.
+    - 1.0.0 (2026-07-26) [dendogg + Anthropic - Claude] — Initial
+      documentation for the toolMan ecosystem: the hub and the first live
+      tool, textMan.
+
+✒ Description:
+    The front page of the toolMan repository: what the ecosystem is, what
+    each tool does, how the design system and local-only storage work, and
+    how to run, extend, and contribute to it.
+
+✒ Key Features:
+    - Ecosystem overview with every tool's status
+    - textMan walkthrough: panels, tool sections, keyboard shortcuts
+    - Design system, theming, and the local-data model
+    - Running locally (file://, Live Server, Python) and project structure
+    - Pointers to CONTRIBUTING.md, SECURITY.md, and CHANGELOG.md
+
+✒ Other Important Information:
+    - Dependencies: None (documentation only); screenshots live in
+      shared/assets/screenshots/
+    - Compatible platforms: any Markdown renderer; written for GitHub
+---------
+-->
+
 # toolMan
 
 **One workshop, many tools.** Focused, beautiful browser tools — no accounts, no
@@ -20,6 +61,7 @@ works — from a static host or straight off your disk.
 - [Running toolMan](#running-toolman)
 - [Project structure](#project-structure)
 - [Adding a new tool](#adding-a-new-tool)
+- [Contributing and security](#contributing-and-security)
 - [Browser support](#browser-support)
 - [Roadmap](#roadmap)
 - [Credits](#credits)
@@ -227,26 +269,38 @@ toolMan/
 ├── index.html              # The hub — landing page + tool registry view
 ├── shared/                 # Everything every tool shares
 │   ├── css/
-│   │   ├── tokens.css      # Design tokens: color, spacing, radius, glow
+│   │   ├── tokens.css      # Design tokens: color, spacing, radius, glow, density
 │   │   ├── reset.css       # Normalize + base element styles
-│   │   ├── shell.css       # App shell / header chrome
+│   │   ├── shell.css       # App shell / header chrome / mobile drawers
 │   │   ├── panels.css      # Collapsible panels, buttons, inputs, chips
+│   │   ├── workbench.css   # Shared workbench kit: stage, lists, readouts, modals
 │   │   └── hub.css         # Hub-specific layout
 │   ├── js/
 │   │   ├── toolman.js      # Ecosystem kernel: registry, theme, toasts
 │   │   ├── storage.js      # Hardened localStorage + autosave
 │   │   ├── dom.js          # Small DOM helpers
 │   │   ├── loader.js       # Boot loader with guaranteed handoff
+│   │   ├── workbench.js    # Rails: accordions, drag-reorder, drawers, Focus mode
+│   │   ├── dialogs.js      # Modals, confirm/prompt, staged settings
+│   │   ├── toolapp.js      # One-call tool boot, shortcuts, save pill, helpers
 │   │   └── hub.js          # Hub behavior (cards, recents, pins)
 │   └── assets/             # Logos + screenshots
-└── tools/
-    └── textman/            # The textMan tool
-        ├── index.html
-        ├── css/            # Per-component styles
-        └── js/
-            ├── app.js      # Boot
-            ├── state.js    # App state + persistence contract
-            └── ui/         # Editor, workspace, tools, modals, layout
+├── tools/
+│   └── textman/            # The textMan tool
+│       ├── index.html
+│       ├── css/            # Per-component styles
+│       └── js/
+│           ├── app.js      # Boot
+│           ├── state.js    # App state + persistence contract
+│           └── ui/         # Editor, workspace, tools, modals, layout
+├── scripts/
+│   ├── check.mjs           # Static checks + unit tests (no install needed)
+│   └── e2e.mjs             # Browser test runner (Playwright, added ad hoc)
+├── tests/e2e/              # Ecosystem-wide browser suites
+├── .github/                # CI workflow, issue + PR templates, Dependabot
+├── CHANGELOG.md            # Older per-file changelog entries
+├── CONTRIBUTING.md         # How to work on toolMan
+└── SECURITY.md             # Security model + how to report a vulnerability
 ```
 
 ## Adding a new tool
@@ -279,6 +333,19 @@ The ecosystem is designed to grow. To add a tool:
 5. Flip the tool's `status` from `soon` to `live` when it's ready, and the hub
    card starts launching it.
 
+The full walkthrough — the page anatomy, the shared workbench kit
+(`Workbench`, `Dialogs`, `ToolApp`), tests, and the checks a new tool has to
+pass — lives in [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-tool).
+
+## Contributing and security
+
+- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) covers local setup, the
+  design and code conventions, the file-header standard, and testing. Run
+  `node scripts/check.mjs` before you push — it is exactly what CI runs.
+- **Security:** toolMan has no server and makes no network requests, but it
+  does read files and text you give it. [SECURITY.md](SECURITY.md) describes
+  the security model and how to report a vulnerability privately.
+
 ## Browser support
 
 toolMan targets modern evergreen browsers — recent Chrome, Edge, Firefox, and
@@ -304,17 +371,3 @@ Crafted by Dennis 'dendogg' Smaltz, with engineering assistance from Anthropic's
 Claude (Opus 4.8). toolMan is a personal project; in the absence of a bundled
 `LICENSE` file, treat it as all rights reserved unless the repository states
 otherwise.
-
-## ✒ Metadata
-
-- **Title:** README (toolMan Edition — v1.0)
-- **Version:** 1.0.0
-- **Date:** 2026-07-26
-- **Author:** Dennis 'dendogg' Smaltz
-- **A.I. Acknowledgement:** Anthropic — Claude Opus 4.8
-- **Signature:** ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
-
-## ✒ Changelog
-
-- **1.0.0 (2026-07-26)** — Initial documentation for the toolMan ecosystem: the
-  hub and the first live tool, textMan.

@@ -4,7 +4,7 @@
  *     - Title: TransformTools (textMan Edition - v1.1)
  *     - File Name: tools-transform.js
  *     - Relative Path: tools/textman/js/ui/tools-transform.js
- *     - Artifact Type: script
+ *     - Artifact Type: javascript
  *     - Version: 1.1.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026

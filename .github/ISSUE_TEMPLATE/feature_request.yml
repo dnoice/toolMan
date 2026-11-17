@@ -1,0 +1,84 @@
+# ==============================================================================
+# ✒ Metadata
+#     - Title: FeatureRequestForm (toolMan Edition - v1.0)
+#     - File Name: feature_request.yml
+#     - Relative Path: .github/ISSUE_TEMPLATE/feature_request.yml
+#     - Artifact Type: config
+#     - Version: 1.0.0
+#     - Date: 11/17/2026
+#     - Update: Tuesday, November 17, 2026
+#     - Author: Dennis 'dendogg' Smaltz
+#     - A.I. Acknowledgement: Anthropic - Claude
+#     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+#
+# ✒ Description:
+#     GitHub issue form for ideas: an improvement to an existing tool, or a
+#     whole new tool for the toolMan family. It steers proposals toward the
+#     problem being solved and toward toolMan's ground rules (local-only, no
+#     dependencies, both themes, keyboard-friendly).
+#
+# ✒ Key Features:
+#     - One form for both improvements and new-tool ideas
+#     - Problem-first: what you are trying to do before how
+#     - Workflow sketch and "what would make it great" prompts
+#     - Ground-rules checklist so proposals fit the ecosystem
+#
+# ✒ Other Important Information:
+#     - Dependencies: GitHub issue forms
+#     - Compatible platforms: GitHub
+# ==============================================================================
+
+name: Idea or new tool
+description: Suggest an improvement to a tool, or a new tool for the toolMan family.
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of idea is this?
+      options:
+        - An improvement to an existing tool
+        - A new tool
+        - Something for the hub or the whole ecosystem
+    validations:
+      required: true
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Which tool? (skip for a new tool)
+      options:
+        - Hub
+        - textMan
+        - colorMan
+        - mathMan
+        - convertMan
+        - devMan
+        - svgMan
+        - Shared / all tools
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The job or problem, in your own words — not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: How should it work?
+      description: Walk through the workflow. What goes in, what you click or type, what comes out.
+    validations:
+      required: true
+  - type: textarea
+    id: great
+    attributes:
+      label: What would make it great?
+      description: Options worth customizing, exports, shortcuts, edge cases.
+  - type: checkboxes
+    id: fit
+    attributes:
+      label: Fits toolMan's ground rules
+      options:
+        - label: Works entirely in the browser, with no account, server, or network request
+        - label: Needs no third-party library or build step
+        - label: Makes sense in both themes and at phone width

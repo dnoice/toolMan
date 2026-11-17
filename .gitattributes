@@ -1,26 +1,68 @@
 # ==============================================================================
 # ✒ Metadata
-#     - Title: GitAttributes (toolMan Edition - v1.0)
+#     - Title: GitAttributes (toolMan Edition - v1.1)
 #     - File Name: .gitattributes
 #     - Relative Path: .gitattributes
 #     - Artifact Type: config
-#     - Version: 1.0.0
-#     - Date: 2026-07-22
-#     - Update: Wednesday, July 22, 2026
+#     - Version: 1.1.0
+#     - Date: 11/17/2026
+#     - Update: Tuesday, November 17, 2026
 #     - Author: Dennis 'dendogg' Smaltz
-#     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+#     - A.I. Acknowledgement: Anthropic - Claude
 #     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 #
+# ✒ Changelog:
+#     - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Development-only
+#       paths (CI, scripts, tests, editor settings) are now export-ignore, so
+#       git archive, GitHub's Download ZIP, and the CI site package ship only
+#       the runnable app; more binary types declared.
+#     - 1.0.0 (2026-07-22) [dendogg + Anthropic - Claude] — Initial LF-only
+#       line-ending policy.
+#
 # ✒ Description:
-#     Line-ending policy for the toolMan ecosystem: every text file is stored
-#     and checked out as LF on all platforms, keeping the UTF-8 headers (and
-#     the house signature glyphs) byte-stable across Windows, macOS, and
-#     Linux checkouts.
+#     Line-ending and packaging policy for the toolMan ecosystem. Every text
+#     file is stored and checked out as LF on all platforms, keeping the UTF-8
+#     headers (and the house signature glyphs) byte-stable across Windows,
+#     macOS, and Linux checkouts.
+#
+# ✒ Key Features:
+#     - text=auto eol=lf: one line ending everywhere, enforced by
+#       scripts/check.mjs (hygiene)
+#     - Binary declarations so images, fonts, and archives never get
+#       line-ending conversion or textual diffs
+#     - export-ignore on development-only paths: a downloaded ZIP or the CI
+#       "toolman-site" package is just the app, ready to open or host
+#
+# ✒ Other Important Information:
+#     - Dependencies: git
+#     - Compatible platforms: any git client; GitHub honours export-ignore
+#       for Download ZIP and release source archives
+#     - Clones are unaffected: export-ignore only shapes archives, so a
+#       contributor's checkout still has the tests and scripts
 # ==============================================================================
 
 * text=auto eol=lf
 
-# Binary assets (none yet — future-proofing)
+# Binary assets
 *.png binary
 *.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
 *.woff2 binary
+*.ttf binary
+*.pdf binary
+*.zip binary
+
+# Development-only paths stay out of archives (git archive / Download ZIP)
+.github/ export-ignore
+.vscode/ export-ignore
+scripts/ export-ignore
+tests/ export-ignore
+tools/*/tests/ export-ignore
+.editorconfig export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+CONTRIBUTING.md export-ignore

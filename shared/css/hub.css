@@ -39,18 +39,7 @@
  *       and the base main/hero paddings dropped 2xl->xl. Verified 0 overflow
  *       from 2560x1440 down to 1024x600. (Also folds in the earlier search-
  *       field shrink at <=480 from the media-query pass.)
- *     - 1.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Hub QoL batch:
- *       header tool-search field, continue chip, card overlay launch link
- *       (cards are now articles), pin/reset card actions, stored-data and
- *       last-used badges, empty-filter message, and the footer meta line.
- *     - 1.1.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the
- *       tool-card transition:all to named properties (motion-polish pass).
- *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Tool cards now
- *       ride the theme depth tokens (card gradient, inset edge highlight,
- *       layered shadows, stronger hover elevation) for real figure/ground
- *       contrast on the Sentinel canvas; icon tiles gain a hairline border.
- *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial hub
- *       styles: hero, tool card grid, live/coming-soon states, footer.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     Styles for the toolMan hub — the ecosystem's landing page and launcher.

@@ -4,7 +4,7 @@
  *     - Title: WorkspaceRenderers (textMan Edition - v1.2)
  *     - File Name: workspace.js
  *     - Relative Path: tools/textman/js/ui/workspace.js
- *     - Artifact Type: script
+ *     - Artifact Type: javascript
  *     - Version: 1.2.0
  *     - Date: 2026-07-23
  *     - Update: Thursday, July 23, 2026

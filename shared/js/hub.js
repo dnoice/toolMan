@@ -4,7 +4,7 @@
  *     - Title: HubLauncher (toolMan Edition - v1.1)
  *     - File Name: hub.js
  *     - Relative Path: shared/js/hub.js
- *     - Artifact Type: script
+ *     - Artifact Type: javascript
  *     - Version: 1.1.1
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026

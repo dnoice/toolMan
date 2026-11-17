@@ -29,14 +29,7 @@
  *       cycle tightened to 1600ms so two messages land before "Ready!", and
  *       the Ready beat lengthened to 450ms. Reduced-motion users skip the
  *       hold entirely and hand off as fast as boot allows.
- *     - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Relocated to
- *       shared/js/ for the toolMan ecosystem and hardened: added a fail-safe
- *       timeout that force-completes the loader if the app never reports
- *       ready (the exact failure mode that used to strand users on the load
- *       screen), configurable status messages, guarded double-init,
- *       reduced-motion support, and full timer cleanup on hide.
- *     - 1.0.0 (2025-11-18) [model not recorded] — Initial loading screen
- *       with progress bar and rotating status messages.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     Controls the branded loading screen shared by the hub and every tool.
