@@ -1,16 +1,20 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: SearchReplaceTools (textMan Edition - v1.0)
+ *     - Title: SearchReplaceTools (textMan Edition - v1.1)
  *     - File Name: tools-search.js
  *     - Relative Path: tools/textman/js/ui/tools-search.js
- *     - Artifact Type: script
- *     - Version: 1.0.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Artifact Type: javascript
+ *     - Version: 1.1.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
- *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Match case /
+ *       Whole word / Regex pills announce their state through aria-pressed.
  *
  * ✒ Description:
  *     The Search & Replace pane: live match counting, prev/next navigation
@@ -114,10 +118,18 @@
 
         wireOptions() {
             ['opt-match-case', 'opt-whole-word', 'opt-regex'].forEach((id) => {
+                // Independent switches: aria-pressed mirrors data-active so the
+                // on/off state is announced, not just painted.
+                const pill = DOM.id(id);
+                if (pill) {
+                    pill.setAttribute('type', 'button');
+                    pill.setAttribute('aria-pressed', String(pill.dataset.active === 'true'));
+                }
                 DOM.on(`#${id}`, 'click', (e) => {
                     const btn = e.currentTarget;
                     const active = btn.dataset.active !== 'true';
                     btn.dataset.active = String(active);
+                    btn.setAttribute('aria-pressed', String(active));
 
                     if (id === 'opt-match-case') this.options.matchCase = active;
                     if (id === 'opt-whole-word') this.options.wholeWord = active;

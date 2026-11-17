@@ -173,7 +173,10 @@
                     const want = sc.key.length === 1 ? sc.key.toLowerCase() : sc.key;
                     if (want !== key) continue;
                     if (Boolean(sc.mod) !== mod) continue;
-                    if (sc.shift !== undefined && sc.shift !== e.shiftKey && want.length !== 1) continue;
+                    // Letters, digits, and named keys honour Shift; a symbol
+                    // like '?' already implies whichever modifier made it.
+                    const shiftMatters = want.length !== 1 || /[a-z0-9]/.test(want);
+                    if (shiftMatters && Boolean(sc.shift) !== e.shiftKey) continue;
                     if (sc.alt !== undefined && Boolean(sc.alt) !== e.altKey) continue;
                     if (!sc.allowInFields && this._inField(e.target)) continue;
                     e.preventDefault();

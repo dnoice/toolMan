@@ -1,18 +1,21 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: EditorEngine (textMan Edition - v1.2)
+ *     - Title: EditorEngine (textMan Edition - v1.3)
  *     - File Name: editor.js
  *     - Relative Path: tools/textman/js/ui/editor.js
  *     - Artifact Type: library
- *     - Version: 1.2.0
- *     - Date: 2026-07-23
- *     - Update: Thursday, July 23, 2026
+ *     - Version: 1.3.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
- *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — Go to line uses
+ *       the house prompt dialog with inline validation instead of
+ *       window.prompt(), and cancelling returns focus to the caret pill.
  *     - 1.2.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — openFile()'s
  *       unsaved-changes guard moved from window.confirm() to the house
  *       ModalsUI.confirm() dialog (Cancel focused, "Discard & open" as the
@@ -24,9 +27,7 @@
  *       applyPrefs), selection-aware stats, Download (.txt/.md) and Copy
  *       All, and caret/scroll restoration after whole-document transforms so
  *       the viewport no longer jumps to the top.
- *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial editor
- *       engine: undo/redo, stats, file open/drop, diff, autosave,
- *       applyToSelectionOrAll.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     The engine behind textMan's writing surface. Owns the textarea: live
@@ -356,10 +357,37 @@
 
         promptGoToLine() {
             const total = this.textarea.value.split('\n').length;
-            const answer = window.prompt(`Go to line (1–${total}):`, '');
-            if (answer === null) return;
-            const n = parseInt(answer, 10);
-            if (Number.isFinite(n)) this.goToLine(n);
+            const current = this.textarea.value
+                .slice(0, this.textarea.selectionStart)
+                .split('\n').length;
+
+            // The house prompt dialog, not window.prompt(): inline validation keeps
+            // the dialog open with the reason instead of silently ignoring input.
+            ModalsUI.prompt({
+                title: 'Go to line',
+                label: 'Line number',
+                hint: `Available range: 1–${total}`,
+                type: 'number',
+                min: 1,
+                max: total,
+                step: 1,
+                value: current,
+                confirmLabel: 'Go',
+                validate(raw) {
+                    const n = Number(raw);
+                    if (raw.trim() === '' || !Number.isFinite(n)) return 'Enter a line number.';
+                    if (!Number.isInteger(n)) return 'Line numbers are whole numbers.';
+                    if (n < 1 || n > total) return `That line does not exist — pick 1 to ${total}.`;
+                    return null;
+                }
+            }).then((answer) => {
+                if (answer === null) {
+                    const caret = DOM.id('stat-caret');
+                    if (caret && typeof caret.focus === 'function') caret.focus();
+                    return;
+                }
+                this.goToLine(Number(answer));
+            });
         },
 
         /* ── Undo / Redo ────────────────────────────── */

@@ -1,18 +1,23 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: AppShell (toolMan Edition - v2.5)
+ *     - Title: AppShell (toolMan Edition - v2.6)
  *     - File Name: shell.css
  *     - Relative Path: shared/css/shell.css
- *     - Artifact Type: config
- *     - Version: 2.5.0
- *     - Date: 2026-07-23
- *     - Update: Thursday, July 23, 2026
+ *     - Artifact Type: stylesheet
+ *     - Version: 2.6.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
- *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.6.0 (11/17/2026) [dendogg + Anthropic - Claude] — Fixed the mobile
+ *       drawers at the root: doubled-class selectors now beat panels.css's
+ *       later .panel { position: relative }, and .app-main drops its stacking
+ *       context below 768px so the scrim sits behind the drawer instead of
+ *       over it; drawers size to min(320px, 100vw - 48px).
  *     - 2.5.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — The loading screen
  *       now tracks the theme instead of holding a fixed navy/gold look. Every
  *       hardcoded loader colour (card glass, title, tagline, status, bar
@@ -25,31 +30,7 @@
  *       svg/img) so the hub loader's nested orbiting tool-icon satellites do
  *       not inherit the central mark's fill sizing or pulse. Corrected the
  *       stale title version tag (v2.2 -> v2.4).
- *     - 2.4.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Theme toggle now
- *       shows a moon in the light (parchment) theme and a sun in the dark
- *       (sentinel) theme, swapped purely by data-theme so it flips the
- *       instant the theme changes.
- *     - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Mobile
- *       reachability (audit finding F5): .mobile-only header buttons appear
- *       under 768px, and a .mobile-scrim overlay dims the stage behind a
- *       slid-in panel and closes it on tap.
- *     - 2.2.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the
- *       header icon buttons' transition:all to the named properties that
- *       actually animate (motion-polish pass).
- *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Viewport-fit
- *       hardening (audit findings F1/F2): 100dvh fallbacks on the app frame
- *       and loader so dynamic-chrome mobile browsers never clip the bottom
- *       band, and min-height/min-width:0 guards on the grid's panel children
- *       so content can never inflate the height chain past the viewport.
- *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Layered the
- *       per-theme vignette token into the canvas washes for stronger
- *       figure/ground separation, most visibly in Sentinel Obsidian.
- *     - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Relocated to
- *       shared/css/ for the toolMan ecosystem. All colors now resolve from
- *       the house token system (navy/gold, parchment/sentinel themes). Loader
- *       background and progress bar recolored to the digiSpace identity.
- *     - 1.0.0 (2025-11-18) [model not recorded] — Initial app shell: sticky
- *       header, three-column grid, loading screen, responsive breakpoints.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     The structural skeleton every toolMan tool shares: viewport-filling app
@@ -358,31 +339,44 @@
     .app-main {
         grid-template-columns: 1fr;
         grid-template-rows: auto;
+
+        /* Drop the z-index:1 from `.app > *` so this stops being a stacking
+           context. The scrim is a fixed sibling on <body>; while .app-main
+           was a context, the drawers inside it were trapped at its z=1 and
+           the scrim painted OVER the drawer it exists to sit behind. */
+        z-index: auto;
     }
 
-    /* Stack panels on mobile */
-    .panel-left,
-    .panel-right {
+    /* Slide-in drawers. The doubled class is load-bearing: panels.css
+       declares `.panel { position: relative }` and loads AFTER this file, so
+       at equal specificity it won and the drawers rendered as in-flow grid
+       rows — stacked bands with the editor crushed between them. */
+    .panel.panel-left,
+    .panel.panel-right {
         position: absolute;
         top: 0;
         bottom: 0;
-        width: 280px;
+        width: min(320px, calc(100vw - 48px));
         z-index: var(--z-panel);
         transform: translateX(-100%);
         transition: transform var(--transition-base);
     }
 
-    .panel-left[data-mobile-open="true"] {
+    .panel.panel-left {
+        left: 0;
+    }
+
+    .panel.panel-left[data-mobile-open="true"] {
         transform: translateX(0);
     }
 
-    .panel-right {
+    .panel.panel-right {
         left: auto;
         right: 0;
         transform: translateX(100%);
     }
 
-    .panel-right[data-mobile-open="true"] {
+    .panel.panel-right[data-mobile-open="true"] {
         transform: translateX(0);
     }
 

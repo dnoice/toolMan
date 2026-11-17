@@ -1,42 +1,30 @@
 <!--
 ✒ Metadata
-    - Title: TextManApp (textMan Edition - v2.5)
+    - Title: TextManApp (textMan Edition - v2.6)
     - File Name: index.html
     - Relative Path: tools/textman/index.html
-    - Artifact Type: other
-    - Version: 2.5.0
-    - Date: 2026-07-22
-    - Update: Wednesday, July 22, 2026
+    - Artifact Type: markup
+    - Version: 2.6.0
+    - Date: 11/17/2026
+    - Update: Tuesday, November 17, 2026
     - Author: Dennis 'dendogg' Smaltz
-    - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+    - A.I. Acknowledgement: Anthropic - Claude
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 2.6.0 (11/17/2026) [dendogg + Anthropic - Claude] — Re-ported the 1.0.0
+      features onto the restored 07/23 design: staged Settings (Cancel/Save,
+      Save enabled only when dirty), autosave-delay group with a seconds
+      read-out, tab-size stepper, usage percent, platform-aware shortcut
+      chips, Focus and Zen entries in Help, and the caret pill as a real
+      Go-to-line button.
     - 2.5.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Theme toggle carries
       both sun and moon icons, swapped by data-theme (moon in light, sun in
       dark).
     - 2.4.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Tool-pane additions:
       transform case family + strip-accents + smart/straight quotes, encoding
       Base64URL/hex/JWT, and formatting code-fence + strip-markdown buttons.
-    - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Editor QoL batch:
-      editable document title, font-size stepper, word-wrap toggle,
-      download and copy-all controls, a line/col stat pill, and the
-      Ctrl+G / Ctrl+\ shortcuts documented in Help.
-    - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Mobile reachability
-      (audit finding F5): header gains Workspace/Tools toggle buttons that
-      appear under 768px and drive the slide-in panels via data-mobile-open.
-    - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Help modal documents
-      the new panel-toggle shortcuts (Ctrl/Cmd+[ and Ctrl/Cmd+]) added by the
-      collapse-recovery overhaul (audit finding F4).
-    - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Rebuilt for the
-      toolMan ecosystem: relocated to tools/textman/, all asset paths point
-      at shared/, theme switching via data-theme (no theme stylesheets),
-      logos inlined so currentColor theming works, Encoding and Formatting
-      panes implemented (were placeholders), Transform pane expanded to 12
-      operations, Diff modal added, back-to-hub breadcrumb, and every script
-      the page references now actually exists (v1 loaded 13 missing files —
-      the loader never handed off).
-    - 1.0.0 (2025-11-18) [model not recorded] — Initial three-panel layout.
+    Earlier entries: see CHANGELOG.md
 
 ✒ Description:
     textMan's application page — a live application page, not documentation,
@@ -413,7 +401,7 @@
                             <span class="stat-pill" id="stat-words">Words: 0</span>
                             <span class="stat-pill" id="stat-chars">Characters: 0</span>
                             <span class="stat-pill" id="stat-read-time">Est. read time: 0 min</span>
-                            <span class="stat-pill stat-caret" id="stat-caret" title="Line and column (Ctrl+G to jump)">Ln 1, Col 1</span>
+                            <button type="button" class="stat-pill stat-caret" id="stat-caret" title="Go to line (Ctrl+G)" aria-label="Line 1, column 1 — go to line">Ln 1, Col 1</button>
                         </div>
                     </div>
 
@@ -800,15 +788,29 @@
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label for="setting-autosave-delay">Autosave delay: <span id="autosave-delay-label">1000</span> ms</label>
+                <!-- The delay only means anything while debouncing, so the whole
+                     group is hidden in immediate/manual modes (modals.js). -->
+                <div class="form-group" id="autosave-delay-group">
+                    <div class="field-row">
+                        <label for="setting-autosave-delay">Autosave delay</label>
+                        <span class="field-value" id="autosave-delay-label">1.0 s</span>
+                    </div>
                     <input type="range" id="setting-autosave-delay" class="range-input" min="300" max="5000" step="100" value="1000">
-                    <p class="help-text">How long to wait after you stop typing (debounced mode).</p>
+                    <p class="help-text">How long to wait after you stop typing.</p>
                 </div>
 
+                <!-- Tab size is a discrete 2–8, so a stepper reads truer than a
+                     slider; the hidden input stays the single source of truth. -->
                 <div class="form-group">
-                    <label for="setting-tab-size">Editor tab size: <span id="tab-size-label">4</span> spaces</label>
-                    <input type="range" id="setting-tab-size" class="range-input" min="2" max="8" step="1" value="4">
+                    <div class="field-row">
+                        <label id="tab-size-heading">Editor tab size</label>
+                        <div class="stepper" role="group" aria-labelledby="tab-size-heading">
+                            <button type="button" class="stepper-btn" id="tab-size-dec" aria-label="Decrease tab size">&minus;</button>
+                            <span class="stepper-value"><span id="tab-size-label">4</span><span class="stepper-unit">spaces</span></span>
+                            <button type="button" class="stepper-btn" id="tab-size-inc" aria-label="Increase tab size">+</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="setting-tab-size" value="4">
                 </div>
 
                 <div class="form-group">
@@ -825,7 +827,11 @@
                     <div class="usage-meter" title="textMan's share of this browser's storage for the tool">
                         <div class="usage-fill" id="usage-fill"></div>
                     </div>
-                    <p class="help-text"><span id="usage-label">0 bytes</span> of ~5 MB</p>
+                    <div class="usage-row">
+                        <span id="usage-label">0 bytes used</span>
+                        <span id="usage-percent">&lt;1%</span>
+                    </div>
+                    <p class="help-text">Of roughly 5 MB available to this browser.</p>
                 </div>
 
                 <div class="form-group">
@@ -834,8 +840,10 @@
                 </div>
             </div>
             <footer class="modal-footer">
-                <button class="btn btn-secondary modal-cancel">Close</button>
-                <button class="btn btn-primary" id="btn-save-settings">Save</button>
+                <!-- Settings are staged: Save stays disabled until the form differs
+                     from what was open when the dialog appeared. -->
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="btn-save-settings" disabled>Save</button>
             </footer>
         </div>
     </div>
@@ -865,35 +873,38 @@
                 <section class="help-section">
                     <h4>Keyboard Shortcuts</h4>
                     <dl class="help-list">
-                        <dt><kbd>Ctrl/Cmd + S</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="S">Ctrl/Cmd + S</kbd></dt>
                         <dd>Save document</dd>
 
-                        <dt><kbd>Ctrl/Cmd + Z</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="Z">Ctrl/Cmd + Z</kbd></dt>
                         <dd>Undo</dd>
 
-                        <dt><kbd>Ctrl/Cmd + Y</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="Y">Ctrl/Cmd + Y</kbd></dt>
                         <dd>Redo</dd>
 
-                        <dt><kbd>Ctrl/Cmd + F</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="F">Ctrl/Cmd + F</kbd></dt>
                         <dd>Jump to Search &amp; Replace</dd>
 
-                        <dt><kbd>Ctrl/Cmd + G</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="G">Ctrl/Cmd + G</kbd></dt>
                         <dd>Go to line</dd>
 
-                        <dt><kbd>Ctrl/Cmd + [</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="[">Ctrl/Cmd + [</kbd></dt>
                         <dd>Toggle the Workspace panel</dd>
 
-                        <dt><kbd>Ctrl/Cmd + ]</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="]">Ctrl/Cmd + ]</kbd></dt>
                         <dd>Toggle the Tools panel</dd>
 
-                        <dt><kbd>Ctrl/Cmd + \</kbd></dt>
-                        <dd>Zen mode (collapse both panels)</dd>
+                        <dt><kbd class="kbd-shortcut" data-key="\">Ctrl/Cmd + \</kbd></dt>
+                        <dd>Focus mode (collapse both side panels; again to restore)</dd>
 
-                        <dt><kbd>Ctrl/Cmd + ,</kbd></dt>
+                        <dt><kbd class="kbd-shortcut" data-key="\" data-shift="true">Ctrl/Cmd + Shift + \</kbd></dt>
+                        <dd>Zen mode (distraction-free; Esc or the shortcut to exit)</dd>
+
+                        <dt><kbd class="kbd-shortcut" data-key=",">Ctrl/Cmd + ,</kbd></dt>
                         <dd>Open Settings</dd>
 
                         <dt><kbd>Esc</kbd></dt>
-                        <dd>Close any open dialog</dd>
+                        <dd>Close any open dialog, or exit Zen mode</dd>
                     </dl>
                 </section>
             </div>

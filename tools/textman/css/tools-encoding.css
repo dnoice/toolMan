@@ -1,16 +1,20 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: EncodingPaneStyles (textMan Edition - v1.0)
+ *     - Title: EncodingPaneStyles (textMan Edition - v1.1)
  *     - File Name: tools-encoding.css
  *     - Relative Path: tools/textman/css/tools-encoding.css
- *     - Artifact Type: config
- *     - Version: 1.0.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Artifact Type: stylesheet
+ *     - Version: 1.1.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
- *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Direction filter
+ *       layout and the hidden-tile rule for the All / Encode / Decode pills.
  *
  * ✒ Description:
  *     Encoding/Decoding pane specifics layered on the shared tool-button
@@ -66,4 +70,21 @@
 
 .tool-action-btn[data-encode-dir="decode"] .btn-category {
     color: var(--color-info);
+}
+
+/* ===== DIRECTION FILTER (All / Encode / Decode) =====
+   A filtered-out tile carries the hidden attribute; the tile's own
+   display:flex would otherwise keep it on screen. */
+[data-body="encoding"] .tool-action-btn[hidden] {
+    display: none;
+}
+
+.encoding-filter {
+    display: flex;
+    margin-bottom: var(--space-sm);
+}
+
+.encoding-filter .toggle-pill:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--bg-active);
 }

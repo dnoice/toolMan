@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: EditorStyles (textMan Edition - v1.3)
+ *     - Title: EditorStyles (textMan Edition - v1.4)
  *     - File Name: editor.css
  *     - Relative Path: tools/textman/css/editor.css
  *     - Artifact Type: stylesheet
- *     - Version: 1.3.0
+ *     - Version: 1.4.0
  *     - Date: 11/17/2026
  *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,10 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.4.0 (11/17/2026) [dendogg + Anthropic - Claude] — Zen mode for the
+ *       07/23 frame (rails, pane title, metric pills leave; header and
+ *       toolbar park out of flow and peek back), the exit hint, and a focus
+ *       ring for the caret pill button.
  *     - 1.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — Editor canvas
  *       inset and gap read --pad-stage, matching the tighter shared density.
  *     - 1.2.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Toolbar overflow
@@ -23,10 +27,6 @@
  *       — font stepper, wrap toggle, divider, and "Saved" label at <=1024; the
  *       document title at <=480 — so the essential controls (open, download,
  *       copy, undo, redo, diff, save) always fit.
- *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Editor QoL batch
- *       styling: editable document-title input, font-size label, toolbar
- *       divider, word-wrap active state, no-wrap textarea variant, the
- *       line/col caret pill, and the selection-aware stats accent.
  *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
@@ -421,4 +421,145 @@
     .doc-title {
         display: none;
     }
+}
+
+/* ===== ZEN MODE =====
+   Focus mode (Ctrl+\) collapses the rails and keeps the console. Zen
+   (Ctrl+Shift+\) removes the console: rails, pane title, global header,
+   toolbar, and the metric pills leave, so what remains is the writing
+   canvas, the caret pill, and the save-state footer. LayoutUI owns the
+   state (data-zen on <html>, never persisted); everything here is scoped to
+   :root[data-zen="true"], so leaving Zen restores the layout exactly. */
+:root[data-zen="true"] .app-main > .panel.panel-left,
+:root[data-zen="true"] .app-main > .panel.panel-right {
+    display: none;
+}
+
+:root[data-zen="true"] .app-main {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+:root[data-zen="true"] .app-main > .panel.panel-center {
+    grid-column: 1;
+}
+
+:root[data-zen="true"] .panel-center > .panel-header {
+    display: none;
+}
+
+/* The caret is essential (where am I); word counts are not. */
+:root[data-zen="true"] .editor-stats > :not(#stat-caret) {
+    display: none;
+}
+
+:root[data-zen="true"] .panel-center > .panel-footer {
+    background: transparent;
+    border-top-color: transparent;
+}
+
+/* Header and toolbar are lifted OUT OF FLOW and parked above the viewport,
+   so the canvas gets their height back; a pointer at the top edge or focus
+   inside either one sets data-zen-chrome and slides them back down. Out of
+   flow rather than display:none so they stay animatable and Tab-reachable. */
+:root[data-zen="true"] .app > .app-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    transform: translateY(-100%);
+}
+
+:root[data-zen="true"] .editor-header {
+    position: absolute;
+    top: var(--header-height);
+    left: 0;
+    right: 0;
+    transform: translateY(calc(-100% - var(--header-height)));
+}
+
+:root[data-zen="true"] .app > .app-header,
+:root[data-zen="true"] .editor-header {
+    z-index: var(--z-header);
+    opacity: 0;
+    visibility: hidden;
+    box-shadow: var(--shadow-lg);
+    transition: opacity var(--transition-base),
+                transform var(--transition-base),
+                visibility var(--transition-base);
+}
+
+:root[data-zen="true"][data-zen-chrome="true"] .app > .app-header,
+:root[data-zen="true"][data-zen-chrome="true"] .editor-header {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Temporary exit hint, built by LayoutUI on first entry. */
+.zen-hint {
+    position: fixed;
+    left: 50%;
+    bottom: var(--space-2xl);
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-lg);
+    color: var(--fg-body);
+    font-size: var(--font-xs);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, var(--space-sm));
+    transition: opacity var(--transition-slow),
+                transform var(--transition-slow),
+                visibility var(--transition-slow);
+}
+
+.zen-hint.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+}
+
+.zen-hint-label {
+    font-weight: var(--font-semibold);
+    color: var(--color-brand);
+}
+
+.zen-hint-keys {
+    color: var(--fg-muted);
+}
+
+.zen-hint kbd {
+    display: inline-block;
+    padding: 1px var(--space-sm);
+    background: var(--bg-tag);
+    border: var(--border-width) solid var(--border-default);
+    border-bottom-width: 2px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--fg-default);
+}
+
+@media (max-width: 768px) {
+    .zen-hint {
+        max-width: calc(100vw - 2 * var(--space-md));
+        white-space: normal;
+        text-align: center;
+    }
+}
+
+/* The caret pill is a real button now (Go to line) — give it a visible
+   keyboard focus ring in the 07/23 idiom. */
+.stat-caret:focus-visible {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--bg-active);
 }

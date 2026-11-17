@@ -1,41 +1,29 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: AppOrchestrator (textMan Edition - v2.2)
+ *     - Title: AppOrchestrator (textMan Edition - v2.5)
  *     - File Name: app.js
  *     - Relative Path: tools/textman/js/app.js
- *     - Artifact Type: script
- *     - Version: 2.4.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Artifact Type: javascript
+ *     - Version: 2.5.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
- *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.5.0 (11/17/2026) [dendogg + Anthropic - Claude] — Kept on the
+ *       restored 07/23 design: Ctrl+\ Focus mode, Ctrl+Shift+\ Zen mode,
+ *       capture-phase Escape out of Zen, and the Ctrl+F reveal that opens
+ *       Search before focusing it.
  *     - 2.4.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Editor QoL
  *       shortcuts: Ctrl/Cmd+G go-to-line and Ctrl/Cmd+\ Zen mode (collapse
  *       both panels; again restores the prior layout).
  *     - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Stamps the
  *       ecosystem last-used record (TOOLMAN.stampLastUsed) during session
  *       tracking, feeding the hub's continue chip and card ordering.
- *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — applyPanelStates
- *       delegates section state to LayoutUI.applyAccordionState (exclusive
- *       accordion model) instead of iterating the removed collapsedSections
- *       booleans.
- *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Panel recovery
- *       shortcuts (audit finding F4): Ctrl/Cmd+[ toggles the Workspace panel
- *       and Ctrl/Cmd+] the Tools panel; applyPanelStates now routes panel
- *       collapse through LayoutUI.setPanelCollapsed so aria and tooltips
- *       stay in sync on restore.
- *     - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Rebuilt for the
- *       toolMan ecosystem: boots every UI module through an error-isolated
- *       registry (one failing module no longer kills the app), removed the
- *       fake loading delays, theme handling delegated to TOOLMAN, save flow
- *       unified through EditorUI, and the loader handoff now actually fires
- *       (the v1 bug: missing scripts meant init never ran).
- *     - 1.0.0 (2025-11-18) [model not recorded] — Initial five-step
- *       initialization skeleton.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     textMan's boot sequence and global concerns. Restores persisted state,
@@ -48,7 +36,8 @@
  *     - Error-isolated module boot: each UI module inits in its own try/catch
  *     - State restore before first paint of the workspace
  *     - Global shortcuts: Ctrl/Cmd+S save, Ctrl/Cmd+F focus search,
- *       Ctrl/Cmd+[ and Ctrl/Cmd+] panel toggles, Ctrl/Cmd+, settings, Esc
+ *       Ctrl/Cmd+[ and Ctrl/Cmd+] panel toggles, Ctrl/Cmd+\ Focus mode,
+ *       Ctrl/Cmd+Shift+\ Zen mode, Ctrl/Cmd+, settings, Esc
  *     - Lifecycle persistence: pagehide + visibilitychange saves
  *     - Session tracking in analytics
  *     - Loader completion with guaranteed handoff
@@ -67,7 +56,10 @@
  *     - Ctrl/Cmd+F → focuses and selects #search-input (not browser find)
  *     - Ctrl/Cmd+, → ModalsUI.open('modal-settings')
  *     - Ctrl/Cmd+[ → LayoutUI.togglePanel('left'); Ctrl/Cmd+] → 'right'
- *     - Ctrl/Cmd+G → EditorUI.promptGoToLine(); Ctrl/Cmd+\ → Zen mode
+ *     - Ctrl/Cmd+G → EditorUI.promptGoToLine()
+ *     - Ctrl/Cmd+\ → Focus mode (both rails collapse to their labels)
+ *     - Ctrl/Cmd+Shift+\ → Zen mode (LayoutUI.toggleZen — rails, pane titles
+ *       and chrome gone entirely); Esc exits Zen unless a dialog owns the key
  *     - Switching tabs (visibilitychange → hidden) triggers Storage.save()
  *     - Closing with unsaved work → beforeunload warning via editor.isDirty
  *     - App.applyPanelStates(State.get().ui) → re-applies panel/section
@@ -178,13 +170,25 @@
                     if (window.EditorUI) EditorUI.saveNow();
                 }
 
-                // Ctrl/Cmd + F — focus the search tool (not browser find)
+                // Ctrl/Cmd + F — focus the search tool (not browser find).
+                // Collapsed accordion bodies are display:none, so the field
+                // has to be revealed before it can take focus — focusing a
+                // hidden input silently does nothing.
                 if (mod && e.key.toLowerCase() === 'f') {
                     const searchInput = DOM.id('search-input');
                     if (searchInput) {
                         e.preventDefault();
-                        searchInput.focus();
-                        searchInput.select();
+
+                        if (window.State && window.LayoutUI) {
+                            State.setOpenSection('tools', 'search');
+                            LayoutUI.applyAccordionState();
+                        }
+
+                        // The reveal transitions; focus once it can land.
+                        requestAnimationFrame(() => {
+                            searchInput.focus();
+                            searchInput.select();
+                        });
                     }
                 }
 
@@ -209,14 +213,47 @@
                     if (window.EditorUI) EditorUI.promptGoToLine();
                 }
 
-                // Ctrl/Cmd + \ — Zen mode (collapse both panels / restore)
-                if (mod && e.key === '\\') {
+                // Ctrl/Cmd + \ — Focus mode; add Shift for Zen mode.
+                // Shifting a backslash produces '|' on a US layout and '\' on
+                // some others, so both glyphs are accepted and the modifier —
+                // not the character — decides which mode is meant.
+                if (mod && (e.key === '\\' || e.key === '|')) {
                     e.preventDefault();
-                    this.toggleZen();
-                }
 
-                // Escape — handled by ModalsUI's own listener
+                    if (e.shiftKey) {
+                        if (window.LayoutUI) LayoutUI.toggleZen();
+                    } else if (window.LayoutUI && LayoutUI.zenActive) {
+                        // In Zen the rails are already gone, so Focus has
+                        // nothing left to collapse. The key becomes the
+                        // "keyboard command" review §14.2 asks for instead:
+                        // peek the hidden chrome back into view.
+                        LayoutUI.toggleZenChrome();
+                    } else {
+                        this.toggleFocus();
+                    }
+                }
             });
+
+            // Escape — CAPTURE phase, deliberately.
+            //
+            // ModalsUI registers its own Escape handler on document during
+            // init, i.e. BEFORE this one, and it bubbles. A second bubbling
+            // listener here would therefore run after the dialog had already
+            // closed and reset activeModal to null — one Escape press would
+            // close the dialog AND drop out of Zen. Capture runs ahead of
+            // every bubble listener regardless of registration order, so the
+            // dialog still owns the key while it is open.
+            document.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                if (!window.LayoutUI || !LayoutUI.zenActive) return;
+
+                // Something more local owns this press.
+                if (window.ModalsUI && ModalsUI.activeModal) return;
+                if (LayoutUI._mobileOpen) return;
+
+                e.preventDefault();
+                LayoutUI.setZen(false);
+            }, true);
         },
 
         /** Persist on page teardown / backgrounding. */
@@ -240,26 +277,35 @@
         },
 
         /**
-         * Zen mode: collapse both panels for a distraction-free write; a
-         * second invocation restores whatever layout was showing before.
+         * FOCUS MODE (review §14.1).
+         *
+         * Collapse both rails to their vertical labels so the editor owns the
+         * stage. The global header, the toolbar, the pane titles and every
+         * status readout stay put — Workspace and Tools remain one click away.
+         * §14.1 calls this state useful and asks for it to stay exactly as it
+         * behaves; the only thing that changed is its name. The genuinely
+         * distraction-free state is Zen mode, which lives in LayoutUI.
+         *
+         * Panel collapse is persisted state, so Focus survives a reload the
+         * same way a manually collapsed rail always has.
          */
-        _zenPrev: null,
+        _focusPrev: null,
 
-        toggleZen() {
+        toggleFocus() {
             if (!window.LayoutUI) return;
             const ui = State.get().ui;
 
-            if (this._zenPrev) {
-                // Restore the pre-Zen layout
-                if (ui.leftPanelCollapsed !== this._zenPrev.left) LayoutUI.togglePanel('left');
-                if (ui.rightPanelCollapsed !== this._zenPrev.right) LayoutUI.togglePanel('right');
-                this._zenPrev = null;
-                TOOLMAN.notify('Zen mode off', 'info', 1200);
+            if (this._focusPrev) {
+                // Restore the pre-Focus layout
+                if (ui.leftPanelCollapsed !== this._focusPrev.left) LayoutUI.togglePanel('left');
+                if (ui.rightPanelCollapsed !== this._focusPrev.right) LayoutUI.togglePanel('right');
+                this._focusPrev = null;
+                TOOLMAN.notify('Focus mode off', 'info', 1200);
             } else {
-                this._zenPrev = { left: ui.leftPanelCollapsed, right: ui.rightPanelCollapsed };
+                this._focusPrev = { left: ui.leftPanelCollapsed, right: ui.rightPanelCollapsed };
                 if (!ui.leftPanelCollapsed) LayoutUI.togglePanel('left');
                 if (!ui.rightPanelCollapsed) LayoutUI.togglePanel('right');
-                TOOLMAN.notify('Zen mode — Ctrl+\\ to exit', 'info', 1800);
+                TOOLMAN.notify('Focus mode — Ctrl+\\ to exit', 'info', 1800);
             }
         },
 

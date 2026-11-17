@@ -1,16 +1,22 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: PrefixSuffixTools (textMan Edition - v1.0)
+ *     - Title: PrefixSuffixTools (textMan Edition - v1.1)
  *     - File Name: tools-prefix.js
  *     - Relative Path: tools/textman/js/ui/tools-prefix.js
- *     - Artifact Type: script
- *     - Version: 1.0.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Artifact Type: javascript
+ *     - Version: 1.1.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
- *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Scope pills gain
+ *       radiogroup semantics, roving tabindex, and arrow-key selection
+ *       without changing their look; preview lines are capped at 120
+ *       characters.
  *
  * ✒ Description:
  *     The Prefix/Suffix pane: wrap each line, the selection, or the whole
@@ -55,6 +61,7 @@
     'use strict';
 
     const PREVIEW_LINES = 8;
+    const PREVIEW_LINE_CHARS = 120; // a whole-document 'line' can be the entire text
 
     const PrefixUI = {
         scope: 'lines',
@@ -68,12 +75,53 @@
         },
 
         wireScopePills() {
-            DOM.delegate('.scope-pills', 'click', '.scope-btn', (e, btn) => {
-                DOM.$$('.scope-pills .scope-btn').forEach((b) => { b.dataset.active = 'false'; });
-                btn.dataset.active = 'true';
-                this.scope = btn.dataset.scope || 'lines';
-                this.hidePreview();
+            // Each line / Selection / Whole document are MUTUALLY EXCLUSIVE, so
+            // the pills carry radiogroup semantics: one tab stop, arrow keys
+            // move the choice, and a screen reader hears one control with three
+            // positions rather than three unrelated buttons.
+            const group = DOM.$('.scope-pills');
+            if (!group) return;
+            group.setAttribute('role', 'radiogroup');
+            group.setAttribute('aria-label', 'Apply to');
+            DOM.$$('.scope-btn', group).forEach((b) => {
+                b.setAttribute('type', 'button');
+                b.setAttribute('role', 'radio');
             });
+            this.selectScope(this.scope, false);
+
+            DOM.delegate(group, 'click', '.scope-btn', (e, btn) => {
+                this.selectScope(btn.dataset.scope || 'lines', false);
+            });
+
+            DOM.on(group, 'keydown', (e) => {
+                const keys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
+                if (!keys.includes(e.key)) return;
+                const options = DOM.$$('.scope-btn', group);
+                const current = options.findIndex((b) => b.dataset.active === 'true');
+                let next;
+                if (e.key === 'Home') next = 0;
+                else if (e.key === 'End') next = options.length - 1;
+                else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (current + 1) % options.length;
+                else next = (current - 1 + options.length) % options.length;
+                e.preventDefault();
+                this.selectScope(options[next].dataset.scope, true);
+            });
+        },
+
+        /** Select a scope pill: visual state, aria-checked, roving tabindex. */
+        selectScope(scope, moveFocus) {
+            let chosen = null;
+            DOM.$$('.scope-pills .scope-btn').forEach((b) => {
+                const on = b.dataset.scope === scope;
+                if (on) chosen = b;
+                b.dataset.active = String(on);
+                b.setAttribute('aria-checked', String(on));
+                b.tabIndex = on ? 0 : -1;
+            });
+            if (!chosen) return;
+            this.scope = scope;
+            if (moveFocus) chosen.focus();
+            this.hidePreview();
         },
 
         ensurePreviewBox() {
@@ -143,7 +191,12 @@
 
             const result = this.transform(this.sourceText(), prefix, suffix);
             const lines = result.split('\n');
-            const shown = lines.slice(0, PREVIEW_LINES).join('\n');
+            const shown = lines
+                .slice(0, PREVIEW_LINES)
+                .map((line) => (line.length > PREVIEW_LINE_CHARS
+                    ? `${line.slice(0, PREVIEW_LINE_CHARS)}…`
+                    : line))
+                .join('\n');
 
             DOM.empty(box);
             box.appendChild(document.createTextNode(shown || '(empty result)'));
