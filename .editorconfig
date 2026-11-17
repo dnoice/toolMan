@@ -1,0 +1,48 @@
+# ==============================================================================
+# ✒ Metadata
+#     - Title: EditorConfig (toolMan Edition - v1.0)
+#     - File Name: .editorconfig
+#     - Relative Path: .editorconfig
+#     - Artifact Type: config
+#     - Version: 1.0.0
+#     - Date: 11/17/2026
+#     - Update: Tuesday, November 17, 2026
+#     - Author: Dennis 'dendogg' Smaltz
+#     - A.I. Acknowledgement: Anthropic - Claude
+#     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+#
+# ✒ Description:
+#     Shared editor settings so every contributor's editor writes files the
+#     way the repository expects: UTF-8, LF, a final newline, and the house
+#     indentation for each file type.
+#
+# ✒ Key Features:
+#     - UTF-8 + LF + final newline everywhere (matches .gitattributes and the
+#       hygiene check in scripts/check.mjs)
+#     - Four-space indentation for HTML, CSS, and JavaScript
+#     - Two-space indentation for YAML, JSON, and Markdown
+#     - Trailing whitespace trimmed, except in Markdown where two trailing
+#       spaces are a hard line break
+#
+# ✒ Other Important Information:
+#     - Dependencies: an EditorConfig-aware editor (VS Code needs the
+#       EditorConfig extension; JetBrains IDEs support it natively)
+#     - Compatible platforms: all
+# ==============================================================================
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml,json}]
+indent_size = 2
+
+[*.md]
+indent_size = 2
+trim_trailing_whitespace = false

@@ -1,0 +1,115 @@
+# ==============================================================================
+# ✒ Metadata
+#     - Title: ContinuousIntegration (toolMan Edition - v1.0)
+#     - File Name: ci.yml
+#     - Relative Path: .github/workflows/ci.yml
+#     - Artifact Type: config
+#     - Version: 1.0.0
+#     - Date: 11/17/2026
+#     - Update: Tuesday, November 17, 2026
+#     - Author: Dennis 'dendogg' Smaltz
+#     - A.I. Acknowledgement: Anthropic - Claude
+#     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+#
+# ✒ Description:
+#     GitHub Actions CI for toolMan. Every pull request and every push to main
+#     runs the static checks and unit tests, then the browser suites in
+#     headless Chromium, then packages the runnable site as a downloadable
+#     artifact. It runs the same commands a contributor runs locally.
+#
+# ✒ Key Features:
+#     - checks: node scripts/check.mjs — hygiene, syntax, file headers,
+#       links, CSS custom properties, the security baseline, unit tests;
+#       findings annotate the pull request's lines
+#     - browser: node scripts/e2e.mjs — the smoke matrix (every live page ×
+#       both themes × desktop / phone) plus each tool's workflow suite, with
+#       network and console guards; screenshots uploaded on every run
+#     - package: git archive of the commit (export-ignore drops dev-only
+#       paths) uploaded as "toolman-site", ready to open or host
+#     - Least privilege: the token is read-only (contents: read)
+#     - Superseded runs on the same branch are cancelled
+#     - Pinned tool versions: Node 22 and Playwright 1.63.0, matching local runs
+#
+# ✒ Usage Instructions:
+#     Nothing to call: it runs on pull requests, on pushes to main, and on
+#     demand from the Actions tab (workflow_dispatch). Reproduce locally with:
+#         node scripts/check.mjs
+#         node scripts/e2e.mjs
+#
+# ✒ Other Important Information:
+#     - Dependencies: GitHub-hosted ubuntu-latest runners; actions/checkout,
+#       actions/setup-node, actions/upload-artifact (major-pinned, kept
+#       current by .github/dependabot.yml)
+#     - Compatible platforms: GitHub Actions
+#     - Nothing is deployed: publishing (for example GitHub Pages) is a
+#       separate decision for the repository owner
+# ==============================================================================
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Static checks + unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Run scripts/check.mjs
+        run: node scripts/check.mjs
+
+  browser:
+    name: Browser tests (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install Playwright ad hoc (nothing is committed)
+        run: |
+          npm install --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Run scripts/e2e.mjs
+        run: node scripts/e2e.mjs --shots e2e-shots
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-screenshots
+          path: e2e-shots
+          retention-days: 7
+          if-no-files-found: ignore
+
+  package:
+    name: Package the site
+    needs: [checks, browser]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build toolman-site.zip from the commit
+        run: git archive --format=zip --prefix=toolman/ -o toolman-site.zip HEAD
+      - name: List the package
+        run: unzip -l toolman-site.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: toolman-site
+          path: toolman-site.zip
+          retention-days: 14

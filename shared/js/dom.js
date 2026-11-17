@@ -27,8 +27,7 @@
  *       delegation, debounce/throttle, clipboard helper with fallback,
  *       regex escaping, map-based HTML escaping, and null-safety throughout.
  *       Wrapped in an IIFE to stop leaking implementation details.
- *     - 1.0.0 (2025-11-18) [model not recorded] — Initial DOM helpers and
- *       text utilities.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     Shared DOM manipulation and text-measurement helpers used by every

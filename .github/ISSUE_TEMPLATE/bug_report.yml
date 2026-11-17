@@ -1,0 +1,112 @@
+# ==============================================================================
+# ✒ Metadata
+#     - Title: BugReportForm (toolMan Edition - v1.0)
+#     - File Name: bug_report.yml
+#     - Relative Path: .github/ISSUE_TEMPLATE/bug_report.yml
+#     - Artifact Type: config
+#     - Version: 1.0.0
+#     - Date: 11/17/2026
+#     - Update: Tuesday, November 17, 2026
+#     - Author: Dennis 'dendogg' Smaltz
+#     - A.I. Acknowledgement: Anthropic - Claude
+#     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+#
+# ✒ Description:
+#     GitHub issue form for bug reports. It asks for exactly what a toolMan
+#     bug needs to be reproduced — which tool, which browser, which theme,
+#     how the page was opened, and the console output — without asking for
+#     anything personal.
+#
+# ✒ Key Features:
+#     - Tool picker covering the hub, every tool, and the shared kit
+#     - Browser, theme, and how-it-was-opened (file:// or a server) fields,
+#       the three things that most often change toolMan's behaviour
+#     - Steps / expected / actual, plus console output and screenshots
+#     - A reminder to report security problems privately instead
+#
+# ✒ Other Important Information:
+#     - Dependencies: GitHub issue forms
+#     - Compatible platforms: GitHub
+# ==============================================================================
+
+name: Bug report
+description: Something in toolMan doesn't work the way it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. **Found a security problem?** Please don't file it here — follow [SECURITY.md](https://github.com/dnoice/toolMan/blob/main/SECURITY.md) to report it privately.
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Where is the problem?
+      options:
+        - Hub (the landing page)
+        - textMan
+        - colorMan
+        - mathMan
+        - convertMan
+        - devMan
+        - svgMan
+        - Everywhere / shared (theme, loader, panels, dialogs)
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open colorMan
+        2. Paste #C9A84C into the color field
+        3. Open Contrast…
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 131, Firefox 133, Safari 18…
+    validations:
+      required: true
+  - type: dropdown
+    id: theme
+    attributes:
+      label: Theme
+      options:
+        - Parchment (light)
+        - Sentinel (dark)
+        - Both
+        - Not sure
+  - type: dropdown
+    id: opened
+    attributes:
+      label: How was toolMan opened?
+      options:
+        - Opened the file directly (file://)
+        - From a local server (Live Server, python -m http.server…)
+        - From a hosted copy
+        - Not sure
+  - type: textarea
+    id: console
+    attributes:
+      label: Console output
+      description: Open the browser's developer tools (F12) → Console, and paste any red errors.
+      render: text
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or anything else
+      description: Drag images in here. Please leave out anything private from your own text or files.

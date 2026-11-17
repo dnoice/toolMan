@@ -27,19 +27,7 @@
  *       plus panelOf/getOpenSection/setOpenSection/toggleSection helpers.
  *       mergeRestore accepts both shapes — legacy payloads convert by
  *       opening each sidebar's first non-collapsed section.
- *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Added
- *       ui.sectionOrder (workspace/tools) with the setSectionOrder helper and
- *       restore-merge support, persisting the user's drag-and-drop section
- *       arrangement — the first "manipulate your workspace" feature.
- *     - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Moved into the
- *       toolMan ecosystem (tools/textman/). Storage now namespaced under
- *       'toolman.textman.state' with automatic migration from the legacy
- *       'textman-state' key. Hardened: collision-proof IDs via
- *       crypto.randomUUID, input validation on all mutators, allowlisted
- *       restore merge, transform usage tallies for analytics, and theme moved
- *       to the ecosystem level.
- *     - 1.0.0 (2025-11-18) [model not recorded] — Initial centralized state
- *       with four seed templates and CRUD helpers.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     Centralized application state for textMan plus the helper API every UI

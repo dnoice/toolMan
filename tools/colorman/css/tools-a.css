@@ -1,0 +1,975 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: ToolsAStyles (colorMan Edition - v1.0)
+ *     - File Name: tools-a.css
+ *     - Relative Path: tools/colorman/css/tools-a.css
+ *     - Artifact Type: stylesheet
+ *     - Version: 1.0.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     The colorMan-specific styling for four Tools-rail panes: Adjust,
+ *     Contrast, Harmonies, and Shades & Tints. Tiles, chips, badges,
+ *     buttons, steppers, and feedback lines come from the shared workbench
+ *     kit; this file adds only what those panes need beyond it, with tight
+ *     spacing so a narrow rail shows as much as possible.
+ *
+ * ✒ Key Features:
+ *     - .ta-pane rhythm: one small gap between blocks, shared margins reset
+ *       so nested containers do not stack extra breathing room
+ *     - Radio chips and toggle chips that show a check mark or an empty box,
+ *       so their state never relies on color alone
+ *     - Adjust: result preview chip on each tile, amount read-out
+ *     - Contrast: text/background slots, large mono ratio, APCA row, live
+ *       preview of 14px, 24px bold, and a bordered UI chip over a checker
+ *     - Contrast suggestions and a scrollable palette grid with sticky
+ *       headers, pass/fail marks, and an outlined current pair
+ *     - Harmonies: masked hue ring with placed dots and a shape outline,
+ *       swatch items that stretch to fill the row
+ *     - Shades & Tints: compact step rows with a gold rule on the base step
+ *       and pass-marked white/black ratios
+ *     - Visible keyboard focus on every custom control; both themes through
+ *       tokens only
+ *
+ * ✒ Usage Instructions:
+ *     Load after colorman.css (and picker.css, library.css), before
+ *     tools-b.css, as index.html already does. The pane modules in
+ *     js/ui/adjust.js, contrast.js, harmony.js, and scale.js write the markup;
+ *     user colors arrive as inline custom properties (--c, --con-fg, --con-bg).
+ *
+ * ✒ Examples:
+ *     <div class="ta-pane adj" data-scope="working"> → tile previews hidden
+ *     <button class="chip-btn ta-toggle" aria-pressed="true"> → "☑ Pin foreground"
+ *     <button class="chip-btn ta-radio" role="radio" aria-checked="true"> → "✓ Triadic"
+ *     <div class="con-preview-fill" style="--con-fg:#1B2A4A;--con-bg:#F5F0E8">
+ *     <li class="scl-row" data-base="true"> → gold rule and Base badge
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/tokens.css, panels.css, workbench.css;
+ *       css/colorman.css (.swatch, .checker)
+ *     - Compatible platforms: all evergreen browsers; the hue ring needs CSS
+ *       masks (without them it shows as a full disc behind the dots)
+ *     - Limitations: no literal theme colors; the only colors drawn here are
+ *       the user's, passed in through custom properties
+ * ----------------------------------------------------------------------------
+ */
+
+/* ═══════════════════════════════════════════════════════════
+   SHARED PANE RHYTHM — one small gap, no stacked margins
+   ═══════════════════════════════════════════════════════════ */
+
+.ta-pane {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+.ta-pane > .pane-hint,
+.ta-pane .chip-row,
+.ta-pane .tool-feedback {
+    margin: 0;
+}
+
+/* A label directly above its chips sits close to them. */
+.ta-pane > .mini-label {
+    margin: 0 0 calc(-1 * var(--space-xs));
+}
+
+.ta-pane .tool-feedback {
+    padding: var(--space-xs) var(--space-sm);
+}
+
+.ta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs) var(--space-sm);
+    min-width: 0;
+}
+
+.ta-actions .btn {
+    flex: 1 1 auto;
+}
+
+.ta-note {
+    margin: 0;
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+    color: var(--fg-muted);
+    overflow-wrap: anywhere;
+}
+
+.ta-note:empty {
+    display: none;
+}
+
+.ta-field-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.ta-field-head .mini-label {
+    margin-bottom: 0;
+}
+
+.ta-value {
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    font-weight: var(--font-semibold);
+    color: var(--fg-default);
+    font-variant-numeric: tabular-nums;
+}
+
+.ta-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Empty states inside a pane: compact, the pane is already a card. */
+.ta-pane .ta-empty,
+.cm-mount > .ta-empty {
+    gap: var(--space-xs);
+    padding: var(--space-md) var(--space-sm);
+    border: var(--border-width) dashed var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface-alt);
+}
+
+.ta-empty .empty-title {
+    font-size: var(--font-sm);
+}
+
+.ta-empty .empty-text {
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+}
+
+/* Radio chips: a check mark on the chosen one, not just the fill. */
+.ta-radio {
+    font-weight: var(--font-semibold);
+}
+
+.ta-radio[aria-checked="true"]::before {
+    content: '✓';
+    font-weight: var(--font-bold);
+}
+
+/* Toggle chips: an empty box when off, a ticked box when on. */
+.ta-toggle {
+    font-weight: var(--font-semibold);
+}
+
+.ta-toggle::before {
+    content: '';
+    display: inline-grid;
+    place-items: center;
+    width: 11px;
+    height: 11px;
+    border: var(--border-width) solid currentColor;
+    border-radius: 3px;
+    font-size: 0.5625rem;
+    line-height: 1;
+}
+
+.ta-toggle[aria-pressed="true"]::before {
+    content: '✓';
+    font-weight: var(--font-bold);
+}
+
+.ta-radio:focus-visible,
+.ta-toggle:focus-visible,
+.ta-pane .chip-btn:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+}
+
+/* Feedback line with an inline action (Adjust's palette Undo). */
+.ta-feedback[data-state] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.ta-feedback-text {
+    min-width: 0;
+}
+
+.ta-feedback-action {
+    flex-shrink: 0;
+}
+
+.ta-feedback-action[hidden] {
+    display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ADJUST
+   ═══════════════════════════════════════════════════════════ */
+
+.adj-amount {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.adj-range {
+    margin: 0;
+}
+
+.adj-range:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+}
+
+.adj-target {
+    margin-top: calc(-1 * var(--space-xs));
+}
+
+.adj-grid {
+    gap: var(--gap-card);
+}
+
+.adj-tile {
+    min-height: 46px;
+    padding: var(--space-xs) 26px var(--space-xs) var(--space-sm);
+}
+
+/* Small chip with the tile's result for the active color. */
+.adj-preview {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 14px;
+    height: 14px;
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-full);
+    background-color: var(--bg-elevated);
+    background-image:
+        linear-gradient(var(--c, transparent), var(--c, transparent)),
+        repeating-conic-gradient(#CFCFCF 0% 25%, #FFFFFF 0% 50%);
+    background-size: auto, 6px 6px;
+}
+
+.adj[data-scope="working"] .adj-preview {
+    display: none;
+}
+
+.adj[data-scope="working"] .adj-tile {
+    padding-right: var(--space-sm);
+}
+
+.adj-tile[data-noop="true"] .btn-label {
+    color: var(--fg-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CONTRAST
+   ═══════════════════════════════════════════════════════════ */
+
+.con-pair {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-card);
+    padding: var(--space-sm);
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+}
+
+.con-slot {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.con-slot-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.con-slot-label {
+    margin: 0;
+}
+
+.con-slot-text {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: var(--space-sm);
+    min-width: 0;
+}
+
+.con-slot-hex {
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    font-weight: var(--font-semibold);
+    color: var(--fg-default);
+}
+
+.con-slot-meta {
+    font-size: 0.6875rem;
+    color: var(--fg-muted);
+}
+
+.con-slot .ta-toggle {
+    align-self: start;
+}
+
+.con-bg-input {
+    height: 30px;
+    padding: var(--space-xs) var(--space-sm);
+}
+
+.con-bg-error {
+    margin: 0;
+}
+
+.con-bg-error:empty {
+    display: none;
+}
+
+.con-bg-tools .btn {
+    flex: 1 1 0;
+}
+
+.con-preset .swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-full);
+    background-size: auto, 4px 4px;
+}
+
+.con-preset[aria-pressed="true"]::after {
+    content: '✓';
+    font-weight: var(--font-bold);
+}
+
+/* Result */
+.con-result {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-card);
+}
+
+.con-ratio-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs) var(--space-sm);
+}
+
+.con-ratio {
+    font-family: var(--font-mono);
+    font-size: var(--font-3xl);
+    font-weight: var(--font-bold);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--fg-default);
+    font-variant-numeric: tabular-nums;
+}
+
+.con-verdict {
+    font-size: var(--font-xs);
+    padding: 3px var(--space-sm);
+}
+
+.con-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.con-apca {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: var(--gap-card);
+    border-top: var(--border-width) solid var(--border-muted);
+}
+
+.con-apca-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs) var(--space-sm);
+}
+
+.con-apca-head .mini-label {
+    margin: 0;
+}
+
+.con-apca-value {
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    font-weight: var(--font-semibold);
+    color: var(--fg-default);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Preview: the user's pair over a checkerboard (for translucent colors). */
+.con-preview {
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.con-preview-fill {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--gap-card);
+    padding: var(--space-sm) var(--pad-card);
+    background: var(--con-bg, transparent);
+    color: var(--con-fg, inherit);
+}
+
+.con-sample-sm {
+    margin: 0;
+    font-size: 14px;
+    font-weight: var(--font-normal);
+    line-height: 1.45;
+}
+
+.con-sample-lg {
+    margin: 0;
+    font-size: 24px;
+    font-weight: var(--font-bold);
+    line-height: 1.2;
+}
+
+.con-sample-ui {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px 3px 7px;
+    border: 2px solid currentColor;
+    border-radius: var(--radius-full);
+    font-size: var(--font-xs);
+    font-weight: var(--font-semibold);
+}
+
+.con-translucent[hidden],
+.con-suggest[hidden],
+.con-grid-block[hidden] {
+    display: none;
+}
+
+/* Suggestions */
+.con-suggest {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-card);
+}
+
+.con-suggest-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-sm);
+    padding: var(--gap-card);
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+}
+
+.con-suggest-sample {
+    display: block;
+    width: 44px;
+    height: 34px;
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.con-suggest-fill {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    background: var(--con-bg, transparent);
+    color: var(--con-fg, inherit);
+    font-size: var(--font-base);
+    font-weight: var(--font-bold);
+}
+
+.con-suggest-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+}
+
+.con-suggest-title {
+    font-size: var(--font-xs);
+    font-weight: var(--font-semibold);
+    color: var(--fg-default);
+}
+
+.con-suggest-hex {
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--fg-body);
+}
+
+.con-suggest-note {
+    font-size: 0.6875rem;
+    color: var(--fg-subtle);
+}
+
+.con-suggest-info .btn {
+    margin-top: 2px;
+}
+
+/* Palette grid */
+.con-grid-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-card);
+}
+
+.con-grid-wrap {
+    max-height: 360px;
+    background: var(--bg-input);
+}
+
+.con-grid {
+    border-collapse: separate;
+    border-spacing: 2px;
+    font-size: 0.6875rem;
+}
+
+.con-grid th {
+    padding: 2px;
+    text-align: center;
+    vertical-align: middle;
+    background: var(--bg-input);
+}
+
+.con-grid thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.con-grid tbody th {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+}
+
+.con-grid thead th:first-child {
+    left: 0;
+    z-index: 3;
+}
+
+.con-grid td {
+    padding: 0;
+    text-align: center;
+}
+
+.con-grid-corner {
+    min-width: 34px;
+    font-size: 0.5625rem;
+    font-weight: var(--font-semibold);
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--fg-subtle);
+}
+
+.con-grid th .swatch {
+    display: block;
+    margin: 0 auto;
+}
+
+.con-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    width: 40px;
+    padding: 2px;
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.con-cell:hover {
+    border-color: var(--border-focus);
+    transform: translateY(-1px);
+}
+
+.con-cell:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 1px;
+}
+
+.con-cell[data-active="true"] {
+    border-color: var(--color-brand);
+    box-shadow: inset 0 0 0 1px var(--color-brand);
+}
+
+.con-cell-sample {
+    display: block;
+    border-radius: 2px;
+    background: var(--con-bg, transparent);
+    color: var(--con-fg, inherit);
+    font-size: var(--font-xs);
+    font-weight: var(--font-bold);
+    line-height: 18px;
+}
+
+.con-cell-ratio {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.con-cell[data-tone="pass"] .con-cell-ratio {
+    color: var(--color-success);
+}
+
+.con-cell[data-tone="fail"] .con-cell-ratio {
+    color: var(--color-danger);
+}
+
+.con-cell-same {
+    display: inline-block;
+    width: 40px;
+    color: var(--fg-subtle);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HARMONIES
+   ═══════════════════════════════════════════════════════════ */
+
+.har-top {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.har-wheel {
+    position: relative;
+    width: 84px;
+    height: 84px;
+}
+
+/* The hue ring: a conic gradient (set from JS) masked to a band. */
+.har-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-full);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 9px), currentColor calc(100% - 8px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 9px), currentColor calc(100% - 8px));
+}
+
+.har-lines {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.har-lines polygon {
+    fill: var(--bg-active);
+    stroke: var(--fg-muted);
+    stroke-width: 1;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.har-lines polygon[data-shape="line"] {
+    fill: none;
+}
+
+.har-dots {
+    position: absolute;
+    inset: 0;
+}
+
+.har-dot {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    margin: -6px 0 0 -6px;
+    border: 2px solid var(--bg-elevated);
+    border-radius: var(--radius-full);
+    background: var(--c, transparent);
+    box-shadow: 0 0 0 1px var(--border-default);
+    transition: left var(--transition-base), top var(--transition-base);
+}
+
+.har-dot[data-base="true"] {
+    z-index: 1;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    box-shadow: 0 0 0 2px var(--color-identity-gold);
+}
+
+.har-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.har-side .mini-label {
+    margin: 0;
+}
+
+.har-items {
+    display: grid;
+    grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr));
+    gap: var(--space-xs);
+}
+
+.har-item {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    min-width: 0;
+    padding: 2px 2px var(--space-xs);
+    background: transparent;
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-md);
+    text-align: center;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.har-item:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-muted);
+}
+
+.har-item:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 1px;
+}
+
+.har-item:hover .har-swatch {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.har-swatch {
+    width: 100%;
+    height: 48px;
+    border-radius: var(--radius-md);
+    background-size: auto, 10px 10px;
+    pointer-events: none;
+}
+
+.har-item[data-base="true"] .har-swatch {
+    border-color: var(--color-identity-gold);
+    box-shadow: 0 0 0 1px var(--color-identity-gold);
+}
+
+.har-hex {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: -0.02em;
+    color: var(--fg-default);
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Five swatches share a narrow rail row: keep each hex on one line. */
+.har-items[data-count="5"] .har-hex {
+    font-size: 0.625rem;
+    letter-spacing: -0.04em;
+}
+
+.har-tag {
+    font-size: 0.625rem;
+    font-weight: var(--font-medium);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fg-subtle);
+}
+
+.har-item[data-base="true"] .har-tag {
+    color: var(--color-brand);
+    font-weight: var(--font-bold);
+}
+
+.har-grey[hidden] {
+    display: none;
+}
+
+.har-grey {
+    padding: var(--space-xs) var(--space-sm);
+    border-left: 3px solid var(--color-warning);
+    border-radius: var(--radius-sm);
+    background: var(--wash-warning);
+    color: var(--fg-body);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SHADES & TINTS
+   ═══════════════════════════════════════════════════════════ */
+
+.scl-steps .mini-label {
+    margin: 0;
+}
+
+.scl-stepper .stepper-btn {
+    width: 30px;
+    min-height: 28px;
+}
+
+.scl-stepper .stepper-value {
+    min-width: 82px;
+}
+
+.scl-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.scl-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 2px;
+}
+
+.scl-pick {
+    display: grid;
+    grid-template-columns: 24px minmax(52px, auto) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 0;
+    padding: 3px var(--space-sm) 3px var(--space-xs);
+    background: transparent;
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-sm);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.scl-pick:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-muted);
+}
+
+.scl-pick:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: -1px;
+}
+
+.scl-row[data-base="true"] .scl-pick,
+.scl-pick[aria-current="true"] {
+    background: var(--bg-elevated);
+    border-color: var(--border-muted);
+    box-shadow: inset 3px 0 0 var(--color-identity-gold);
+}
+
+.scl-swatch {
+    width: 24px;
+    height: 24px;
+    pointer-events: none;
+}
+
+.scl-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-xs);
+    font-weight: var(--font-semibold);
+    color: var(--fg-default);
+    white-space: nowrap;
+}
+
+.scl-base {
+    padding: 0 5px;
+    font-size: 0.5625rem;
+}
+
+.scl-hex {
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--fg-body);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.scl-ratios {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.scl-ratio[data-tone="pass"] {
+    color: var(--color-success);
+}
+
+.scl-ratio[data-tone="fail"] {
+    color: var(--fg-subtle);
+}
+
+.scl-copy {
+    width: 26px;
+    height: 26px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NARROW RAILS (phones, small drawers)
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 480px) {
+    .con-ratio {
+        font-size: var(--font-2xl);
+    }
+
+    .har-top {
+        grid-template-columns: 72px minmax(0, 1fr);
+    }
+
+    .har-wheel {
+        width: 72px;
+        height: 72px;
+    }
+}

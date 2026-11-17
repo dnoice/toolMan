@@ -1,0 +1,735 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: LibraryStyles (colorMan Edition - v1.0)
+ *     - File Name: library.css
+ *     - Relative Path: tools/colorman/css/library.css
+ *     - Artifact Type: stylesheet
+ *     - Version: 1.0.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Styles for the Working palette card and the four Library panes. It
+ *     adds only what is specific to them (the large-swatch grid with its
+ *     hover toolbar, drop targets, the current-color row, named-color rows)
+ *     and leans on the shared list cards, chips, buttons, and swatch
+ *     primitives for everything else. Spacing is kept a step tighter than
+ *     the defaults so the panes read compact.
+ *
+ * ✒ Key Features:
+ *     - Working palette head: inline name field, link status with a dot and
+ *       words (never color alone), and a mono color-count pill by the title
+ *     - Large-swatch grid with hex and name captions, a floating action
+ *       toolbar shown on hover and keyboard focus (always shown on touch)
+ *     - Drag-and-drop feedback: dimmed source, gold insertion bar, and a
+ *       full-card "drop the image" target
+ *     - Dashed "Add current color" tile with a dot of the current color
+ *     - Compact empty states and an inline Undo strip shared by the panes
+ *     - Library bar: filter field and New / Import… on one wrapping row
+ *     - Palette cards with a flush color bar that opens the palette
+ *     - Saved Colors "current color" row with save, rename, and remove
+ *     - Named-color rows with a chip, name, hex, ΔE pill, and a check mark
+ *       plus outline on the current color
+ *     - A visually hidden live region utility (.cm-sr)
+ *
+ * ✒ Usage Instructions:
+ *     Load after css/colorman.css and css/picker.css, before tools-a.css:
+ *         <link rel="stylesheet" href="css/library.css">
+ *     js/ui/working.js and js/ui/library.js write the matching markup; no
+ *     classes here need to be added by hand.
+ *
+ * ✒ Examples:
+ *     <ul class="wp-grid"><li class="wp-item"> swatch + .wp-meta + .wp-tools </li></ul>
+ *     <span class="wp-status" data-state="dirty">Unsaved changes to ‘Sunset’</span>
+ *     <div class="tool-feedback cm-undo" data-state="info">Removed … <button>Undo</button></div>
+ *     <div class="lib-bar"><input class="rail-filter"> <div class="section-actions">…</div></div>
+ *     <button class="lib-named-row" data-active="true">chip · goldenrod · #DAA520</button>
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/tokens.css, panels.css, workbench.css;
+ *       css/colorman.css (.swatch, .swatch-grid, .swatch-strip)
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: the only literal colors are the neutral checkerboard
+ *       under the add tile's color dot; everything else is a theme token
+ * ----------------------------------------------------------------------------
+ */
+
+/* ═══════════════════════════════════════════════════════════
+   SHARED BITS — hidden state, screen-reader text, undo strip
+   ═══════════════════════════════════════════════════════════ */
+
+/* Several shared classes set display, which beats the bare [hidden]
+   attribute; inside these panes hidden always means hidden. */
+#card-working [hidden],
+#panel-library .cm-mount [hidden] {
+    display: none !important;
+}
+
+.cm-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.cm-file {
+    display: none;
+}
+
+.tool-feedback.cm-undo[data-state] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin: 0 0 var(--space-sm);
+    padding: 2px 2px 2px var(--space-sm);
+}
+
+.cm-undo-text {
+    min-width: 0;
+}
+
+.cm-undo .cm-undo-btn {
+    flex-shrink: 0;
+    padding: 2px var(--space-sm);
+    color: var(--color-info);
+    font-weight: var(--font-semibold);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   WORKING PALETTE CARD
+   ═══════════════════════════════════════════════════════════ */
+
+#card-working {
+    position: relative;
+}
+
+#card-working .stage-card-head {
+    justify-content: flex-start;
+    gap: var(--space-sm);
+}
+
+#actions-working {
+    margin-left: auto;
+}
+
+.wp-count {
+    padding: 1px 8px;
+    background: var(--bg-tag);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+    color: var(--fg-meta);
+    white-space: nowrap;
+}
+
+.wp-sort.select-input {
+    width: auto;
+    min-height: 28px;
+    padding: 3px var(--space-sm);
+    border-radius: var(--radius-md);
+    font-size: var(--font-xs);
+    cursor: pointer;
+}
+
+.wp-sort.select-input:disabled,
+#actions-working .btn:disabled {
+    cursor: not-allowed;
+}
+
+#mount-working {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.wp-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px var(--space-sm);
+    min-width: 0;
+}
+
+.wp-name.doc-title {
+    flex: 0 1 280px;
+    margin-left: calc(-1 * var(--space-sm));
+}
+
+.wp-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: var(--font-xs);
+    color: var(--fg-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wp-status::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    flex-shrink: 0;
+    border-radius: var(--radius-full);
+    background: var(--fg-subtle);
+}
+
+.wp-status[data-state="saved"]::before {
+    background: var(--color-success);
+}
+
+.wp-status[data-state="new"]::before {
+    background: var(--color-info);
+}
+
+.wp-status[data-state="dirty"] {
+    color: var(--color-warning);
+}
+
+.wp-status[data-state="dirty"]::before {
+    background: var(--color-warning);
+}
+
+/* ── Swatch grid ── */
+
+.wp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    gap: var(--space-sm) var(--space-xs);
+    margin: 0;
+    padding: var(--space-xs) 0 0;
+    list-style: none;
+}
+
+.wp-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+    padding: 2px;
+    border-radius: var(--radius-md);
+    transition: opacity var(--transition-fast), background-color var(--transition-fast);
+}
+
+.wp-item.is-dragging {
+    opacity: 0.4;
+}
+
+.wp-item[draggable="true"] .wp-swatch {
+    cursor: grab;
+}
+
+/* Gold insertion bar on the side the dragged color will land. */
+.wp-item[data-drop]::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    width: 3px;
+    height: 56px;
+    border-radius: var(--radius-full);
+    background: var(--color-identity-gold);
+    box-shadow: var(--glow-brand);
+    pointer-events: none;
+}
+
+.wp-item[data-drop="before"]::after {
+    left: -3px;
+}
+
+.wp-item[data-drop="after"]::after {
+    right: -3px;
+}
+
+.wp-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 100%;
+    min-width: 0;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.wp-hex {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--fg-default);
+    white-space: nowrap;
+}
+
+.wp-label {
+    max-width: 100%;
+    font-size: 0.6875rem;
+    color: var(--fg-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Floating per-swatch toolbar: hover or keyboard focus reveals it. */
+.wp-tools {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    z-index: 3;
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -3px);
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.wp-item:hover .wp-tools,
+.wp-item:focus-within .wp-tools {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
+}
+
+.wp-item.is-dragging .wp-tools {
+    opacity: 0;
+}
+
+.wp-tools .icon-action {
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-sm);
+}
+
+/* Touch screens have no hover: keep the actions in view under the caption. */
+@media (hover: none) {
+    .wp-tools {
+        position: static;
+        opacity: 1;
+        pointer-events: auto;
+        transform: none;
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+    }
+
+    .wp-item:hover .wp-tools,
+    .wp-item:focus-within .wp-tools {
+        transform: none;
+    }
+}
+
+/* ── Add tile ── */
+
+.wp-add {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    background: var(--bg-surface-alt);
+    border: var(--border-width-thick) dashed var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast),
+                background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.wp-add:hover {
+    border-color: var(--color-brand);
+    background: var(--bg-active);
+    color: var(--color-brand);
+    transform: translateY(-1px);
+}
+
+.wp-add:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+}
+
+.wp-add-dot {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 12px;
+    height: 12px;
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-full);
+    background-color: #FFFFFF;
+    background-image:
+        linear-gradient(var(--c, transparent), var(--c, transparent)),
+        repeating-conic-gradient(#CFCFCF 0% 25%, #FFFFFF 0% 50%);
+    background-size: auto, 6px 6px;
+}
+
+.wp-add-label {
+    font-size: 0.6875rem;
+    color: var(--fg-muted);
+}
+
+/* ── Empty state, hint, image drop ── */
+
+.wp-empty.empty-state {
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-sm);
+    background: var(--bg-surface-alt);
+    border: var(--border-width) dashed var(--border-default);
+    border-radius: var(--radius-md);
+}
+
+.wp-empty .empty-text {
+    max-width: 460px;
+    line-height: var(--leading-normal);
+}
+
+.wp-empty-actions {
+    justify-content: center;
+}
+
+.wp-empty-actions .btn {
+    flex: 0 0 auto;
+}
+
+.wp-empty .pane-hint,
+.wp-hint {
+    margin: 0;
+}
+
+/* Dropping files is a desktop gesture; skip the tip on touch screens. */
+@media (hover: none) {
+    .wp-drop-hint {
+        display: none;
+    }
+}
+
+#card-working[data-drop="image"] {
+    border-color: var(--color-brand);
+    box-shadow: var(--card-inset), var(--glow-brand);
+}
+
+#card-working[data-drop="image"]::after {
+    content: 'Drop the image to pull its colors';
+    position: absolute;
+    inset: 6px;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    padding: var(--space-md);
+    background: var(--bg-elevated);
+    border: var(--border-width-thick) dashed var(--color-brand);
+    border-radius: var(--radius-md);
+    color: var(--color-brand);
+    font-size: var(--font-sm);
+    font-weight: var(--font-semibold);
+    text-align: center;
+    pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LIBRARY RAIL — bars, empty states, palettes
+   ═══════════════════════════════════════════════════════════ */
+
+.lib-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: var(--space-sm);
+}
+
+.lib-bar .rail-filter {
+    flex: 1 1 140px;
+    width: auto;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.lib-actions.section-actions {
+    flex: 0 0 auto;
+    justify-content: flex-end;
+    gap: 6px;
+    padding-top: 0;
+}
+
+.lib-bar--split {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+}
+
+.lib-bar--split .pane-hint {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lib-bar--split .row-btn {
+    flex-shrink: 0;
+}
+
+.lib-none {
+    padding: var(--space-sm) 0;
+    font-size: var(--font-xs);
+    font-style: italic;
+    color: var(--fg-subtle);
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.lib-hint {
+    margin: var(--space-sm) 0 0;
+}
+
+.lib-empty.empty-state {
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-sm);
+}
+
+.lib-empty .empty-title {
+    font-size: var(--font-sm);
+}
+
+.lib-empty .empty-text {
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+}
+
+.lib-empty-actions {
+    justify-content: center;
+}
+
+.lib-empty-actions .btn {
+    flex: 0 0 auto;
+}
+
+#mount-palettes[data-drop="file"] {
+    outline: var(--border-width-thick) dashed var(--color-brand);
+    outline-offset: 2px;
+    border-radius: var(--radius-md);
+    background: var(--bg-active);
+}
+
+.lib-pal.list-row {
+    margin-bottom: var(--gap-card);
+}
+
+.lib-pal.list-row:last-child {
+    margin-bottom: 0;
+}
+
+.lib-pal .badge {
+    flex-shrink: 0;
+}
+
+.lib-pal-strip {
+    cursor: pointer;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.lib-pal-strip > .swatch {
+    height: 22px;
+}
+
+.lib-pal-strip:hover {
+    border-color: var(--border-focus);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Delete lives in the card head as an icon, so the actions fit one row. */
+.lib-pal .row-head .lib-delete {
+    width: 26px;
+    height: 26px;
+    margin: -4px -6px -4px 0;
+    color: var(--fg-subtle);
+}
+
+.lib-pal .row-actions {
+    gap: 4px;
+}
+
+.lib-pal .row-btn {
+    padding: 3px 7px;
+}
+
+/* The prompt's "Choose a file…" option sits apart from Cancel / Import. */
+.modal-footer .lib-import-file {
+    margin-right: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SAVED COLORS + RECENT
+   ═══════════════════════════════════════════════════════════ */
+
+.lib-current {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+    padding: 6px var(--space-sm);
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+}
+
+.lib-current[data-saved="true"] {
+    border-color: var(--color-brand);
+}
+
+.lib-current-chip {
+    flex-shrink: 0;
+}
+
+.lib-current-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.3;
+}
+
+.lib-current-name {
+    font-size: var(--font-xs);
+    font-weight: var(--font-semibold);
+    color: var(--fg-default);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lib-current-hex {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--fg-muted);
+}
+
+.lib-current-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-xs);
+    flex-shrink: 0;
+}
+
+.lib-grid {
+    padding: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NAMED COLORS
+   ═══════════════════════════════════════════════════════════ */
+
+.lib-chip-row {
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.lib-note {
+    min-width: 0;
+    font-size: 0.6875rem;
+    color: var(--fg-subtle);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lib-named-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lib-named-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: 3px 6px;
+    background: transparent;
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--fg-body);
+    font-size: var(--font-xs);
+    text-align: left;
+    cursor: pointer;
+    transition: color var(--transition-fast), background-color var(--transition-fast),
+                border-color var(--transition-fast);
+}
+
+.lib-named-row:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-muted);
+    color: var(--fg-default);
+}
+
+.lib-named-row:focus-visible {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--bg-active);
+}
+
+.lib-named-row[data-active="true"] {
+    background: var(--bg-active);
+    border-color: var(--color-brand);
+    color: var(--fg-default);
+    font-weight: var(--font-semibold);
+}
+
+.lib-named-row[data-active="true"] .lib-named-name::after {
+    content: ' ✓';
+    color: var(--color-brand);
+}
+
+.lib-named-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lib-named-hex {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--fg-muted);
+}
+
+.lib-named-de {
+    flex-shrink: 0;
+    min-width: 50px;
+    padding: 0 6px;
+    background: var(--bg-tag);
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: var(--font-normal);
+    color: var(--fg-meta);
+    text-align: center;
+}

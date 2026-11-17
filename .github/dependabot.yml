@@ -1,0 +1,41 @@
+# ==============================================================================
+# ✒ Metadata
+#     - Title: DependabotConfig (toolMan Edition - v1.0)
+#     - File Name: dependabot.yml
+#     - Relative Path: .github/dependabot.yml
+#     - Artifact Type: config
+#     - Version: 1.0.0
+#     - Date: 11/17/2026
+#     - Update: Tuesday, November 17, 2026
+#     - Author: Dennis 'dendogg' Smaltz
+#     - A.I. Acknowledgement: Anthropic - Claude
+#     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+#
+# ✒ Description:
+#     Keeps the GitHub Actions used by CI on current versions. toolMan ships
+#     no runtime dependencies, so the workflow's actions are the only thing
+#     Dependabot needs to watch.
+#
+# ✒ Key Features:
+#     - Weekly check of every action in .github/workflows/
+#     - Updates grouped into one pull request to keep the queue short
+#     - Commit messages prefixed "ci:" to match the repository's style
+#
+# ✒ Other Important Information:
+#     - Dependencies: GitHub Dependabot (version updates)
+#     - Compatible platforms: GitHub
+#     - Playwright is pinned inside ci.yml's install step, not tracked here;
+#       bump it there together with the local version you test against
+# ==============================================================================
+
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci

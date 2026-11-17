@@ -1,18 +1,22 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: LayoutController (textMan Edition - v1.4)
+ *     - Title: LayoutController (textMan Edition - v1.5)
  *     - File Name: layout.js
  *     - Relative Path: tools/textman/js/ui/layout.js
- *     - Artifact Type: script
- *     - Version: 1.4.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Artifact Type: library
+ *     - Version: 1.5.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
- *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.5.0 (11/17/2026) [dendogg + Anthropic - Claude] — Kept on the
+ *       restored 07/23 design: Zen mode state, chrome peek watchers, the exit
+ *       hint, and directional rail aria-labels; Zen styling now lives in
+ *       css/editor.css in the 07/23 vocabulary.
  *     - 1.4.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Mobile
  *       reachability (audit finding F5): wires the header's mobile toggle
  *       buttons to data-mobile-open slide-ins (exclusive — opening one
@@ -24,20 +28,7 @@
  *       open per sidebar) and applyAccordionState() syncs every section's
  *       data-collapsed + aria-expanded from ui.openSection. Replaces the
  *       old per-section independent collapse.
- *     - 1.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Collapse recovery
- *       overhaul (audit findings F3/F4): extracted a public
- *       togglePanel/setPanelCollapsed API consumed by app.js's new
- *       Ctrl/Cmd+[ and Ctrl/Cmd+] shortcuts, made the entire collapsed rail
- *       a click-to-expand target, and kept aria-expanded plus button/header
- *       tooltips in sync with every state change.
- *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Added drag-and-drop
- *       section reordering in both sidebars (grab a section header, drop it
- *       where you want it), persisted per panel through ui.sectionOrder and
- *       reapplied on boot — the first "manipulate your workspace" feature.
- *       Collapse clicks are suppressed briefly after a drag so dropping a
- *       section never accidentally collapses it.
- *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial layout
- *       controller: panel and section collapse with persistence.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     Controls textMan's manipulable layout: the left/right panel chevrons,

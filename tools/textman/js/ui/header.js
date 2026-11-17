@@ -4,7 +4,7 @@
  *     - Title: HeaderController (textMan Edition - v1.0)
  *     - File Name: header.js
  *     - Relative Path: tools/textman/js/ui/header.js
- *     - Artifact Type: script
+ *     - Artifact Type: javascript
  *     - Version: 1.0.0
  *     - Date: 2026-07-22
  *     - Update: Wednesday, July 22, 2026
@@ -30,9 +30,9 @@
  * ✒ Examples:
  *     - HeaderUI.init() → wires #btn-settings, #btn-theme, and #btn-help
  *     - Clicking #btn-settings → ModalsUI.open('modal-settings')
- *     - Clicking #btn-theme → TOOLMAN.toggleTheme(); returning 'dark'
+ *     - Clicking #btn-theme → TOOLMAN.toggleTheme(); returning 'sentinel'
  *       shows the toast "Sentinel Obsidian engaged"
- *     - Toggling back to 'light' shows "Parchment Dossier engaged"
+ *     - Toggling back to 'parchment' shows "Parchment Dossier engaged"
  *     - Clicking #btn-help → ModalsUI.open('modal-help')
  *
  * ✒ Other Important Information:
@@ -55,7 +55,7 @@
             DOM.on('#btn-theme', 'click', () => {
                 const theme = TOOLMAN.toggleTheme();
                 TOOLMAN.notify(
-                    theme === 'dark' ? 'Sentinel Obsidian engaged' : 'Parchment Dossier engaged',
+                    theme === 'sentinel' ? 'Sentinel Obsidian engaged' : 'Parchment Dossier engaged',
                     'info',
                     1600
                 );

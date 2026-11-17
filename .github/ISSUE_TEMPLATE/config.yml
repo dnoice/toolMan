@@ -1,0 +1,36 @@
+# ==============================================================================
+# ✒ Metadata
+#     - Title: IssueTemplateChooser (toolMan Edition - v1.0)
+#     - File Name: config.yml
+#     - Relative Path: .github/ISSUE_TEMPLATE/config.yml
+#     - Artifact Type: config
+#     - Version: 1.0.0
+#     - Date: 11/17/2026
+#     - Update: Tuesday, November 17, 2026
+#     - Author: Dennis 'dendogg' Smaltz
+#     - A.I. Acknowledgement: Anthropic - Claude
+#     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+#
+# ✒ Description:
+#     Configures GitHub's "New issue" chooser: issues go through the bug and
+#     idea forms, and security reports are routed to the private policy
+#     instead of a public issue.
+#
+# ✒ Key Features:
+#     - Blank issues disabled so every report carries the needed details
+#     - A "Report a security vulnerability" link to SECURITY.md
+#     - A contributing-guide link for people about to open a pull request
+#
+# ✒ Other Important Information:
+#     - Dependencies: GitHub issue template chooser
+#     - Compatible platforms: GitHub
+# ==============================================================================
+
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/dnoice/toolMan/blob/main/SECURITY.md
+    about: Please report security problems privately — see the security policy.
+  - name: Contributing guide
+    url: https://github.com/dnoice/toolMan/blob/main/CONTRIBUTING.md
+    about: How to set up, code, test, and open a pull request.

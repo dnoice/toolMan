@@ -1,18 +1,21 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: WorkspaceSidebarStyles (textMan Edition - v1.1)
+ *     - Title: WorkspaceSidebarStyles (textMan Edition - v1.2)
  *     - File Name: sidebar-left.css
  *     - Relative Path: tools/textman/css/sidebar-left.css
- *     - Artifact Type: config
- *     - Version: 1.1.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Artifact Type: stylesheet
+ *     - Version: 1.2.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
- *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.2.0 (11/17/2026) [dendogg + Anthropic - Claude] — Workspace cards
+ *       and analytics stat blocks read --pad-card/--gap-card, matching the
+ *       tighter shared density.
  *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Workspace QoL
  *       styling: list search rows, snippet control row + chip buttons,
  *       clickable tag chips, template use-count badge, expandable snippet
@@ -21,8 +24,7 @@
  *     - 1.0.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the
  *       card, card-button, favorite-star, and stat-block transition:all
  *       declarations to named properties (motion-polish pass).
- *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial
- *       workspace sidebar styles.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     Styles for the left Workspace panel's content: template cards, saved
@@ -84,92 +86,77 @@
  * ----------------------------------------------------------------------------
  */
 
-/* ===== SHARED LIST ROW =====
-   Review §9.5 / §9.6: templates and snippets share ONE compact, list-like
-   pattern — a row with a hairline separator, not a stack of shadowed cards.
-   The class name stays .workspace-card because the whole panel addresses it,
-   but the treatment is now a list item: no shadow, no lift, no permanent
-   gold rule (review §5.4 / §19). */
+/* ===== SHARED CARD BASE ===== */
 .workspace-card {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    min-height: 72px;                     /* §9.5 item height 72–84px */
-    padding: var(--space-3);
-    padding-left: calc(var(--space-3) + 2px); /* leaves room for the rail */
+    gap: var(--gap-card);
+    padding: var(--pad-card);
+    margin-bottom: var(--space-sm);
 
-    background: transparent;
-    border: 0;
-    border-bottom: var(--border-width) solid var(--border-subtle);
-    border-radius: 0;
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+    overflow: hidden;
 
-    transition: background-color var(--transition-fast);
+    transition: border-color var(--transition-fast),
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
 }
 
-.workspace-card:last-of-type {
-    border-bottom: 0;
-}
-
-/* 2px selection rail (§9.5): transparent at rest, gold while the row is the
-   one being used — gold marks the active item, not every item. */
+/* Gold rule down the left edge */
 .workspace-card::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     bottom: 0;
-    width: 2px;
-    background: var(--accent-fill);
-    opacity: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--color-identity-gold), transparent 85%);
+    opacity: 0.5;
     transition: opacity var(--transition-fast);
 }
 
-.workspace-card:hover,
-.workspace-card:focus-within {
-    background: var(--bg-hover);
+.workspace-card:hover {
+    border-color: var(--border-focus);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
-.workspace-card:hover::before,
-.workspace-card:focus-within::before {
+.workspace-card:hover::before {
     opacity: 1;
 }
 
 .card-title-row {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
-    min-height: 20px;
+    justify-content: space-between;
+    gap: var(--space-sm);
 }
 
 .card-title {
-    flex: 1 1 auto;
-    min-width: 0;
     font-size: var(--font-sm);
     font-weight: var(--font-semibold);
-    color: var(--text-primary);
+    color: var(--fg-default);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-/* One-line description wherever it fits (§9.5) */
 .card-desc {
     font-size: var(--font-xs);
-    color: var(--text-secondary);
+    color: var(--fg-muted);
     line-height: var(--leading-normal);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .card-preview {
     font-family: var(--font-mono);
     font-size: var(--font-xs);
-    color: var(--text-muted);
+    color: var(--fg-subtle);
     background: var(--bg-surface-alt);
-    border-radius: var(--radius-kbd);
-    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs) var(--space-sm);
     max-height: 3.2em;
     overflow: hidden;
 }
@@ -178,150 +165,101 @@
 .card-actions {
     display: flex;
     align-items: center;
-    gap: var(--space-1);
+    gap: var(--space-xs);
     flex-wrap: wrap;
-    margin-top: auto;
 }
 
-/* Secondary actions: quiet text buttons that firm up on hover. Review §9.5
-   puts these behind an overflow menu; they stay visible here so every action
-   remains one click and keyboard-reachable (see the report). */
 .card-btn {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-1);
-    height: 24px;
-    padding: 0 var(--space-2);
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
 
     font-size: var(--font-xs);
     font-weight: var(--font-medium);
-    color: var(--text-secondary);
+    color: var(--fg-muted);
 
-    background: transparent;
+    background: var(--bg-tag);
     border: var(--border-width) solid transparent;
-    border-radius: var(--radius-control);
+    border-radius: var(--radius-sm);
 
     transition: color var(--transition-fast),
-                background-color var(--transition-fast),
-                border-color var(--transition-fast);
+                border-color var(--transition-fast),
+                transform var(--transition-fast);
 }
 
 .card-btn:hover {
-    color: var(--text-primary);
-    background: var(--bg-active);
-}
-
-.card-btn:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
-}
-
-/* The one visible primary action per row (§9.5: "Use template") */
-.card-btn-primary {
-    color: var(--accent-text);
-    border-color: var(--border);
-    background: var(--bg-button);
-    font-weight: var(--font-semibold);
-}
-
-.card-btn-primary:hover {
-    color: var(--accent-text);
-    background: var(--accent-quiet);
-    box-shadow: var(--glow-brand);
+    color: var(--color-brand);
+    border-color: var(--color-brand);
+    transform: translateY(-1px);
 }
 
 .card-btn.card-btn-danger:hover {
-    color: var(--danger);
-    background: var(--wash-danger);
+    color: var(--color-danger);
+    border-color: var(--color-danger);
 }
 
-/* Favorite star — 36px hit target around a 14px glyph (review §9.5 / §21).
-   The negative block margin lets that target bleed into the row's 4px gaps
-   instead of forcing the title line to 36px and inflating every row. */
+/* Favorite star */
 .fav-btn {
-    width: var(--h-button);
-    height: var(--h-button);
-    margin-block: -8px;
+    width: 26px;
+    height: 26px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-control);
-    color: var(--text-muted);
-    flex: 0 0 auto;
+    border-radius: var(--radius-sm);
+    color: var(--fg-subtle);
+    flex-shrink: 0;
     transition: color var(--transition-fast),
-                background-color var(--transition-fast);
+                transform var(--transition-fast);
 }
 
 .fav-btn:hover {
-    color: var(--accent-text);
-    background: var(--bg-active);
-}
-
-.fav-btn:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
+    color: var(--color-identity-gold);
+    transform: scale(1.15);
 }
 
 .fav-btn[data-active="true"] {
-    color: var(--accent-text);
+    color: var(--color-identity-gold);
 }
 
 .fav-btn[data-active="true"] svg {
     fill: currentColor;
 }
 
-/* ===== TAG CHIPS =====
-   True compact metadata chips, so the capsule shape is earned here (§5.1). */
+/* ===== TAG CHIPS ===== */
 .tag-row {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-1);
+    gap: var(--space-xs);
 }
 
 .tag-chip {
-    padding: 1px var(--space-2);
+    padding: 1px var(--space-sm);
     background: var(--bg-tag);
     border: var(--border-width) solid var(--border-muted);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-full);
     font-size: 0.6875rem;
-    color: var(--text-muted);
+    color: var(--fg-meta);
     letter-spacing: 0.02em;
 }
 
-/* ===== SECTION ACTION FOOT (e.g. "New template") =====
-   A compact secondary action on its own rule — not a big centered button
-   (review §9.7). */
+/* ===== SECTION ACTION FOOT (e.g. "New template") ===== */
 .section-actions {
     display: flex;
-    justify-content: flex-start;
-    gap: var(--space-2);
-    margin-top: var(--space-2);
-    padding-top: var(--space-2);
-    border-top: var(--border-width) solid var(--border-subtle);
+    justify-content: center;
+    padding-top: var(--space-sm);
 }
 
-.section-actions--end {
-    justify-content: flex-end;
-}
-
-.section-actions .btn {
-    min-height: var(--h-chip);
-    padding: 0 var(--space-3);
-    font-size: var(--font-xs);
-}
-
-/* ===== HISTORY TIMELINE =====
-   Review §9.7: one dense line per event — dot, description, elapsed time —
-   instead of a two-line block. The dot is a flex item now, not an absolutely
-   positioned marker, so the row height follows the type ramp. */
+/* ===== HISTORY TIMELINE ===== */
 .history-entry {
+    position: relative;
     display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    min-height: 26px;
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius-kbd);
-    transition: background-color var(--transition-fast);
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-lg);
+    margin-bottom: var(--space-xs);
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
 }
 
 .history-entry:hover {
@@ -331,233 +269,194 @@
 /* Timeline marker */
 .history-entry::before {
     content: '';
-    flex: 0 0 auto;
-    width: 6px;
-    height: 6px;
-    border-radius: var(--radius-pill);
-    background: var(--text-muted);
+    position: absolute;
+    left: var(--space-sm);
+    top: 14px;
+    width: 7px;
+    height: 7px;
+    border-radius: var(--radius-full);
+    background: var(--fg-subtle);
 }
 
-.history-entry[data-type="save"]::before      { background: var(--success); }
-.history-entry[data-type="transform"]::before { background: var(--accent-fill); }
-.history-entry[data-type="template"]::before  { background: var(--info); }
-.history-entry[data-type="snippet"]::before   { background: var(--math); }
+.history-entry[data-type="save"]::before      { background: var(--color-success); }
+.history-entry[data-type="transform"]::before { background: var(--color-brand); }
+.history-entry[data-type="template"]::before  { background: var(--color-info); }
+.history-entry[data-type="snippet"]::before   { background: var(--color-accent); }
 
 .history-desc {
-    flex: 1 1 auto;
-    min-width: 0;
     font-size: var(--font-xs);
-    color: var(--text-body);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: var(--fg-body);
 }
 
-/* Tabular numerals so the elapsed column stays a column (review §9.7) */
 .history-time {
-    flex: 0 0 auto;
     font-family: var(--font-mono);
     font-size: 0.6875rem;
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
+    color: var(--fg-subtle);
 }
 
-/* ===== ANALYTICS =====
-   Review §9.8: flat list rows, no nested shadows, no hover lift. The stat
-   tiles became label/value rows — denser and easier to scan down. */
+/* ===== ANALYTICS ===== */
 .analytics-grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
 }
 
 .stat-block {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-3);
-    padding: var(--space-2) var(--space-1);
-    background: transparent;
-    border: 0;
-    border-bottom: var(--border-width) solid var(--border-subtle);
-    border-radius: 0;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--pad-card);
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+    transition: border-color var(--transition-fast),
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
 }
 
-.stat-block:last-child {
-    border-bottom: 0;
+.stat-block:hover {
+    border-color: var(--border-focus);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
 }
 
 .stat-value {
     font-family: var(--font-mono);
-    font-size: var(--font-base);
-    font-weight: var(--font-semibold);
-    color: var(--text-primary);
+    font-size: var(--font-xl);
+    font-weight: var(--font-bold);
+    color: var(--color-brand);
     font-variant-numeric: tabular-nums;
-    text-align: right;
 }
 
 .stat-label {
-    font-size: var(--font-xs);
-    color: var(--text-secondary);
-    letter-spacing: 0.02em;
+    font-size: 0.6875rem;
+    color: var(--fg-meta);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
-/* No longer a grid — the wide readability row needs no column span */
+/* Wide readability block spans both grid columns */
 .stat-block-wide {
-    grid-column: auto;
+    grid-column: 1 / -1;
 }
 
 .stat-sub {
     font-family: var(--font-sans);
     font-size: var(--font-xs);
     font-weight: var(--font-medium);
-    color: var(--text-secondary);
-    margin-left: var(--space-1);
+    color: var(--fg-muted);
 }
 
 /* ===== TOP TRANSFORMS LIST ===== */
 .analytics-top {
-    margin-top: var(--space-3);
+    margin-top: var(--space-md);
 }
 
 .analytics-heading {
-    font-size: var(--font-xs);
-    font-weight: var(--font-label-weight);
-    letter-spacing: 0.045em;
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: var(--space-1);
+    color: var(--fg-meta);
+    margin-bottom: var(--space-xs);
 }
 
 .top-list {
     counter-reset: top;
     display: flex;
     flex-direction: column;
+    gap: 2px;
 }
 
-/* Flat rows, no nested tinted cards (review §9.8 / §19) */
 .top-list li {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-3);
-    padding: var(--space-1) var(--space-1);
-    border-bottom: var(--border-width) solid var(--border-subtle);
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-surface-alt);
+    border-radius: var(--radius-sm);
     font-size: var(--font-xs);
 }
 
-.top-list li:last-child {
-    border-bottom: 0;
-}
-
 .top-name {
-    color: var(--text-body);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-family: var(--font-mono);
+    color: var(--fg-body);
 }
 
 .top-count {
-    flex: 0 0 auto;
     font-family: var(--font-mono);
-    color: var(--text-secondary);
+    color: var(--color-brand);
     font-variant-numeric: tabular-nums;
 }
 
-/* ===== LIST SEARCH + CONTROLS =====
-   Review §9.5: the filter input is ~36px with a 6px radius. */
+/* ===== LIST SEARCH + CONTROLS ===== */
 .ws-search {
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--space-sm);
 }
 
 .ws-search-input {
     width: 100%;
-    height: var(--h-input);
-    padding: 0 var(--space-3);
+    padding: var(--space-xs) var(--space-sm);
     background: var(--bg-input);
-    border: var(--border-width) solid var(--border);
-    border-radius: var(--radius-control);
-    color: var(--text-primary);
-    font-size: var(--font-sm);
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.ws-search-input::placeholder {
-    color: var(--text-muted);
-}
-
-.ws-search-input:hover:not(:focus) {
-    border-color: var(--border-strong);
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--fg-default);
+    font-size: var(--font-xs);
+    transition: border-color var(--transition-fast);
 }
 
 .ws-search-input:focus {
     outline: none;
-    box-shadow: var(--glow-brand);
+    border-color: var(--border-focus);
 }
 
 .ws-controls {
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--space-sm);
 }
 
 .ws-control-row {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-1);
+    gap: var(--space-xs);
 }
 
-/* Compact chips — rounded rectangles, not capsules: these are controls,
-   not badges (review §4.1 / §6.6). */
 .chip-btn {
-    display: inline-flex;
-    align-items: center;
-    height: var(--h-chip);
-    padding: 0 var(--space-2);
+    padding: 2px var(--space-sm);
     background: var(--bg-tag);
     border: var(--border-width) solid var(--border-muted);
-    border-radius: var(--radius-control);
-    color: var(--text-secondary);
-    font-size: var(--font-xs);
-    transition: color var(--transition-fast),
-                background-color var(--transition-fast),
-                border-color var(--transition-fast);
+    border-radius: var(--radius-full);
+    color: var(--fg-muted);
+    font-size: 0.6875rem;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .chip-btn:hover {
-    color: var(--text-primary);
-    border-color: var(--border-strong);
-}
-
-.chip-btn:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
+    color: var(--color-brand);
+    border-color: var(--color-brand);
 }
 
 .chip-btn.active {
-    background: var(--accent-quiet);
-    color: var(--accent-text);
-    border-color: var(--accent-fill);
+    background: var(--bg-active);
+    color: var(--color-brand);
+    border-color: var(--color-brand);
 }
 
 .ws-empty {
-    padding: var(--space-4);
+    padding: var(--space-md);
     text-align: center;
     font-size: var(--font-xs);
-    color: var(--text-muted);
+    color: var(--fg-subtle);
 }
 
-/* ===== TEMPLATE USE BADGE =====
-   A true tiny badge, so it keeps the capsule (review §5.1). */
+/* ===== TEMPLATE USE BADGE ===== */
 .use-badge {
-    display: inline-flex;
-    align-items: center;
-    flex: 0 0 auto;
-    padding: 0 var(--space-2);
+    display: inline-block;
+    margin-left: var(--space-xs);
+    padding: 0 var(--space-xs);
     background: var(--bg-tag);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-full);
     font-family: var(--font-mono);
     font-size: 0.625rem;
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
+    color: var(--fg-meta);
 }
 
 /* ===== CLICKABLE TAG CHIPS (snippet filtering) ===== */
@@ -567,20 +466,11 @@
 }
 
 button.tag-chip:hover {
-    color: var(--accent-text);
-    box-shadow: var(--glow-brand);
+    color: var(--color-brand);
+    border-color: var(--color-brand);
 }
 
-button.tag-chip:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
-}
-
-/* ===== EXPANDABLE SNIPPET PREVIEW =====
-   Deliberately BOUNDED, and the one exception to §9.3's single scroll rule:
-   an expanded preview of an arbitrarily long snippet would otherwise push
-   the rest of the rail out of reach. 220px + its own scroll keeps the list
-   navigable; it is a bounded viewer, not accidental nesting. */
+/* ===== EXPANDABLE SNIPPET PREVIEW ===== */
 .card-preview[data-action="toggle-expand"] {
     cursor: pointer;
 }
@@ -602,19 +492,14 @@ button.tag-chip:focus-visible {
     background: var(--bg-active);
 }
 
-.history-entry.is-restorable:focus-visible {
-    box-shadow: var(--glow-brand-inset);
-}
-
 .restore-tag {
-    flex: 0 0 auto;
+    margin-left: var(--space-xs);
     font-size: 0.625rem;
-    color: var(--accent-text);
+    color: var(--color-brand);
     opacity: 0;
     transition: opacity var(--transition-fast);
 }
 
-.history-entry.is-restorable:hover .restore-tag,
-.history-entry.is-restorable:focus-visible .restore-tag {
+.history-entry.is-restorable:hover .restore-tag {
     opacity: 1;
 }

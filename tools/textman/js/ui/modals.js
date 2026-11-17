@@ -1,18 +1,23 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: ModalSystem (textMan Edition - v1.2)
+ *     - Title: ModalSystem (textMan Edition - v1.3)
  *     - File Name: modals.js
  *     - Relative Path: tools/textman/js/ui/modals.js
- *     - Artifact Type: script
- *     - Version: 1.2.0
- *     - Date: 2026-07-23
- *     - Update: Thursday, July 23, 2026
+ *     - Artifact Type: library
+ *     - Version: 1.3.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
- *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — Kept on the
+ *       restored 07/23 design: the styled prompt dialog, staged settings with
+ *       dirty tracking, the tab-size stepper, autosave-delay visibility,
+ *       usage percent, and platform-aware shortcut chips, all styled by the
+ *       07/23 modals.css.
  *     - 1.2.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Added
  *       ModalsUI.confirm(): a promise-based replacement for window.confirm()
  *       wearing the house dialog chrome, with configurable buttons, a
@@ -23,8 +28,7 @@
  *       autosave-delay and tab-size range controls (live labels), a storage
  *       usage meter, and Export/Import workspace wired to the shared
  *       Storage.export/import — editor prefs re-apply after save/import.
- *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial dialog
- *       controller: focus trap, Escape/backdrop close, submit flows.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     textMan's dialog controller: open/close with focus management, Escape

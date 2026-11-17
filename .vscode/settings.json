@@ -1,7 +1,39 @@
 {
-  // Live Server (Ritwick Dey) → serve the app at localhost:5500, opened in
-  // Edge. The app now lives at the project root, so "Go Live" serves it
-  // directly. Full exe path is version-proof across Live Server releases.
+  // ============================================================================
+  // ✒ Metadata
+  //     - Title: WorkspaceSettings (toolMan Edition - v1.1)
+  //     - File Name: settings.json
+  //     - Relative Path: .vscode/settings.json
+  //     - Artifact Type: config
+  //     - Version: 1.1.0
+  //     - Date: 11/17/2026
+  //     - Update: Tuesday, November 17, 2026
+  //     - Author: Dennis 'dendogg' Smaltz
+  //     - A.I. Acknowledgement: Anthropic - Claude
+  //     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+  //
+  // ✒ Changelog:
+  //     - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Added the house
+  //       header (as JSONC comments, which VS Code settings accept); settings
+  //       unchanged.
+  //
+  // ✒ Description:
+  //     Shared VS Code workspace settings. Live Server (Ritwick Dey) serves
+  //     the app at localhost:5500 and opens it in Edge; the app lives at the
+  //     project root, so "Go Live" serves the hub directly.
+  //
+  // ✒ Key Features:
+  //     - Fixed port 5500, matching the README's Python server command
+  //     - Full Edge executable path, version-proof across Live Server
+  //       releases
+  //     - Personal overrides belong in *.local.json, which .gitignore skips
+  //
+  // ✒ Other Important Information:
+  //     - Dependencies: VS Code with the Live Server extension; Microsoft Edge
+  //       at its default Windows install path
+  //     - Compatible platforms: Windows (the browser path); the port setting
+  //       applies everywhere
+  // ----------------------------------------------------------------------------
   "liveServer.settings.port": 5500,
   "liveServer.settings.AdvanceCustomBrowserCmdLine": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
 }

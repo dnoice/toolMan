@@ -1,0 +1,532 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: PickerStyles (colorMan Edition - v1.0)
+ *     - File Name: picker.css
+ *     - Relative Path: tools/colorman/css/picker.css
+ *     - Artifact Type: stylesheet
+ *     - Version: 1.0.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Styles for the parts of colorMan that js/ui/picker.js builds: the
+ *     Picker card, the Formats card, the stat pills under the stage, and the
+ *     info tone of the color field's note in the toolbar. Cards, readouts, chips, buttons,
+ *     and pills come from shared/css; this file only adds what a color
+ *     picker needs and keeps the spacing tight.
+ *
+ * ✒ Key Features:
+ *     - Picker model chips with a check mark on the chosen one, so the
+ *       choice does not rest on color alone
+ *     - 2D color area: full card width, at least 220px tall and growing
+ *       to match the Formats card, inner hairline, crosshair cursor, no
+ *       page scroll while dragging on touch screens
+ *     - Round thumbs with a two-tone ring (theme tokens) that stays visible
+ *       over any color, a grab cursor, and a brand focus ring
+ *     - Hue bar (gradient set by script) and an opacity bar over the
+ *       neutral checkerboard
+ *     - Before/now split preview with labels drawn in black or white
+ *     - One-row channel editor: format select plus four compact number
+ *       fields without spinners (arrow keys step instead)
+ *     - Formats card: denser readout rows, a dot plus bold gold on the
+ *       primary format, and black/white text sample tiles
+ *     - Less essential stat pills hide when the center pane is under
+ *       680px, so the pill row stays on one line
+ *     - The eyedropper button disappears where the browser has none
+ *
+ * ✒ Usage Instructions:
+ *     Load after css/colorman.css (which supplies .swatch and .checker) and
+ *     before library.css. Nothing here applies until PickerUI.init() builds
+ *     its markup. Colors reach the stylesheet through inline custom
+ *     properties: --c (the color), --on (black or white text on it), --ink
+ *     (sample text color), and --alpha-from / --alpha-to (opacity bar).
+ *
+ * ✒ Examples:
+ *     <div class="picker" data-mode="oklch"> … </div>            → whole Picker card body
+ *     <div class="picker-thumb" role="slider" style="--c:#C9A84C">
+ *     <div class="picker-bar picker-bar--alpha" style="--alpha-from:#C9A84C00;--alpha-to:#C9A84C">
+ *     <button class="picker-compare-half" style="--c:#1B2A4A;--on:#FFFFFF">Before</button>
+ *     <span class="stat-pill stat-pill--extra">Alpha 100%</span>  → hidden in a narrow pane
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/tokens.css, panels.css, workbench.css;
+ *       css/colorman.css (the cm-stage container query name)
+ *     - Compatible platforms: all evergreen browsers; container queries
+ *       are used for the narrow-pane rules
+ *     - Limitations: the checkerboard greys are the only literal colors
+ *       here; every user color arrives as an inline custom property
+ * ----------------------------------------------------------------------------
+ */
+
+/* ═══════════════════════════════════════════════════════════
+   TOOLBAR — color field notes, eyedropper availability
+   ═══════════════════════════════════════════════════════════ */
+
+#btn-eyedropper[hidden] {
+    display: none;
+}
+
+/* The note's own line under the field is laid out in colorman.css. */
+#input-error[data-tone="info"] {
+    color: var(--color-info);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PICKER CARD
+   ═══════════════════════════════════════════════════════════ */
+
+/* The picker grows with its card, so a taller Formats card beside it
+   gives the color area more room instead of leaving a gap. */
+#mount-picker {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+}
+
+.picker {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+.picker-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Model chips in the card header: a radio group. */
+.picker-modes {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.picker-mode {
+    font-weight: var(--font-semibold);
+}
+
+.picker-mode[aria-checked="true"]::before {
+    content: '✓';
+    font-weight: var(--font-bold);
+}
+
+.picker-mode:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+}
+
+/* ── 2D area ─────────────────────────────────────────────── */
+
+.picker-plane {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 220px;
+    border-radius: var(--radius-md);
+    background: var(--bg-surface-alt);
+    cursor: crosshair;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.picker-plane::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 var(--border-width) var(--border-default);
+    pointer-events: none;
+}
+
+.picker-canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+}
+
+/* ── Thumbs (area and bars) ──────────────────────────────── */
+
+.picker-thumb {
+    position: absolute;
+    z-index: 2;
+    width: 18px;
+    height: 18px;
+    margin: -9px 0 0 -9px;
+    border: 2px solid var(--bg-elevated);
+    border-radius: var(--radius-full);
+    background-color: #FFFFFF;
+    background-image:
+        linear-gradient(var(--c, transparent), var(--c, transparent)),
+        repeating-conic-gradient(#CFCFCF 0% 25%, #FFFFFF 0% 50%);
+    background-size: auto, 6px 6px;
+    box-shadow: 0 0 0 var(--border-width) var(--fg-default), var(--shadow-md);
+    cursor: grab;
+    touch-action: none;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.picker-thumb:hover {
+    transform: scale(1.08);
+}
+
+.picker-thumb:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 3px;
+}
+
+.is-dragging,
+.is-dragging .picker-thumb {
+    cursor: grabbing;
+}
+
+.is-dragging .picker-thumb {
+    transform: scale(1.15);
+}
+
+/* ── Caption under the area ──────────────────────────────── */
+
+/* One fixed-height line: the gamut note swaps in place, so the area above
+   never resizes while a thumb is being dragged. */
+.picker-caption {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    height: 16px;
+    margin-top: calc(var(--space-xs) * -1);
+    overflow: hidden;
+    font-size: 0.6875rem;
+    letter-spacing: 0.02em;
+    line-height: 14px;
+    white-space: nowrap;
+    color: var(--fg-subtle);
+}
+
+.picker-gamut-key,
+.picker-gamut-flag {
+    min-width: 0;
+    margin-left: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.picker-gamut-flag {
+    padding: 0 6px;
+    border: var(--border-width) solid var(--color-info);
+    border-radius: var(--radius-full);
+    color: var(--color-info);
+    font-weight: var(--font-semibold);
+}
+
+.picker-gamut-flag::before {
+    content: '⇤ ';
+}
+
+.picker-caption [hidden] {
+    display: none;
+}
+
+/* ── Before/now + bars ───────────────────────────────────── */
+
+.picker-row {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.picker-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 40px;
+    overflow: hidden;
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-md);
+    box-shadow: var(--card-inset);
+}
+
+.picker-compare-half {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    min-width: 0;
+    margin: 0;
+    padding: 0 0 3px;
+    border: 0;
+    border-radius: 0;
+    background-color: #FFFFFF;
+    background-image:
+        linear-gradient(var(--c, transparent), var(--c, transparent)),
+        repeating-conic-gradient(#CFCFCF 0% 25%, #FFFFFF 0% 50%);
+    background-size: auto, 8px 8px;
+    color: var(--on, var(--fg-default));
+    font: inherit;
+    font-size: 0.625rem;
+    font-weight: var(--font-semibold);
+    letter-spacing: 0.02em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+button.picker-compare-half {
+    cursor: pointer;
+}
+
+button.picker-compare-half:hover:not(:disabled) {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+button.picker-compare-half:disabled {
+    cursor: default;
+}
+
+button.picker-compare-half:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: -2px;
+}
+
+.picker-bars {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    min-width: 0;
+    padding: 0 9px;
+}
+
+.picker-bar {
+    position: relative;
+    height: 12px;
+    border-radius: var(--radius-full);
+    box-shadow: inset 0 0 0 var(--border-width) var(--border-default);
+    cursor: pointer;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.picker-bar .picker-thumb {
+    top: 50%;
+}
+
+.picker-bar--alpha {
+    background-color: #FFFFFF;
+    background-image:
+        linear-gradient(to right, var(--alpha-from, transparent), var(--alpha-to, transparent)),
+        repeating-conic-gradient(#CFCFCF 0% 25%, #FFFFFF 0% 50%);
+    background-size: auto, 8px 8px;
+}
+
+/* ── Channel editor ──────────────────────────────────────── */
+
+.picker-fields {
+    display: grid;
+    grid-template-columns: minmax(78px, 1.15fr) repeat(4, minmax(0, 1fr));
+    align-items: end;
+    gap: var(--space-sm);
+}
+
+.picker-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.picker-field .mini-label {
+    margin-bottom: 2px;
+    white-space: nowrap;
+}
+
+.picker-num,
+.picker-format {
+    height: 30px;
+    min-width: 0;
+    padding: var(--space-xs) 6px;
+    font-size: var(--font-xs);
+}
+
+.picker-num {
+    -moz-appearance: textfield;
+    appearance: textfield;
+    font-variant-numeric: tabular-nums;
+}
+
+.picker-num::-webkit-inner-spin-button,
+.picker-num::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.picker-format {
+    padding-right: 2px;
+    cursor: pointer;
+}
+
+.picker-note {
+    margin-top: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FORMATS CARD
+   ═══════════════════════════════════════════════════════════ */
+
+.formats {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+/* Eleven rows: a little denser than the kit's default readout. */
+.formats-list .readout {
+    grid-template-columns: minmax(48px, auto) minmax(0, 1fr) auto;
+    gap: var(--space-sm);
+    min-height: 32px;
+    padding: 1px 2px 1px var(--space-sm);
+}
+
+.formats-list .readout-value {
+    font-size: var(--font-xs);
+}
+
+.formats-list .icon-action {
+    width: 28px;
+    height: 28px;
+}
+
+/* Primary format: gold bold value (kit) plus a dot after the label. */
+.formats-list .readout[data-primary="true"] .readout-label {
+    color: var(--color-brand);
+}
+
+.formats-list .readout[data-primary="true"] .readout-label::after {
+    content: '•';
+    margin-left: 3px;
+}
+
+.formats-copy-all svg {
+    flex-shrink: 0;
+}
+
+.formats-text .section-label {
+    margin: 0 0 var(--space-xs);
+}
+
+.formats-text-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+}
+
+.formats-tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: var(--space-sm);
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-md);
+    background-color: #FFFFFF;
+    background-image:
+        linear-gradient(var(--c, transparent), var(--c, transparent)),
+        repeating-conic-gradient(#CFCFCF 0% 25%, #FFFFFF 0% 50%);
+    background-size: auto, 10px 10px;
+    box-shadow: var(--card-inset);
+    color: var(--ink, var(--fg-default));
+}
+
+.formats-tile-sample {
+    font-size: var(--font-xl);
+    font-weight: var(--font-bold);
+    line-height: 1.1;
+}
+
+.formats-tile-ratio {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    white-space: nowrap;
+}
+
+.formats-tile-best {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    font-size: 0.6875rem;
+    font-weight: var(--font-bold);
+}
+
+.formats-tile-best[hidden] {
+    display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STAT PILLS (#mount-stats)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Six pills fit one row of a 1440px-wide workbench. */
+#mount-stats {
+    gap: 6px;
+}
+
+#mount-stats .stat-pill {
+    padding: 2px var(--space-sm);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NARROW CENTER PANE (phones, tablet rails)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Six pills need about 680px; below that the three extra pills (also shown
+   in the Formats card) step aside so the row stays one line. */
+@container cm-stage (max-width: 679px) {
+    #mount-stats .stat-pill--extra {
+        display: none;
+    }
+}
+
+@container cm-stage (max-width: 479px) {
+    .picker-plane {
+        min-height: 200px;
+    }
+
+    .picker-row {
+        gap: var(--space-sm);
+    }
+
+    .picker-fields {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .picker-field--format {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+        gap: var(--space-sm);
+    }
+
+    .picker-field--format .mini-label {
+        margin-bottom: 0;
+    }
+
+    .picker-field--format .picker-format {
+        flex: 1 1 auto;
+    }
+}

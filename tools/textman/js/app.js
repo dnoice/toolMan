@@ -1,41 +1,29 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: AppOrchestrator (textMan Edition - v2.2)
+ *     - Title: AppOrchestrator (textMan Edition - v2.5)
  *     - File Name: app.js
  *     - Relative Path: tools/textman/js/app.js
- *     - Artifact Type: script
- *     - Version: 2.4.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Artifact Type: javascript
+ *     - Version: 2.5.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
- *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.5.0 (11/17/2026) [dendogg + Anthropic - Claude] — Kept on the
+ *       restored 07/23 design: Ctrl+\ Focus mode, Ctrl+Shift+\ Zen mode,
+ *       capture-phase Escape out of Zen, and the Ctrl+F reveal that opens
+ *       Search before focusing it.
  *     - 2.4.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Editor QoL
  *       shortcuts: Ctrl/Cmd+G go-to-line and Ctrl/Cmd+\ Zen mode (collapse
  *       both panels; again restores the prior layout).
  *     - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Stamps the
  *       ecosystem last-used record (TOOLMAN.stampLastUsed) during session
  *       tracking, feeding the hub's continue chip and card ordering.
- *     - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — applyPanelStates
- *       delegates section state to LayoutUI.applyAccordionState (exclusive
- *       accordion model) instead of iterating the removed collapsedSections
- *       booleans.
- *     - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Panel recovery
- *       shortcuts (audit finding F4): Ctrl/Cmd+[ toggles the Workspace panel
- *       and Ctrl/Cmd+] the Tools panel; applyPanelStates now routes panel
- *       collapse through LayoutUI.setPanelCollapsed so aria and tooltips
- *       stay in sync on restore.
- *     - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Rebuilt for the
- *       toolMan ecosystem: boots every UI module through an error-isolated
- *       registry (one failing module no longer kills the app), removed the
- *       fake loading delays, theme handling delegated to TOOLMAN, save flow
- *       unified through EditorUI, and the loader handoff now actually fires
- *       (the v1 bug: missing scripts meant init never ran).
- *     - 1.0.0 (2025-11-18) [model not recorded] — Initial five-step
- *       initialization skeleton.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     textMan's boot sequence and global concerns. Restores persisted state,
