@@ -1,10 +1,10 @@
 <!--
 ✒ Metadata
-    - Title: ReadMe (toolMan Edition - v1.1)
+    - Title: ReadMe (toolMan Edition - v1.2)
     - File Name: README.md
     - Relative Path: README.md
     - Artifact Type: docs
-    - Version: 1.1.0
+    - Version: 1.2.0
     - Date: 11/17/2026
     - Update: Tuesday, November 17, 2026
     - Author: Dennis 'dendogg' Smaltz
@@ -12,6 +12,9 @@
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 1.2.0 (11/17/2026) [dendogg + Anthropic - Claude] — Themes section
+      rewritten for Light, Dark, and System (the default, following the device
+      live); the Parchment Dossier / Sentinel Obsidian names are retired.
     - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Metadata moved into
       the standard header comment; project structure now shows the shared
       workbench kit, scripts, tests, and CI; new Contributing and security
@@ -194,11 +197,12 @@ the same tokens, restyling is a one-file change.
 
 ### Themes
 
-Two themes ship: **Light** (Parchment Dossier) and **Dark** (Sentinel
-Obsidian). The choice is stored under `toolman.theme` and applied to the
-document before first paint, so there is no theme flash. On a first visit the
-tool honors your operating-system `prefers-color-scheme`. The theme is
-ecosystem-wide — set it in one tool and every tool follows.
+Choose **Light**, **Dark**, or **System** in any tool's Settings; the header
+button flips straight between light and dark. **System** is the default and
+follows your device's light or dark setting, switching live when the device
+does. The choice is stored under `toolman.theme` and applied before first
+paint, so there is no theme flash. It is ecosystem-wide: set it in one tool and
+every tool follows, including tabs that are already open.
 
 ### The gold glow
 

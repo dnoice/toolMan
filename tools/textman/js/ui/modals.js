@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: ModalSystem (textMan Edition - v1.3)
+ *     - Title: ModalSystem (textMan Edition - v1.4)
  *     - File Name: modals.js
  *     - Relative Path: tools/textman/js/ui/modals.js
  *     - Artifact Type: library
- *     - Version: 1.3.0
+ *     - Version: 1.4.0
  *     - Date: 11/17/2026
  *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,9 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.4.0 (11/17/2026) [dendogg + Anthropic - Claude] — Settings theme
+ *       radios sync to the saved preference (Light, Dark, or System) rather
+ *       than the painted theme.
  *     - 1.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — Kept on the
  *       restored 07/23 design: the styled prompt dialog, staged settings with
  *       dirty tracking, the tab-size stepper, autosave-delay visibility,
@@ -24,10 +27,6 @@
  *       nominated focus target, and a dismissValue that Escape, the backdrop,
  *       and the X all resolve to — dismissal can never trigger a second
  *       action. Migrated the workspace reset off the native dialog.
- *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Settings QoL:
- *       autosave-delay and tab-size range controls (live labels), a storage
- *       usage meter, and Export/Import workspace wired to the shared
- *       Storage.export/import — editor prefs re-apply after save/import.
  *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
@@ -42,7 +41,7 @@
  *     - Focus trap: Tab cycles inside the open dialog; focus restored on
  *       close
  *     - Escape and backdrop-click dismissal
- *     - Settings: theme radios (parchment/sentinel) synced with TOOLMAN,
+ *     - Settings: theme radios (Light / Dark / System) synced with TOOLMAN,
  *       autosave mode select, double-confirmed workspace reset
  *     - Save Snippet: prefills content from the current editor selection
  *     - Create Template: validated, renders immediately
@@ -494,7 +493,8 @@
         syncSettingsForm() {
             const s = State.get().settings;
 
-            const theme = document.documentElement.getAttribute('data-theme') || 'light';
+            // The saved choice (light / dark / system), not the painted theme.
+            const theme = TOOLMAN.getThemePreference();
             const radio = DOM.$(`input[name="theme-pref"][value="${theme}"]`);
             if (radio) radio.checked = true;
 

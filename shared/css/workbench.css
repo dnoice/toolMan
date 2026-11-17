@@ -14,8 +14,8 @@
  *
  * ✒ Description:
  *     The shared component layer for every three-panel toolMan workbench
- *     (colorMan, mathMan, convertMan, devMan), written in the 07/23
- *     Parchment Dossier / Sentinel Obsidian vocabulary. It promotes the
+ *     (colorMan, mathMan, convertMan, devMan), written in the 07/23 design
+ *     vocabulary. It promotes the
  *     chrome textMan proved out — hub link, raised list cards, tool tiles,
  *     stat pills, the save pill, dialogs — into one stylesheet so each new
  *     tool consumes a single copy and looks like textMan by construction.

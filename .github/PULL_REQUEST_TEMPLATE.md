@@ -12,7 +12,7 @@
 
 ## Screenshots
 
-<!-- For any visible change: both themes (Parchment and Sentinel), desktop and phone width. -->
+<!-- For any visible change: light and dark themes, desktop and phone width. -->
 
 ## Checklist
 

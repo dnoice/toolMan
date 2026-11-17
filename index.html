@@ -1,17 +1,20 @@
 <!--
 ✒ Metadata
-    - Title: HubPage (toolMan Edition - v1.4)
+    - Title: HubPage (toolMan Edition - v1.5)
     - File Name: index.html
     - Relative Path: index.html
-    - Artifact Type: other
-    - Version: 1.4.0
-    - Date: 2026-07-23
-    - Update: Thursday, July 23, 2026
+    - Artifact Type: markup
+    - Version: 1.5.0
+    - Date: 11/17/2026
+    - Update: Tuesday, November 17, 2026
     - Author: Dennis 'dendogg' Smaltz
-    - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+    - A.I. Acknowledgement: Anthropic - Claude
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 1.5.0 (11/17/2026) [dendogg + Anthropic - Claude] — Theme toggle
+      labelled for light and dark (the Parchment Dossier / Sentinel Obsidian
+      names are retired); the pre-paint default is data-theme="light".
     - 1.4.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Hub loader gains the
       orbit intro: the tool family (colorMan, mathMan, textMan, convertMan,
       devMan) sweeps into an arc around the central toolMan mark before the
@@ -21,10 +24,6 @@
     - 1.3.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Theme toggle carries
       both sun and moon icons (CSS swaps by data-theme). Card icons come from
       shared/js/hub.js, where textMan now uses its real pen mark.
-    - 1.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Hub QoL batch:
-      tool-search input in the header, "Continue where you left off" hero
-      slot, and the version + GitHub footer line (grid enrichments live in
-      shared/js/hub.js 1.1.0).
     Earlier entries: see CHANGELOG.md
 
 ✒ Description:
@@ -37,7 +36,8 @@
 ✒ Key Features:
     - Branded loading screen with fail-safe handoff
     - Tool grid rendered from the shared registry (shared/js/toolman.js)
-    - Ecosystem-wide parchment/sentinel theme toggle
+    - Ecosystem-wide light / dark theme toggle (System, the default,
+      follows the device)
     - Keyboard-accessible cards (live cards are real links)
 
 ✒ Usage Instructions:
@@ -54,7 +54,7 @@
 ---------
 -->
 <!DOCTYPE html>
-<html lang="en" data-theme="parchment">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -138,7 +138,7 @@
             <div class="header-right">
                 <input type="search" id="tool-search" class="tool-search" placeholder="Search tools ( / )" aria-label="Search tools" autocomplete="off">
 
-                <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Toggle parchment/sentinel theme">
+                <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Switch between light and dark theme">
                     <svg class="theme-icon theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>

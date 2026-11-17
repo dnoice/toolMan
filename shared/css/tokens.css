@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: DesignTokens (toolMan Edition - v2.3)
+ *     - Title: DesignTokens (toolMan Edition - v2.4)
  *     - File Name: tokens.css
  *     - Relative Path: shared/css/tokens.css
  *     - Artifact Type: stylesheet
- *     - Version: 2.3.0
+ *     - Version: 2.4.0
  *     - Date: 11/17/2026
  *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,10 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.4.0 (11/17/2026) [dendogg + Anthropic - Claude] — On Dennis's
+ *       direction the themes are simply light and dark: the palette blocks
+ *       are now keyed [data-theme="light"] and [data-theme="dark"] (formerly
+ *       parchment / sentinel). Every color value is unchanged.
  *     - 2.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — On Dennis's
  *       direction the ecosystem keeps the 07/23 Parchment Dossier / Sentinel
  *       Obsidian palette (the interim flat 1.0.0 restyle is retired). Adds
@@ -26,23 +30,20 @@
  *       defined per theme. Parchment's --loader-bg flipped from the shared
  *       navy gradient to a warm cream one, so a light-theme visitor no
  *       longer watches a dark loader hand off to a light landing page.
- *     - 2.1.1 (2026-07-23) [Anthropic - Claude Opus 4.8] — Softened the
- *       reflection-gradient sheen: lower peak alpha (0.35->0.16 parchment,
- *       0.08->0.055 sentinel) and a narrower band, so the panel/tool-header
- *       hover glint glides rather than flashes (pairs with panels.css 2.4.2).
  *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     The single source of truth for textMan's visual design system. Defines
- *     the digiSpace brand anchors, both theme palettes (Parchment Dossier
- *     light and Sentinel Obsidian dark), and every structural token (spacing,
+ *     the digiSpace brand anchors, both theme palettes (light and dark),
+ *     and every structural token (spacing,
  *     typography, sizing, radii, shadows, transitions, z-index) the component
  *     styles consume. Load this after reset.css and before any layout or
  *     component stylesheet.
  *
  * ✒ Key Features:
  *     - Brand anchors: theme-independent navy/gold identity colors
- *     - Two full themes switched by [data-theme="parchment"|"sentinel"]
+ *     - Two full themes switched by [data-theme="light"|"dark"]; the
+ *       kernel resolves the visitor's System choice to one of them
  *     - color-scheme declared per theme so native form controls match
  *     - Semantic status palette per theme: success, danger, warning, info,
  *       accent, critical, link
@@ -64,8 +65,8 @@
  *     Load via a link tag on every toolMan page, second in the cascade:
  *     reset.css first, then tokens.css, then shell.css and any component
  *     stylesheets. Reference tokens through the var() function. Switch themes
- *     by setting data-theme="parchment" or data-theme="sentinel" on the html
- *     element; no stylesheet swap is needed.
+ *     by setting data-theme="light" or data-theme="dark" on the html
+ *     element (shared/js/toolman.js does this); no stylesheet swap is needed.
  *
  * ✒ Examples:
  *     A primary button fills with the color-brand token and labels itself
@@ -75,8 +76,8 @@
  *     A glassmorphism surface applies the glass utility class, which combines
  *     glass-bg, glass-border, glass-blur, and glass-shadow in a single rule.
  *
- *     Setting data-theme="sentinel" on the html element flips every palette
- *     token to the dark Obsidian values while the structural tokens (spacing,
+ *     Setting data-theme="dark" on the html element flips every palette
+ *     token to the dark values while the structural tokens (spacing,
  *     radii, z-index) stay constant.
  *
  *     A toast reads color-success or color-danger for its accent border; an
@@ -109,9 +110,9 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   THEME: PARCHMENT DOSSIER (light)
+   THEME: LIGHT
    ═══════════════════════════════════════════════════════════ */
-[data-theme="parchment"],
+[data-theme="light"],
 :root {
     color-scheme: light;
 
@@ -199,9 +200,9 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   THEME: SENTINEL OBSIDIAN (dark)
+   THEME: DARK
    ═══════════════════════════════════════════════════════════ */
-[data-theme="sentinel"] {
+[data-theme="dark"] {
     color-scheme: dark;
 
     /* — house palette — */

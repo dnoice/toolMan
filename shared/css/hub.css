@@ -64,7 +64,7 @@
  *
  * ✒ Examples:
  *     Every tool card carries a three-pixel gold top rule fading out of
- *     color-identity-gold — the dossier accent.
+ *     color-identity-gold — the house accent.
  *
  *     A live card (data-status of live) lifts four pixels on hover or
  *     focus-within, borrows a color-brand border, and glows via glow-brand;
@@ -222,7 +222,7 @@
     overflow: hidden;
 }
 
-/* Gold top rule — the dossier accent */
+/* Gold top rule — the house accent */
 .tool-card::before {
     content: '';
     position: absolute;

@@ -1,18 +1,21 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: HubLauncher (toolMan Edition - v1.1)
+ *     - Title: HubLauncher (toolMan Edition - v1.2)
  *     - File Name: hub.js
  *     - Relative Path: shared/js/hub.js
  *     - Artifact Type: javascript
- *     - Version: 1.1.1
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Version: 1.2.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
- *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.2.0 (11/17/2026) [dendogg + Anthropic - Claude] — Theme toggle
+ *       toast reads "Light theme" / "Dark theme" via TOOLMAN.themeLabel(),
+ *       after the rename from Parchment Dossier / Sentinel Obsidian.
  *     - 1.1.1 (2026-07-23) [Anthropic - Claude Opus 4.8] — textMan's card
  *       icon now uses its real fountain-pen mark (fill-based, currentColor)
  *       instead of the placeholder "T" glyph.
@@ -23,8 +26,7 @@
  *       badges, pin and confirm-guarded data-reset actions, and the version
  *       + GitHub footer line. Cards are now <article> elements with an
  *       overlay launch link (valid markup with interactive children).
- *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial hub boot:
- *       registry-driven cards, theme toggle, loader handoff.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     Boot script for the toolMan hub page. Renders the tool card grid from
@@ -293,11 +295,7 @@
         wireHeader() {
             DOM.on('#btn-theme', 'click', () => {
                 const theme = TOOLMAN.toggleTheme();
-                TOOLMAN.notify(
-                    theme === 'sentinel' ? 'Sentinel Obsidian engaged' : 'Parchment Dossier engaged',
-                    'info',
-                    1600
-                );
+                TOOLMAN.notify(`${TOOLMAN.themeLabel(theme)} theme`, 'info', 1600);
             });
         },
 

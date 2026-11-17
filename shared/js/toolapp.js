@@ -1,16 +1,22 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: ToolAppBoot (toolMan Edition - v1.0)
+ *     - Title: ToolAppBoot (toolMan Edition - v1.1)
  *     - File Name: toolapp.js
  *     - Relative Path: shared/js/toolapp.js
  *     - Artifact Type: library
- *     - Version: 1.0.0
+ *     - Version: 1.1.0
  *     - Date: 11/17/2026
  *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Theme toggle
+ *       toast reads "Light theme" / "Dark theme"; the toolman:theme event now
+ *       comes from the kernel itself, so this file no longer dispatches its
+ *       own copy.
  *
  * ✒ Description:
  *     The boot sequence and everyday helpers every three-panel toolMan
@@ -22,7 +28,7 @@
  * ✒ Key Features:
  *     - Error-isolated module boot: one failing pane never blanks the tool
  *     - Guaranteed Loader.complete() handoff in a finally block
- *     - Header wiring: theme toggle (with toast), settings, help
+ *     - Header wiring: light / dark toggle (with toast), settings, help
  *     - Standard shortcuts: Ctrl+S save, Ctrl+, settings, Ctrl+[ / ] rails,
  *       Ctrl+\ Focus mode, ? help — plus tool-specific shortcuts
  *     - Save pill driver: scheduleSave() → saving → saved / error
@@ -130,9 +136,9 @@
         wireHeader() {
             const c = this.config;
             DOM.on('#btn-theme', 'click', () => {
+                // toggleTheme() fires 'toolman:theme' itself when the theme changes.
                 const theme = TOOLMAN.toggleTheme();
-                TOOLMAN.notify(theme === 'sentinel' ? 'Sentinel Obsidian engaged' : 'Parchment Dossier engaged', 'info', 1600);
-                document.dispatchEvent(new CustomEvent('toolman:theme', { detail: { theme } }));
+                TOOLMAN.notify(`${TOOLMAN.themeLabel(theme)} theme`, 'info', 1600);
             });
             DOM.on('#btn-settings', 'click', () => Dialogs.open(c.settingsModal));
             DOM.on('#btn-help', 'click', () => Dialogs.open(c.helpModal));

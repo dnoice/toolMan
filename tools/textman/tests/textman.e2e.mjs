@@ -5,12 +5,16 @@
  *     - File Name: textman.e2e.mjs
  *     - Relative Path: tools/textman/tests/textman.e2e.mjs
  *     - Artifact Type: test
- *     - Version: 1.0.0
+ *     - Version: 1.0.1
  *     - Date: 11/17/2026
  *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.0.1 (11/17/2026) [dendogg + Anthropic - Claude] — Seeds the dark
+ *       theme by its new name (formerly sentinel).
  *
  * ✒ Description:
  *     End-to-end checks for textMan's interactive workflows, driven in a real
@@ -50,7 +54,7 @@ export const name = 'textman';
 export const description = 'textMan workflows: search, go-to-line, settings, panes, Focus/Zen';
 
 export default async function textman(t) {
-    const s = await t.open('tools/textman/index.html', { theme: 'sentinel' });
+    const s = await t.open('tools/textman/index.html', { theme: 'dark' });
     const { page } = s;
 
     await page.fill('#editor-textarea', Array.from({ length: 30 }, (_, i) => `line ${i + 1}`).join('\n'));

@@ -37,6 +37,7 @@ first, under the file's path.
 
 ## `shared/css/tokens.css`
 
+- 2.1.1 (2026-07-23) [Anthropic - Claude Opus 4.8] — Softened the reflection-gradient sheen: lower peak alpha (0.35->0.16 parchment, 0.08->0.055 sentinel) and a narrower band, so the panel/tool-header hover glint glides rather than flashes (pairs with panels.css 2.4.2).
 - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Added per-theme depth tokens (card-gradient, card-inset, card-shadow, card-shadow-hover, vignette) so cards and tool sections separate cleanly from the canvas — sharpens contrast in Sentinel Obsidian especially.
 - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Replaced the original cyan/purple glassmorphism palette with the digiSpace house token system (Parchment Dossier light theme + Sentinel Obsidian dark theme) sourced from token.txt. Themes now switch via [data-theme] on <html> instead of swapping theme stylesheets. Added app-layer tokens (glass, panels, buttons, glows) derived from the house palette, plus legacy aliases so existing layout CSS keeps resolving. Relocated to shared/css/ as the ecosystem-wide design layer for all toolMan tools.
 - 1.0.0 (2025-11-18) [model not recorded] — Initial design system with cyan/purple palette, spacing, typography, shadows, and utilities.
@@ -62,6 +63,7 @@ first, under the file's path.
 
 ## `tools/textman/index.html`
 
+- 2.4.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Tool-pane additions: transform case family + strip-accents + smart/straight quotes, encoding Base64URL/hex/JWT, and formatting code-fence + strip-markdown buttons.
 - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Editor QoL batch: editable document title, font-size stepper, word-wrap toggle, download and copy-all controls, a line/col stat pill, and the Ctrl+G / Ctrl+\ shortcuts documented in Help.
 - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Mobile reachability (audit finding F5): header gains Workspace/Tools toggle buttons that appear under 768px and drive the slide-in panels via data-mobile-open.
 - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Help modal documents the new panel-toggle shortcuts (Ctrl/Cmd+[ and Ctrl/Cmd+]) added by the collapse-recovery overhaul (audit finding F4).
@@ -83,6 +85,7 @@ first, under the file's path.
 
 ## `tools/textman/js/ui/modals.js`
 
+- 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Settings QoL: autosave-delay and tab-size range controls (live labels), a storage usage meter, and Export/Import workspace wired to the shared Storage.export/import — editor prefs re-apply after save/import.
 - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial dialog controller: focus trap, Escape/backdrop close, submit flows.
 
 ## `tools/textman/js/ui/editor.js`
@@ -95,6 +98,7 @@ first, under the file's path.
 
 ## `shared/css/shell.css`
 
+- 2.4.1 (2026-07-23) [Anthropic - Claude Opus 4.8] — Scoped the .loader-logo pulse/sizing rule to the direct child (.loader-logo > svg/img) so the hub loader's nested orbiting tool-icon satellites do not inherit the central mark's fill sizing or pulse. Corrected the stale title version tag (v2.2 -> v2.4).
 - 2.4.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Theme toggle now shows a moon in the light (parchment) theme and a sun in the dark (sentinel) theme, swapped purely by data-theme so it flips the instant the theme changes.
 - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Mobile reachability (audit finding F5): .mobile-only header buttons appear under 768px, and a .mobile-scrim overlay dims the stage behind a slid-in panel and closes it on tap.
 - 2.2.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the header icon buttons' transition:all to the named properties that actually animate (motion-polish pass).
@@ -105,6 +109,7 @@ first, under the file's path.
 
 ## `index.html`
 
+- 1.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Hub QoL batch: tool-search input in the header, "Continue where you left off" hero slot, and the version + GitHub footer line (grid enrichments live in shared/js/hub.js 1.1.0).
 - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Replaced the fountain-pen mark (textMan's identity) with the placeholder toolbox mark (logo-toolMan.svg) in the loader, header, hero, and favicon.
 - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial hub page: loading screen, registry-driven tool grid, theme toggle.
 
@@ -129,3 +134,11 @@ first, under the file's path.
 - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Added ui.sectionOrder (workspace/tools) with the setSectionOrder helper and restore-merge support, persisting the user's drag-and-drop section arrangement — the first "manipulate your workspace" feature.
 - 2.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Moved into the toolMan ecosystem (tools/textman/). Storage now namespaced under 'toolman.textman.state' with automatic migration from the legacy 'textman-state' key. Hardened: collision-proof IDs via crypto.randomUUID, input validation on all mutators, allowlisted restore merge, transform usage tallies for analytics, and theme moved to the ecosystem level.
 - 1.0.0 (2025-11-18) [model not recorded] — Initial centralized state with four seed templates and CRUD helpers.
+
+## `shared/js/toolman.js`
+
+- 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial kernel: registry, theme management, toasts.
+
+## `shared/js/hub.js`
+
+- 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial hub boot: registry-driven cards, theme toggle, loader handoff.
