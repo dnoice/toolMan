@@ -106,7 +106,7 @@
     display: none;
     align-items: center;
     justify-content: center;
-    padding: var(--space-6);
+    padding: var(--space-lg);
 
     background: var(--bg-overlay);
     -webkit-backdrop-filter: blur(6px) saturate(120%);
@@ -125,25 +125,23 @@
     to   { opacity: 1; }
 }
 
-/* ===== MODAL PANEL =====
-   Three rows: header, scrolling body, footer. The explicit
-   `minmax(0, 1fr)` middle row is what stops the body from refusing to
-   shrink and pushing its last line under the footer — the settings
-   dialog used to slice its reset helper text mid-word that way. */
+/* ===== MODAL PANEL ===== */
 .modal-panel {
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    width: min(620px, calc(100vw - 32px));
-    max-height: min(760px, calc(100dvh - 32px));
+    display: flex;
+    flex-direction: column;
+    width: min(560px, 100%);
+    max-height: min(85vh, 720px);
 
-    background: var(--bg-pane);
-    border: var(--border-width) solid var(--border);
-    border-radius: var(--radius-dialog);
-    box-shadow: var(--shadow-dialog);
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow:
+        0 0 0 1px var(--border-subtle),
+        var(--shadow-2xl);
     overflow: hidden;
 
     z-index: var(--z-modal);
-    animation: modalIn var(--transition-dialog) forwards;
+    animation: modalIn var(--transition-bounce) forwards;
 }
 
 @keyframes modalIn {
@@ -156,9 +154,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--space-4) var(--space-6);
+    padding: var(--space-md) var(--space-lg);
 
-    background: var(--bg-chrome);
+    background: var(--header-gradient);
     position: relative;
     flex-shrink: 0;
 }
@@ -172,14 +170,14 @@
     bottom: 0;
     height: 1px;
     background: linear-gradient(90deg,
-        transparent, var(--accent-fill) 20%, var(--accent-fill) 80%, transparent);
+        transparent, var(--identity-gold) 20%, var(--identity-gold) 80%, transparent);
     opacity: 0.5;
 }
 
 .modal-title {
     font-size: var(--font-lg);
     font-weight: var(--font-semibold);
-    color: var(--chrome-accent);
+    color: var(--header-gold);
     letter-spacing: -0.01em;
 }
 
@@ -189,8 +187,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-card);
-    color: var(--chrome-text-muted);
+    border-radius: var(--radius-md);
+    color: var(--header-subtitle);
     font-size: var(--font-xl);
     line-height: 1;
     transition: all var(--transition-fast);
@@ -198,101 +196,31 @@
 
 .modal-close:hover {
     background: rgba(255, 255, 255, 0.1);
-    color: var(--chrome-text);
+    color: var(--header-text);
     transform: rotate(90deg);
 }
 
 /* ===== MODAL BODY ===== */
 .modal-body {
-    padding: var(--space-6);
+    flex: 1;
+    padding: var(--space-lg);
     overflow-y: auto;
-    overscroll-behavior: contain;   /* scrolling out of the body must not scroll the page */
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
-/* A scrollable body that ends flush against the footer rule reads as
-   truncated content rather than as more-below. These two local-attachment
-   gradients paint a soft fade at whichever edge still has content past it,
-   and vanish when you reach the end — a scroll affordance with no JS and
-   no scrollbar dependency. */
-.modal-body {
-    background:
-        linear-gradient(var(--bg-pane) 30%, transparent) top    / 100% 24px no-repeat local,
-        linear-gradient(transparent, var(--bg-pane) 70%) bottom / 100% 24px no-repeat local,
-        radial-gradient(farthest-side at 50% 0,   var(--border-subtle), transparent) top    / 100% 10px no-repeat scroll,
-        radial-gradient(farthest-side at 50% 100%, var(--border-subtle), transparent) bottom / 100% 10px no-repeat scroll;
-}
-
-.modal-body > :last-child {
-    margin-bottom: 0;
-}
-
 .help-text {
-    margin-top: var(--space-1);
+    margin-top: var(--space-xs);
     font-size: var(--font-xs);
-    color: var(--text-muted);
+    color: var(--fg-subtle);
     line-height: var(--leading-normal);
 }
 
-/* ===== RANGE SLIDERS (settings) =====
-   Styled explicitly rather than left to accent-color: Chromium derives the
-   unfilled track from the accent and lands on a near-black bar that reads
-   as broken on parchment. */
+/* ===== RANGE SLIDERS (settings) ===== */
 .range-input {
     width: 100%;
-    height: 18px;
-    background: transparent;
+    accent-color: var(--color-brand);
     cursor: pointer;
-    -webkit-appearance: none;
-    appearance: none;
-}
-
-.range-input::-webkit-slider-runnable-track {
-    height: 4px;
-    background: var(--bg-tag);
-    border: var(--border-width) solid var(--border);
-    border-radius: var(--radius-pill);
-}
-
-.range-input::-moz-range-track {
-    height: 4px;
-    background: var(--bg-tag);
-    border: var(--border-width) solid var(--border);
-    border-radius: var(--radius-pill);
-}
-
-.range-input::-moz-range-progress {
-    height: 4px;
-    background: var(--accent-fill);
-    border-radius: var(--radius-pill);
-}
-
-.range-input::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 14px;
-    height: 14px;
-    margin-top: -6px;           /* centre the thumb on the 4px track */
-    background: var(--accent-fill);
-    border: var(--border-width) solid var(--bg-surface);
-    border-radius: var(--radius-pill);
-}
-
-.range-input::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
-    background: var(--accent-fill);
-    border: var(--border-width) solid var(--bg-surface);
-    border-radius: var(--radius-pill);
-}
-
-.range-input:focus-visible::-webkit-slider-thumb {
-    box-shadow: var(--focus-ring);
-}
-
-.range-input:focus-visible::-moz-range-thumb {
-    box-shadow: var(--focus-ring);
 }
 
 /* ===== STORAGE USAGE METER ===== */
@@ -301,217 +229,16 @@
     height: 8px;
     background: var(--bg-tag);
     border: var(--border-width) solid var(--border-muted);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-full);
     overflow: hidden;
 }
 
 .usage-fill {
     height: 100%;
-    width: 0;
-    background: linear-gradient(90deg, var(--accent-fill), var(--accent-text));
-    border-radius: var(--radius-pill);
+    width: 1%;
+    background: linear-gradient(90deg, var(--color-brand), var(--color-identity-gold));
+    border-radius: var(--radius-full);
     transition: width var(--transition-base);
-}
-
-/* Number + percent read-out under the meter — text carries the meaning when
-   the fill is a sliver (§15.3). */
-.usage-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-3);
-    margin-top: var(--space-1);
-    font-size: var(--font-xs);
-    color: var(--text-secondary);
-    font-variant-numeric: tabular-nums;
-}
-
-/* ===== SETTINGS CONTROLS (§15.3) =====
-   (.form-group[hidden] and .btn-danger-outline now live in panels.css as
-   shared rules — a hidden form-group and an outlined danger button are not
-   settings-specific.) */
-
-/* Label-left / value-right rows: "Autosave delay … 1.0 s", "Editor tab size …
-   [ − ] 4 spaces [ + ]". The label keeps the shared uppercase section style;
-   the value reads as a plain, tabular-numeral figure, not another label. */
-.field-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-}
-
-.field-value {
-    font-size: var(--font-sm);
-    font-weight: var(--font-medium);
-    color: var(--text-body);
-    font-variant-numeric: tabular-nums;
-}
-
-/* Theme choice — plain name over brand name, with a preview swatch (§15.3).
-   Each option shares its row width so the pair reads as a balanced set. */
-.theme-choices .theme-option {
-    flex: 1 1 200px;
-    align-items: center;
-}
-
-/* The swatch must depict each theme's REAL colours regardless of the active
-   theme, so it can't use the palette tokens (they flip). These are pinned
-   literals mirroring tokens.css: navy/parchment/gold and obsidian/obsidian/gold
-   as chrome / editor / accent bands. */
-.theme-swatch {
-    flex-shrink: 0;
-    width: 34px;
-    height: 26px;
-    border: var(--border-width) solid var(--border-strong);
-    border-radius: var(--radius-kbd);
-}
-
-.theme-swatch--light {
-    background: linear-gradient(180deg,
-        #304966 0 40%, #FAF9F5 40% 78%, #C89A2E 78% 100%);
-}
-
-.theme-swatch--dark {
-    background: linear-gradient(180deg,
-        #20252D 0 40%, #1B1E23 40% 78%, #E2B84E 78% 100%);
-}
-
-/* Option labels read as prose ("Light", "Parchment Dossier"), not shouty caps —
-   the shared .form-group label rule uppercases every label descendant, so the
-   theme chips opt back out. */
-.theme-option-text {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    line-height: var(--leading-tight);
-    text-transform: none;
-    letter-spacing: normal;
-}
-
-.theme-name {
-    font-size: var(--font-sm);
-    font-weight: var(--font-semibold);
-    color: var(--text-primary);
-}
-
-.theme-brand {
-    font-size: var(--font-xs);
-    color: var(--text-muted);
-}
-
-/* Selected chip lifts the brand line to secondary so both lines stay legible. */
-.radio-label:has(input:checked) .theme-brand {
-    color: var(--text-secondary);
-}
-
-/* Discrete tab-size stepper: one joined [ − | value | + ] control (§5.1 /
-   §15.3), never a slider for a 2–8 integer. */
-.stepper {
-    display: inline-flex;
-    align-items: stretch;
-    border: var(--border-width) solid var(--border);
-    border-radius: var(--radius-control);
-    background: var(--bg-input);
-    overflow: hidden;
-}
-
-.stepper-btn {
-    width: var(--h-input);
-    min-height: var(--h-input);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    color: var(--text-primary);
-    font-size: var(--font-md);
-    line-height: 1;
-    cursor: pointer;
-    transition: background-color var(--transition-fast), color var(--transition-fast);
-}
-
-.stepper-btn:hover:not(:disabled) {
-    background: var(--bg-hover);
-}
-
-.stepper-btn:active:not(:disabled) {
-    background: var(--bg-active);
-}
-
-/* Readable-but-inactive at the rails, not ghosted away (§20 / §21). */
-.stepper-btn:disabled {
-    color: var(--text-muted);
-    cursor: not-allowed;
-}
-
-/* Inset ring so the focus outline is not clipped by the container overflow. */
-.stepper-btn:focus-visible {
-    box-shadow: var(--glow-brand-inset);
-}
-
-.stepper-value {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35em;                 /* flex removes the whitespace text node, so gap it back */
-    min-width: 74px;
-    padding: 0 var(--space-2);
-    border-left: var(--border-width) solid var(--border);
-    border-right: var(--border-width) solid var(--border);
-    font-size: var(--font-sm);
-    color: var(--text-primary);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-}
-
-.stepper-unit {
-    color: var(--text-secondary);
-}
-
-/* ===== DANGER ZONE (§15.3) =====
-   Reset is fenced off from routine settings: a danger-washed card, a danger
-   heading, and an OUTLINED danger button at rest that only fills on hover, so
-   an irreversible action never reads as a primary one. */
-.danger-zone {
-    margin-top: var(--space-6);
-    padding: var(--space-4);
-    background: var(--wash-danger);
-    border: var(--border-width) solid color-mix(in srgb, var(--danger) 45%, transparent);
-    border-radius: var(--radius-card);
-}
-
-.danger-zone-title {
-    margin-bottom: var(--space-2);
-    font-size: var(--font-label);
-    font-weight: var(--font-semibold);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--danger);
-}
-
-.danger-zone-action {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-4);
-    flex-wrap: wrap;
-}
-
-.danger-zone-copy {
-    flex: 1 1 240px;
-}
-
-.danger-zone-heading {
-    margin-bottom: 2px;
-    font-size: var(--font-sm);
-    font-weight: var(--font-medium);
-    color: var(--text-primary);
-}
-
-/* Outlined danger button colours live in panels.css; the Danger Zone reset
-   only needs to hold its width in the section's flex column. */
-.danger-zone .btn-danger-outline {
-    flex-shrink: 0;
 }
 
 /* ===== MODAL FOOTER ===== */
@@ -519,12 +246,12 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: var(--space-2);
-    min-height: var(--h-dialog-foot);
-    padding: var(--space-3) var(--space-4);
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
 
     background: var(--bg-surface-alt);
-    border-top: var(--border-width) solid var(--border);
+    border-top: var(--border-width) solid var(--border-muted);
+    flex-shrink: 0;
 }
 
 /* ===== CONFIRM DIALOG =====
@@ -541,140 +268,94 @@
     white-space: pre-line;
     font-size: var(--font-sm);
     line-height: var(--leading-relaxed);
-    color: var(--text-body);
+    color: var(--fg-body);
 }
 
 .modal-panel--confirm .modal-footer {
     flex-wrap: wrap;
 }
 
-/* ===== PROMPT DIALOG =====
-   One field, one question. Narrower than a confirm because a lone input
-   reads worse the wider it gets. */
-.modal-panel--prompt {
-    width: min(380px, 100%);
-}
-
-.prompt-label {
-    font-size: var(--font-xs);
-    font-weight: var(--font-medium);
-    color: var(--text-secondary);
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-}
-
-.prompt-input {
-    font-variant-numeric: tabular-nums;
-}
-
-/* Inline validation: the dialog stays open and says why, so a rejected
-   value is never silently discarded. */
-.prompt-error {
-    margin-top: var(--space-1);
-    font-size: var(--font-xs);
-    line-height: var(--leading-normal);
-    color: var(--danger);
-}
-
-.prompt-error[hidden] {
-    display: none;
-}
-
-.prompt-input[aria-invalid="true"] {
-    border-color: var(--danger);
-}
-
 /* ===== RADIO GROUP (settings) ===== */
 .radio-group {
     display: flex;
-    gap: var(--space-4);
+    gap: var(--space-md);
     flex-wrap: wrap;
 }
 
 .radio-label {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-4);
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
 
-    background: var(--bg-pane);
-    border: var(--border-width) solid var(--border);
-    border-radius: var(--radius-card);
+    background: var(--bg-surface);
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-md);
 
     font-size: var(--font-sm);
-    color: var(--text-body);
+    color: var(--fg-body);
     cursor: pointer;
     transition: all var(--transition-fast);
 }
 
 .radio-label:hover {
-    box-shadow: var(--glow-brand);
+    border-color: var(--color-brand);
 }
 
 .radio-label:has(input:checked) {
-    border-color: var(--accent-fill);
+    border-color: var(--color-brand);
     background: var(--bg-active);
-    color: var(--text-primary);
-    box-shadow: inset 0 0 0 1px var(--accent-fill);
+    color: var(--fg-default);
+    box-shadow: inset 0 0 0 1px var(--color-brand);
 }
 
 .radio-label input[type="radio"] {
-    accent-color: var(--accent-fill);
+    accent-color: var(--color-brand);
 }
 
-/* ===== HELP MODAL (§15.4) =====
-   A touch wider than the base panel (620–660px) to give the fixed label column
-   and its descriptions room to breathe. */
-.modal-panel--help {
-    width: min(648px, calc(100vw - 32px));
-}
-
+/* ===== HELP MODAL ===== */
 .help-section {
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-lg);
 }
 
 .help-section h4 {
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--space-sm);
     font-size: var(--font-sm);
     font-weight: var(--font-semibold);
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--accent-text);
+    color: var(--color-brand);
 }
 
-/* Fixed 120px label column (§15.4) — the platform-aware chips ("Ctrl+S", "⌘S")
-   and layout terms all sit in one tidy gutter, descriptions in the 1fr rest. */
 .help-list {
     display: grid;
-    grid-template-columns: 120px 1fr;
-    gap: var(--space-2) var(--space-4);
+    grid-template-columns: minmax(120px, auto) 1fr;
+    gap: var(--space-xs) var(--space-md);
     align-items: baseline;
 }
 
 .help-list dt {
     font-size: var(--font-sm);
     font-weight: var(--font-medium);
-    color: var(--text-primary);
+    color: var(--fg-default);
 }
 
-/* Body-ink descriptions, not secondary — the review asked for more contrast
-   here (§15.4 / §16). */
 .help-list dd {
     font-size: var(--font-sm);
-    color: var(--text-body);
+    color: var(--fg-muted);
     line-height: var(--leading-normal);
 }
 
 kbd {
     display: inline-block;
-    padding: 1px var(--space-2);
+    padding: 1px var(--space-sm);
     background: var(--bg-tag);
-    border: var(--border-width) solid var(--border);
+    border: var(--border-width) solid var(--border-default);
     border-bottom-width: 2px;
-    border-radius: var(--radius-kbd);
+    border-radius: var(--radius-sm);
     font-family: var(--font-mono);
     font-size: var(--font-xs);
-    color: var(--text-primary);
+    color: var(--fg-default);
     white-space: nowrap;
 }
 
@@ -686,17 +367,17 @@ kbd {
 }
 
 .diff-summary {
-    margin-bottom: var(--space-4);
-    padding: var(--space-2) var(--space-4);
+    margin-bottom: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
     background: var(--bg-surface-alt);
-    border-radius: var(--radius-kbd);
+    border-radius: var(--radius-sm);
     font-family: var(--font-sans);
     font-size: var(--font-sm);
-    color: var(--text-secondary);
+    color: var(--fg-muted);
 }
 
 .diff-row {
-    padding: 1px var(--space-2);
+    padding: 1px var(--space-sm);
     white-space: pre-wrap;
     word-break: break-all;
     border-radius: 2px;
@@ -704,25 +385,25 @@ kbd {
 
 .diff-row.diff-add {
     background: var(--wash-tip);
-    color: var(--success);
+    color: var(--color-success);
 }
 
 .diff-row.diff-del {
     background: var(--wash-danger);
-    color: var(--danger);
+    color: var(--color-danger);
     text-decoration: line-through;
     text-decoration-thickness: 1px;
     text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
 }
 
 .diff-row.diff-ctx {
-    color: var(--text-muted);
+    color: var(--fg-subtle);
 }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 480px) {
     .modal-backdrop {
-        padding: var(--space-2);
+        padding: var(--space-sm);
     }
 
     .modal-panel {
