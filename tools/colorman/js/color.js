@@ -483,10 +483,14 @@
         return { color: make(vals, alpha), clipped: vals.some((v) => outside(v, 0, 1)) };
     }
 
-    /** Forgiving OKLab/OKLCH lightness: 0..1, a percentage, or 0..100 typed bare. */
+    /**
+     * Forgiving OKLab/OKLCH lightness: 0..1, a percentage, or 0..100 typed
+     * bare. A bare value just above 1 (up to 2) is an overshoot that CSS
+     * clamps to 1, not a percentage, so only values above 2 are read as 0-100.
+     */
     function okLightness(t) {
         let v = scalar(t, 1);
-        if (t.unit === '' && v > 1 && v <= 100) v /= 100;
+        if (t.unit === '' && v > 2 && v <= 100) v /= 100;
         return v;
     }
 
@@ -562,19 +566,21 @@
                 return { color: out.color, format: 'lch', clipped: out.clipped };
             }
             case 'oklab': case 'oklch': {
-                const L = clamp01(okLightness(t0));
+                const rawL = okLightness(t0);
+                const L = clamp01(rawL);
+                const overL = outside(rawL, 0, 1);
                 if (name === 'oklab') {
                     const a = scalar(t1, 0.4);
                     const b = scalar(t2, 0.4);
                     if ([L, a, b].some(Number.isNaN)) return null;
                     const out = fromXyz65Detailed(oklabToXyz65([L, a, b]), alpha);
-                    return { color: out.color, format: 'oklab', clipped: out.clipped };
+                    return { color: out.color, format: 'oklab', clipped: out.clipped || overL };
                 }
                 const C = Math.max(0, scalar(t1, 0.4));
                 const H = hueOfToken(t2);
                 if ([L, C, H].some(Number.isNaN)) return null;
                 const out = fromOklchDetailed(L, C, H, alpha);
-                return { color: out.color, format: 'oklch', clipped: out.clipped };
+                return { color: out.color, format: 'oklch', clipped: out.clipped || overL };
             }
             default:
                 return null;
