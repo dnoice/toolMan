@@ -228,6 +228,13 @@
         saveTimer = setTimeout(persist, 400);
     }
 
+    /** Leaving the page: write a pending view or expression change now. */
+    function flushPending() {
+        if (!saveTimer) return;
+        persist();
+        if (window.ToolApp && typeof ToolApp.saveNow === 'function') ToolApp.saveNow(false);
+    }
+
     /* ── Compiling against the active sheet ────────────────── */
 
     /** Signature of what the sheet defines; when it changes, every series recompiles. */
@@ -1504,6 +1511,9 @@
         });
         DOM.on(els.sendTrace, 'click', sendTrace);
         DOM.on(els.clearTrace, 'click', () => setTrace(NaN, 'pin'));
+
+        window.addEventListener('pagehide', flushPending);
+        document.addEventListener('visibilitychange', () => { if (document.hidden) flushPending(); });
 
         document.addEventListener('toolman:theme', () => {
             readColors();
