@@ -13,7 +13,453 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Description:
- *     Placeholder — replaced by the Worksheet team. It exists so the mathMan
- *     page loads cleanly before that team's file lands.
+ *     Styles for mathMan's four Library panes: Sheets, Variables,
+ *     Reference, and History. It adds only what is specific to them (the
+ *     filter bar, the drop target, name = value rows, reference rows, and
+ *     History cards) and leans on the shared list cards, chips, badges,
+ *     buttons, and empty states for everything else.
+ *
+ * ✒ Key Features:
+ *     - Library bar: filter field and small actions on one wrapping row
+ *     - Sheet cards: the shared gold-rule list card, clickable as a whole,
+ *       an "Open" badge (a word, not only a color), a mono first-line
+ *       preview, and a muted note for an empty sheet
+ *     - Drop target: the Sheets pane outlines itself in gold with a
+ *       "drop to add" note while a file is dragged over it
+ *     - Undo strip after a delete, in the kit's info feedback tone
+ *     - Variable rows: mono name in brand ink, "=", the value trimmed with
+ *       an ellipsis, and a line chip that jumps to the definition
+ *     - Reference rows: signature, description, and the example with its
+ *       live result, plus a + button that adds the example as a line
+ *     - History cards: the calculation, the result in brand ink, the sheet
+ *       and age, and a copy button
+ *     - Visible focus rings on every button; hidden always means hidden
+ *
+ * ✒ Usage Instructions:
+ *     Load after css/worksheet.css and before css/tools-a.css:
+ *         <link rel="stylesheet" href="css/library.css">
+ *     js/ui/library.js writes the matching markup into #mount-sheets,
+ *     #mount-variables, #mount-reference, and #mount-history.
+ *
+ * ✒ Examples:
+ *     <div class="lib-bar"><input class="rail-filter lib-filter"> <div class="lib-bar-actions">…</div></div>
+ *     <article class="list-row lib-sheet" data-active="true"> … <span class="badge" data-tone="brand">Open</span>
+ *     <div class="lib-var-row"><button class="lib-var">price = 80</button><button class="lib-line-chip">L19</button></div>
+ *     <div class="lib-ref-row"><button class="lib-ref">sqrt(x) · Square root · sqrt(2) → 1.414…</button></div>
+ *     <article class="list-row lib-hist"><button class="lib-hist-main">2 + 3 * 4 = 14</button>…</article>
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/tokens.css, panels.css, workbench.css;
+ *       css/mathman.css (.mm-mount)
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: every color is a theme token; long names and values
+ *       are trimmed with an ellipsis and shown in full in each button's
+ *       title
  * ----------------------------------------------------------------------------
  */
+
+/* Several shared classes set display, which beats the bare [hidden]
+   attribute; inside these panes hidden always means hidden. */
+#panel-library .mm-mount [hidden] {
+    display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SHARED BITS — bar, file input, undo, empty states
+   ═══════════════════════════════════════════════════════════ */
+
+.lib-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-xs) var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.lib-bar .lib-filter {
+    flex: 1 1 140px;
+    width: auto;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.lib-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-shrink: 0;
+}
+
+.lib-bar-actions .btn {
+    min-height: 30px;
+}
+
+.lib-file {
+    display: none;
+}
+
+.tool-feedback.lib-undo[data-state] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin: 0 0 var(--space-sm);
+    padding: 2px 2px 2px var(--space-sm);
+}
+
+.lib-undo-text {
+    min-width: 0;
+}
+
+.lib-undo .lib-undo-btn {
+    flex-shrink: 0;
+    padding: 2px var(--space-sm);
+    color: var(--color-info);
+    font-weight: var(--font-semibold);
+}
+
+.lib-empty {
+    gap: var(--space-sm);
+    padding: var(--space-lg) var(--space-sm);
+}
+
+.lib-empty .empty-title {
+    font-size: var(--font-sm);
+}
+
+.lib-empty .empty-text {
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+}
+
+.lib-empty-actions {
+    justify-content: center;
+}
+
+.lib-none {
+    margin: var(--space-sm) 0 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SHEETS
+   ═══════════════════════════════════════════════════════════ */
+
+#mount-sheets {
+    position: relative;
+    border-radius: var(--radius-md);
+    transition: box-shadow var(--transition-fast);
+}
+
+#mount-sheets[data-drop="true"] {
+    box-shadow: 0 0 0 2px var(--color-brand), 0 0 0 6px var(--bg-active);
+}
+
+#mount-sheets[data-drop="true"] .lib-drop-hint {
+    border-color: var(--color-brand);
+    background: var(--bg-active);
+    color: var(--fg-default);
+}
+
+.lib-sheet {
+    cursor: pointer;
+}
+
+.lib-sheet .row-head {
+    min-height: 26px;
+}
+
+.lib-sheet .icon-action {
+    width: 26px;
+    height: 26px;
+}
+
+.lib-open-badge {
+    flex-shrink: 0;
+}
+
+.lib-preview {
+    max-height: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lib-preview--empty {
+    font-family: var(--font-sans);
+    font-style: italic;
+}
+
+.lib-sheet .row-actions .row-btn {
+    font-variant-numeric: tabular-nums;
+}
+
+.lib-drop-hint {
+    margin-top: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+    border: var(--border-width) dashed var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--fg-subtle);
+    font-size: 0.6875rem;
+    text-align: center;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast),
+                color var(--transition-fast);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VARIABLES
+   ═══════════════════════════════════════════════════════════ */
+
+.lib-var-hint {
+    font-style: normal;
+}
+
+.lib-var-body .section-label:first-child {
+    margin-top: 0;
+}
+
+.lib-vars {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-input);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.lib-var-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: 34px;
+    padding-right: var(--space-xs);
+    border-bottom: var(--border-width) solid var(--border-subtle);
+}
+
+.lib-var-row:last-child {
+    border-bottom: 0;
+}
+
+.lib-var-row:hover {
+    background: var(--bg-hover);
+}
+
+.lib-var {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-xs);
+    min-width: 0;
+    padding: var(--space-xs) var(--space-sm);
+    background: transparent;
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    text-align: left;
+    cursor: pointer;
+}
+
+.lib-var:focus-visible,
+.lib-line-chip:focus-visible,
+.lib-ref:focus-visible,
+.lib-hist-main:focus-visible {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--bg-active);
+}
+
+.lib-var-name {
+    flex-shrink: 0;
+    max-width: 55%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--color-brand);
+    font-weight: var(--font-semibold);
+}
+
+.lib-var-eq {
+    flex-shrink: 0;
+    color: var(--fg-subtle);
+}
+
+.lib-var-value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--fg-body);
+}
+
+.lib-line-chip {
+    flex-shrink: 0;
+    padding: 1px 6px;
+    background: var(--bg-tag);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-full);
+    color: var(--fg-meta);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.lib-line-chip:hover {
+    color: var(--color-brand);
+    border-color: var(--color-brand);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   REFERENCE
+   ═══════════════════════════════════════════════════════════ */
+
+.lib-ref-chips {
+    margin-bottom: var(--space-xs);
+}
+
+.lib-ref-count {
+    margin-bottom: var(--space-xs);
+    font-style: normal;
+}
+
+.lib-ref-body .section-label:first-child {
+    margin-top: 0;
+}
+
+.lib-ref-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.lib-ref-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 2px;
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.lib-ref-row:hover {
+    border-color: var(--border-focus);
+    box-shadow: var(--shadow-sm);
+}
+
+.lib-ref {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: var(--space-xs) var(--space-sm);
+    background: transparent;
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-md);
+    text-align: left;
+    cursor: pointer;
+}
+
+.lib-ref-sig {
+    color: var(--color-brand);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    font-weight: var(--font-semibold);
+    overflow-wrap: anywhere;
+}
+
+.lib-ref-desc {
+    color: var(--fg-muted);
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+}
+
+.lib-ref-ex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-sm);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--fg-subtle);
+    overflow-wrap: anywhere;
+}
+
+.lib-ref-ex-out {
+    color: var(--fg-meta);
+}
+
+.lib-ref-add {
+    width: 26px;
+    height: 26px;
+    margin: var(--space-xs) var(--space-xs) 0 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HISTORY
+   ═══════════════════════════════════════════════════════════ */
+
+.lib-hist-note {
+    font-style: normal;
+}
+
+.lib-hist {
+    gap: 2px;
+    padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm);
+}
+
+.lib-hist-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 2px var(--space-xs);
+    background: transparent;
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-sm);
+    text-align: left;
+    cursor: pointer;
+}
+
+.lib-hist-main:hover .lib-hist-result {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.lib-hist-expr {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--fg-body);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+}
+
+.lib-hist-result {
+    color: var(--color-brand);
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    font-weight: var(--font-semibold);
+    overflow-wrap: anywhere;
+}
+
+.lib-hist-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding-left: var(--space-xs);
+}
+
+.lib-hist-meta {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lib-hist .icon-action {
+    width: 26px;
+    height: 26px;
+}
