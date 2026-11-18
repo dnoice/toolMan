@@ -289,12 +289,21 @@
     max-height: 220px;
 }
 
-/* Mode tabs: kit chips with role="tab". */
+/* Mode tabs: kit chips with role="tab", sharing the row evenly. */
+.tb-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .tb-tabs .chip-btn {
+    justify-content: center;
     min-height: 28px;
-    padding: var(--space-xs) var(--space-md);
+    padding: var(--space-xs);
     font-size: var(--font-xs);
     font-weight: var(--font-medium);
+    line-height: var(--leading-tight);
+    text-align: center;
+    white-space: normal;
 }
 
 .tb-tabs .chip-btn[aria-selected="true"] {
@@ -564,7 +573,15 @@
 }
 
 .nt-n {
+    display: block;
     color: var(--fg-muted);
+}
+
+.nt-note {
+    font-family: var(--font-sans);
+    font-size: var(--font-xs);
+    font-style: italic;
+    color: var(--fg-subtle);
 }
 
 .nt-p sup {

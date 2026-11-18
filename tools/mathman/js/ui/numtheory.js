@@ -267,7 +267,7 @@
         els.primeError = DOM.create('div', { className: 'tool-feedback tb-feedback', attrs: { role: 'alert' } });
         sec.appendChild(els.primeError);
         els.primeSend = sendButton('Add isprime(…) for this number to the end of the sheet');
-        sec.appendChild(els.primeSend);
+        sec.appendChild(DOM.create('div', { className: 'tb-actions', children: [els.primeSend] }));
         root.appendChild(sec);
 
         els.prime.addEventListener('input', () => {
@@ -475,7 +475,7 @@
         const f = lf.result;
         DOM.empty(els.factorExpr);
         els.factorExpr.appendChild(DOM.create('span', { className: 'nt-n', text: groupInt(lf.value) }));
-        els.factorExpr.appendChild(document.createTextNode(' = '));
+        els.factorExpr.appendChild(document.createTextNode('= '));
         if (!f.factors.length && !f.remainder) {
             els.factorExpr.appendChild(document.createTextNode(lf.value === '-1' ? '−1' : '1'));
         } else {
@@ -490,6 +490,7 @@
             if (f.remainder) {
                 if (f.factors.length) els.factorExpr.appendChild(document.createTextNode(' × '));
                 els.factorExpr.appendChild(DOM.create('span', { className: 'nt-rest', text: `(${groupInt(f.remainder)})`, attrs: { title: 'Not factored yet' } }));
+                if (!f.factors.length) els.factorExpr.appendChild(DOM.create('span', { className: 'nt-note', text: ' — no factor found yet' }));
             }
         }
         const facts = [];

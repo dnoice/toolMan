@@ -35,8 +35,9 @@
  *       of both halves when the count is odd), and Q1 / Q3 are the medians
  *       of those halves — the method most school courses and TI
  *       calculators teach
- *     - histogram: tidy auto bins (Sturges' count rounded to a 1-2-2.5-5
- *       step) or an exact number of equal-width bins
+ *     - histogram: tidy auto bins (Sturges' count, with the width rounded
+ *       to the nearest 1-2-2.5-5 step) or an exact number of equal-width
+ *       bins
  *     - isPrime / primality: trial division, then deterministic Miller-Rabin
  *       (the first 13 prime bases) for every n below 3.317 × 10^24, and a
  *       24-base strong probable-prime test above that; BigInt throughout
@@ -449,14 +450,17 @@
         };
     }
 
-    /** A 1-2-2.5-5 × 10^k step at least x. */
+    /** The 1-2-2.5-5 × 10^k step closest to x (on a log scale). */
     function niceStep(x) {
         if (!(x > 0) || !Number.isFinite(x)) return 1;
         const exp = Math.floor(Math.log10(x));
         const base = Math.pow(10, exp);
         const f = x / base;
-        const nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10;
-        return nf * base;
+        let best = 1;
+        for (const nf of [1, 2, 2.5, 5, 10]) {
+            if (Math.abs(Math.log(f / nf)) < Math.abs(Math.log(f / best))) best = nf;
+        }
+        return best * base;
     }
 
     const tidy = (x) => noNegZero(Number(x.toPrecision(12)));

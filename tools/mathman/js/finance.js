@@ -569,12 +569,16 @@
         const p = numberIn(periods, 'periods', 'number of periods', 0, LIMITS.periods, { integer: true });
         const ppy = perYear(periodsPerYear === undefined ? 12 : periodsPerYear, 'periodsPerYear', 'number of periods per year');
         if (p === 0) return '0 months';
-        let months = ppy === 12 ? p : Math.round(p * 12 / ppy);
-        if (months === 0) {
-            if (ppy === 52) return `${p} week${p === 1 ? '' : 's'}`;
-            if (ppy === 365) return `${p} day${p === 1 ? '' : 's'}`;
-            return 'less than a month';
+        const exactMonths = p * 12 / ppy;
+        if (exactMonths < 1) {
+            const days = Math.max(1, Math.round(p * 365 / ppy));
+            if (days >= 7 && ppy !== 365) {
+                const weeks = Math.round(days / 7);
+                return `${weeks} week${weeks === 1 ? '' : 's'}`;
+            }
+            return `${days} day${days === 1 ? '' : 's'}`;
         }
+        let months = Math.round(exactMonths);
         const years = Math.floor(months / 12);
         months -= years * 12;
         const parts = [];

@@ -939,6 +939,18 @@
         const block = els.linResult;
         resetResult(block);
         last.linear = null;
+        const blank = [];
+        els.cells.forEach((row, r) => { if (row.every((inp) => !inp.value.trim())) blank.push(r + 1); });
+        if (blank.length) {
+            const which = blank.length === 1
+                ? `Equation ${blank[0]} is empty`
+                : `Equations ${blank.slice(0, -1).join(', ')} and ${blank[blank.length - 1]} are empty`;
+            const fewer = unknowns - blank.length;
+            const trailing = blank.every((r, i) => r === fewer + 1 + i);
+            showFeedback(block, `${which}. Fill ${blank.length === 1 ? 'it' : 'them'} in${trailing && fewer >= 2 ? `, or lower the number of unknowns to ${fewer}` : ''}.`, 'warn');
+            els.cells[blank[0] - 1][0].focus();
+            return;
+        }
         let sys;
         try {
             sys = readMatrix();
