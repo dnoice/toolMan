@@ -501,7 +501,7 @@
         const range = `${pretty(fmt(res.min))} and ${pretty(fmt(res.max))}`;
         const notes = [];
         if (d.timedOut) notes.push(`The search stopped after 2 seconds, part way through the range. Narrow the range or simplify the equation to search all of it.`);
-        if (d.undefinedSamples && d.undefinedSamples < d.evaluated) notes.push('Parts of the range were skipped because the equation has no real value there.');
+        if (d.undefinedSamples && d.undefinedSamples < d.evaluated) notes.push('Parts of the range were skipped because the equation has no real value there (or takes too many steps to work out).');
         d.intervals.forEach((iv) => {
             answerRow(block, 'every x', `${pretty(fmt(iv.from))} to ${pretty(fmt(iv.to))}`, `${plain(iv.from)} to ${plain(iv.to)}`, 'the stretch where both sides are equal', '(both sides are equal throughout)');
         });
