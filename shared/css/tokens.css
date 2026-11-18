@@ -1,39 +1,36 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: DesignTokens (toolMan Edition - v2.4)
+ *     - Title: DesignTokens (toolMan Edition - v2.6)
  *     - File Name: tokens.css
  *     - Relative Path: shared/css/tokens.css
  *     - Artifact Type: stylesheet
- *     - Version: 2.4.0
- *     - Date: 11/17/2026
- *     - Update: Tuesday, November 17, 2026
+ *     - Version: 2.6.0
+ *     - Date: 11/18/2026
+ *     - Update: Wednesday, November 18, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.6.0 (11/18/2026) [dendogg + Anthropic - Claude] — The
+ *       --header-gradient alias is removed now that nothing reads it, which
+ *       completes the rename to --shell-gradient; the description names
+ *       toolMan, not textMan.
+ *     - 2.5.0 (11/18/2026) [dendogg + Anthropic - Claude] — On Dennis's
+ *       direction the dark page is no longer flat near-black:
+ *       --header-gradient is renamed --shell-gradient (it now paints the page
+ *       as well as the headers) and a new --app-background token gives the
+ *       page the shell gradient in dark and keeps the cream canvas in light.
+ *       --header-gradient stays as a legacy alias.
  *     - 2.4.0 (11/17/2026) [dendogg + Anthropic - Claude] — On Dennis's
  *       direction the themes are simply light and dark: the palette blocks
  *       are now keyed [data-theme="light"] and [data-theme="dark"] (formerly
  *       parchment / sentinel). Every color value is unchanged.
- *     - 2.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — On Dennis's
- *       direction the ecosystem keeps the 07/23 Parchment Dossier / Sentinel
- *       Obsidian palette (the interim flat 1.0.0 restyle is retired). Adds
- *       density tokens (--pad-rail, --gap-rail, --pad-section-head/-body,
- *       --pad-card, --gap-card, --pad-stage, --pad-stage-card) so container
- *       breathing room is tuned in one place, tightened a tad from 16px/24px.
- *     - 2.2.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Loader token
- *       family so the load screen tracks the theme instead of drifting from
- *       it: --loader-card-bg/-border, --loader-title, --loader-text,
- *       --loader-track, --loader-accent/-bright/-rgb, and --loader-sat-bg,
- *       defined per theme. Parchment's --loader-bg flipped from the shared
- *       navy gradient to a warm cream one, so a light-theme visitor no
- *       longer watches a dark loader hand off to a light landing page.
  *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
- *     The single source of truth for textMan's visual design system. Defines
+ *     The single source of truth for toolMan's visual design system. Defines
  *     the digiSpace brand anchors, both theme palettes (light and dark),
  *     and every structural token (spacing,
  *     typography, sizing, radii, shadows, transitions, z-index) the component
@@ -47,8 +44,10 @@
  *     - color-scheme declared per theme so native form controls match
  *     - Semantic status palette per theme: success, danger, warning, info,
  *       accent, critical, link
- *     - Header treatment tokens (navy gradient, gold title, subtitle color)
- *       shared by the shell and panel headers
+ *     - Shell tokens: --shell-gradient (the app header, rail and dialog
+ *       headers, and the dark theme's page), gold title, subtitle color
+ *     - --app-background: the page behind every tool and the hub — the cream
+ *       canvas in light, the shell gradient in dark
  *     - App-layer tokens (glass surfaces, panel chrome, buttons, glows)
  *       derived per theme from the house palette
  *     - Depth tokens per theme: card gradient, inset edge highlight, layered
@@ -70,7 +69,7 @@
  *
  * ✒ Examples:
  *     A primary button fills with the color-brand token and labels itself
- *     with fg-on-emphasis; a panel header paints the header-gradient with its
+ *     with fg-on-emphasis; a panel header paints the shell-gradient with its
  *     title in header-gold.
  *
  *     A glassmorphism surface applies the glass utility class, which combines
@@ -118,6 +117,7 @@
 
     /* — house palette — */
     --bg-canvas: #F5F0E8;
+    --app-background: var(--bg-canvas); /* light: the cream canvas */
     --bg-surface: #FAF7F2;
     --bg-surface-alt: #EFE9DE;
     --bg-elevated: #FFFFFF;
@@ -151,7 +151,7 @@
     --color-brand-emphasis: #A67C1A;
     --color-identity-gold: #C9A84C;
     --color-gold-ink: #856313;
-    --header-gradient: linear-gradient(135deg, #1B2A4A 0%, #2A3D5F 60%, #3D4F5F 100%);
+    --shell-gradient: linear-gradient(135deg, #1B2A4A 0%, #2A3D5F 60%, #3D4F5F 100%);
     --header-gold: #C9A84C;
     --header-text: #F5F0E8;
     --header-subtitle: #A0B0C0;
@@ -207,6 +207,7 @@
 
     /* — house palette — */
     --bg-canvas: #0E1014;
+    --app-background: var(--shell-gradient); /* dark: lifts the page off flat black */
     --bg-surface: #141820;
     --bg-surface-alt: #1A1F28;
     --bg-elevated: #222833;
@@ -240,7 +241,7 @@
     --color-brand-emphasis: #E8C878;
     --color-identity-gold: #D4B15C;
     --color-gold-ink: #E8DFCC;
-    --header-gradient: linear-gradient(135deg, #0E1014 0%, #141820 60%, #1A1F28 100%);
+    --shell-gradient: linear-gradient(135deg, #0E1014 0%, #141820 60%, #1A1F28 100%);
     --header-gold: #D4B15C;
     --header-text: #E8DFCC;
     --header-subtitle: #8E8676;
@@ -302,7 +303,7 @@
     --color-primary-light: var(--color-brand-emphasis);
     --color-error: var(--color-danger);
     --border-header: var(--border-subtle);
-    --bg-panel-header: var(--header-gradient);
+    --bg-panel-header: var(--shell-gradient);
     --bg-modal-backdrop: var(--bg-overlay);
     --bg-modal-panel: var(--bg-elevated);
     --glow-primary: var(--glow-brand);

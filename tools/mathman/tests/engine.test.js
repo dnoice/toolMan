@@ -35,7 +35,13 @@
  *     - Formatting: precision, notations, thousands separators, fractions
  *     - Safety: reserved names, 9^9^9 in under 200 ms, nesting and step
  *       budgets, a 2,000-line sheet in under a second
- *     - compile() for graphs and the solver, and the units API
+ *     - compile() for graphs and the solver (equations refused, budget
+ *       stops counted), and the units API
+ *     - Review fixes: small-angle trig, logs near 1, every Reference unit
+ *       name and alias, per / squared, named compound units, absolute
+ *       zero, the / rule, whole-number rounding, and specific errors
+ *     - Memo and startSheet: memoised runs match fresh runs across random
+ *       edits, heavy sheets re-evaluate in milliseconds, slices stay short
  *     - Prints a pass/fail line per test and an assertion total; exits 1 on
  *       any failure so it can gate a commit
  *
@@ -128,7 +134,8 @@ test('numbers: underscores and comma groups outside brackets', () => {
     eq(show('1_000_000'), '1,000,000');
     eq(run('1_000_000').plain, '1000000');
     eq(show('1,234,567 + 1'), '1,234,568');
-    eq(show('max(1,000)'), '1', 'inside brackets the comma separates values: max(1, 0)');
+    ok(/write 1000 or 1_000/.test(err('max(1,000)')), 'inside brackets 1,000 is flagged, not read as max(1, 0)');
+    eq(show('max(1,500)'), '500', 'a comma inside brackets separates values');
     ok(/comma/i.test(err('1,23')), 'a bad group is a comma error');
 });
 
@@ -287,7 +294,8 @@ test('names: __proto__, constructor and prototype are rejected', () => {
     ok(/can't be used as a name/.test(err('__proto__ = 1')));
     ok(/can't be used as a name/.test(err('constructor = 1')));
     ok(/can't be used as a name/.test(err('prototype = 1')));
-    ok(/Unknown name 'constructor'/.test(err('constructor + 1')));
+    ok(/'constructor' is a reserved word/.test(err('constructor + 1')));
+    ok(/'__proto__' is a reserved word/.test(err('__proto__')), 'no advice to define a reserved name');
     ok(/Unknown function 'hasOwnProperty'/.test(err('hasOwnProperty(1)')));
     ok(/can't be used as a name/.test(sheet('f(__proto__) = 1').lines[0].error.message));
 });
@@ -620,7 +628,7 @@ test('format: thousands separators and notations', () => {
 });
 
 test('format: formatNumber for other panes', () => {
-    eq(E.formatNumber(1234567.891, { precision: 6 }), '1,234,570');
+    eq(E.formatNumber(1234567.891, { precision: 6 }), '1,234,568', 'the whole part is never padded with zeros');
     eq(E.formatNumber(0.1 + 0.2), '0.3');
     eq(E.formatNumber(-0.000001234), '-0.000001234');
     eq(E.formatNumber(1e21), '1e21');
@@ -687,7 +695,8 @@ test('limits: line length, line count and nesting caps', () => {
 
 test('evaluate: LineResult shape', () => {
     const r = run('Total: 2 km');
-    eq(Object.keys(r).sort(), ['display', 'error', 'exact', 'index', 'kind', 'label', 'numeric', 'plain', 'source', 'unit']);
+    eq(Object.keys(r).sort(), ['display', 'error', 'exact', 'index', 'kind', 'label', 'numeric', 'percent', 'plain', 'source', 'unit']);
+    eq(r.percent, false);
     eq(r.index, 0);
     eq(r.source, 'Total: 2 km');
     eq(r.label, 'Total');
@@ -712,7 +721,9 @@ test('compile: x^2 - 2 at 2 is 2', () => {
 test('compile: sheet functions, equations and clear errors', () => {
     eq(E.compile('f(x) + a', { sheet: 'a = 10\nf(t) = t^2' }).fn(3), 19);
     eq(E.compile('y = 2x + 1').fn(3), 7);
-    eq(E.compile('x^2 = 2').fn(2), 2, 'an equation compiles as left minus right');
+    ok(/That's an equation/.test(E.compile('x^2 = 2').error), 'an equation is not drawn as left minus right');
+    ok(/use the Solver/.test(E.compile('x = 3').error));
+    eq(E.compile('f(x) = x + 1').fn(2), 3, 'a leading f(x) = is fine');
     ok(/Units can't be used/.test(E.compile('x km').error));
     ok(/Unknown name 'foo'/.test(E.compile('foo + x').error));
     ok(/Line references/.test(E.compile('ans + x').error));
@@ -720,6 +731,10 @@ test('compile: sheet functions, equations and clear errors', () => {
     const fib = E.compile('fib(x)', { sheet: 'fib(n) = if(n < 2, n, fib(n - 1) + fib(n - 2))' });
     eq(fib.fn(10), 55);
     ok(Number.isNaN(fib.fn(40)), 'the budget turns runaway work into NaN');
+    ok(fib.stats.stops >= 1, 'a budget stop is counted apart from domain NaNs');
+    const dom = E.compile('sqrt(x)');
+    dom.fn(-1);
+    eq(dom.stats.stops, 0, 'a domain NaN is not a budget stop');
     eq(typeof E.compile(null).fn, 'function');
 });
 
@@ -763,6 +778,222 @@ test('units API: categories, list and convert', () => {
     assert.throws(() => E.units.convert(1, 'zz', 'm'), /Unknown unit/);
     assert.throws(() => E.units.convert('abc', 'm', 'km'), /Enter a number/);
     assertions += 3;
+});
+
+/* ------------------------------------------------------------------ */
+/* Review fixes: trig, logs, units, slashes, formatting, errors        */
+/* ------------------------------------------------------------------ */
+
+test('trig: small angles keep their value; nice angles still snap', () => {
+    eq(num('sin(1e-20)'), 1e-20);
+    eq(num('sin(1e-15)'), 1e-15);
+    eq(num('tan(1e-15)'), 1e-15);
+    near(num('sin(1e-13 deg)', DEG), 1e-13 * Math.PI / 180, 1e-28);
+    eq(num('sin(pi)'), 0);
+    eq(num('cos(pi/2)'), 0);
+    eq(num('tan(pi/4)'), 1);
+    eq(num('sin(30 deg)'), 0.5);
+    eq(num('sec(60 deg)'), 2);
+    eq(num('sin(150)', DEG), 0.5);
+    ok(/undefined/.test(err('tan(90)', DEG)));
+    ok(num('sin(0.5235987756)') !== 0.5, 'a typed approximation is not passed off as exact');
+});
+
+test('logs: ln and log of an exact value near 1 keep their digits', () => {
+    near(num('ln(1 + 1e-15)'), 1e-15, 1e-29);
+    near(num('ln(1 + 1e-13)'), 1e-13 - 5e-27, 1e-27);
+    near(num('log(1 + 1e-12)'), 4.342944819030e-13, 1e-24);
+    eq(num('ln(1)'), 0);
+    eq(num('log(1000)'), 3);
+});
+
+test('units: every Reference name and alias reads as that unit', () => {
+    let checked = 0;
+    for (const u of E.reference.units) {
+        for (const name of [u.symbol, u.name, ...u.aliases]) {
+            const r = run(`2 ${name} to ${u.symbol}`);
+            assert.ok(!r.error, `2 ${name} → ${r.error && r.error.message}`);
+            near(r.numeric, 2, 1e-9, `2 ${name} in ${u.symbol}`);
+            checked++;
+        }
+    }
+    ok(checked > 250, `${checked} names checked`);
+    eq(show('2 kilowatt-hour'), '2 kWh');
+    eq(show('5 watt-hours to J'), '18,000 J');
+    eq(show('2 pound-force'), '2 lbf');
+    eq(show('3 kWh to kilowatt-hours'), '3 kWh');
+    eq(show('2 milliampere-hours'), '2 mAh');
+    eq(show('10 - 4'), '6', 'a hyphen between numbers is still minus');
+});
+
+test('units: "per" joins units', () => {
+    eq(show('2 meters per second'), '2 m/s');
+    eq(show('9.8 meters per second per second'), '9.8 m/s^2');
+    eq(show('1000 kg per cubic meter'), '1,000 kg/m^3');
+    eq(show('1 kg per m^3'), '1 kg/m^3');
+    eq(show('2 miles per hour'), '2 mph');
+    eq(show('9.8 meters per second squared'), '9.8 m/s^2');
+    eq(show('2 meters squared'), '2 m^2');
+    eq(show('1 foot cubed to L'), '28.31684659 L');
+    ok(/Unknown name 'constructor'|reserved/.test(err('2 m constructor')), 'no prototype lookups');
+    near(num('36 kilometers per hour to m/s'), 10, 1e-12);
+});
+
+test('units: compound results simplify to a named unit', () => {
+    eq(show('60 W * 2 h'), '120 Wh');
+    eq(show('1 kWh / 1 h'), '1 kW');
+    eq(show('10 V / 2 ohm'), '5 A');
+    eq(show('2 kilowatt hours'), '2 kWh');
+    eq(show('5 V * 2 A'), '10 W');
+    eq(show('5 N * 2 m'), '10 J');
+    eq(show('2 A * 3 h'), '6 Ah');
+    eq(show('10 kN / 2 m^2'), '5 kPa');
+    eq(show('5 km / 2 h'), '2.5 km/h', 'km/h is not renamed kph');
+    eq(show('3 m * 2 m'), '6 m^2');
+});
+
+test('units: nothing is colder than absolute zero', () => {
+    ok(/below absolute zero/.test(err('-300 °C to K')));
+    ok(/below absolute zero/.test(err('-500 °F to K')));
+    ok(/below absolute zero/.test(err('0 K - 1 K')));
+    ok(/below absolute zero/.test(err('-300 °C')));
+    eq(show('-273.15 °C to K'), '0 K');
+    eq(show('-40 °C to °F'), '-40 °F');
+    eq(show('20 °C - 30 °C'), '-10 °C', 'a cold temperature is fine');
+    assert.throws(() => E.units.convert(-300, '°C', 'K'), /below absolute zero/);
+    assertions++;
+});
+
+test('slash: a number and unit after / are one quantity, except a fraction typed without spaces', () => {
+    eq(show('60 / 1 min'), '60 min^-1');
+    eq(show('100 / 2 h'), '50 h^-1');
+    eq(show('3 / 2 kg'), '1.5 kg^-1');
+    eq(show('1 / 5 s'), show('1/(5 s)'));
+    eq(show('1 km / 5 s'), '0.2 km/s');
+    eq(show('5km/2h'), '2.5 km/h');
+    eq(show('1/2 cup'), '0.5 cup');
+    eq(show('3/4 mi to km'), '1.207008 km');
+    eq(show('2 * 1/2 cup'), '1 cup');
+    eq(show('1/2 cup + 1/4 cup'), '0.75 cup');
+    eq(show('sin(pi/2 rad)', DEG), '1');
+});
+
+test('format: significant digits round decimals, never the whole part', () => {
+    eq(show('123456.789', { precision: 4 }), '123,457');
+    eq(show('99995.5', { precision: 4 }), '99,996');
+    eq(show('1234567890123', { precision: 4 }), '1,234,567,890,123');
+    eq(show('3.14159265', { precision: 4 }), '3.142');
+    eq(show('1/3', { precision: 4 }), '0.3333');
+    eq(E.formatNumber(123456789.123, { precision: 6 }), '123,456,789');
+    eq(show('2^60', { precision: 6 }), '1.15292e18', 'beyond 10^15 it is scientific');
+    eq(show('0.35 to %', { notation: 'engineering' }), '35%', 'percentages stay plain');
+    eq(show('0.35 to %', { notation: 'scientific' }), '35%');
+    eq(run('0.35 to %').percent, true);
+    eq(run('0.35 to %').numeric, 35);
+});
+
+test('errors: specific messages for common slips', () => {
+    ok(/Missing a value after ','/.test(err('min(1,)')));
+    ok(/Missing a value before ','/.test(err('min(,1)')));
+    ok(/write 1000 or 1_000/.test(err('(1,000)')));
+    ok(/write 1000 or 1_000/.test(err('sum(1,000, 500)')));
+    ok(/only group/.test(err('(1, 2)')));
+    ok(/valid octal number — octal digits are 0 to 7/.test(err('0o8')));
+    ok(/valid hex number/.test(err('0xG')));
+    ok(/valid binary number/.test(err('0b2')));
+    eq(show('0bytes'), '0 B', '0 followed by a word is still zero of it');
+    eq(show('255 in hex'), '0xFF');
+    eq(show('100 km in mi'), '62.13711922 mi');
+    ok(/use mod/.test(err('5 % 3')));
+    eq(show('1,000 * 2'), '2,000');
+    eq(show('sum(1,500, 2)'), '503', 'a comma in a call separates values');
+});
+
+test('mode: needs a repeated value; a tie gives the smallest', () => {
+    eq(show('mode(1, 2, 2, 3)'), '2');
+    eq(show('mode(1, 1, 2, 2, 3)'), '1');
+    ok(/No value repeats/.test(err('mode(1, 2, 3)')));
+    ok(Number.isNaN(E.compile('mode(x, 1, 2)').fn(3)));
+    eq(E.compile('mode(x, 1, 2)').fn(2), 2);
+});
+
+/* ------------------------------------------------------------------ */
+/* Memo and time-sliced sheets                                         */
+/* ------------------------------------------------------------------ */
+
+test('memo: results match a fresh run across random edits', () => {
+    const pool = ['a = 5', 'b = a * 2', 'a = 7', 'f(x) = x + b', 'f(x) = x * a', 'g(y) = f(y) * 2', 'f(1)', 'g(2)',
+        'ans * 2', 'line3 + 1', 'line1', 'total', 'average', '', '# head', '// note', 'Rent: 100', 'Food: 50 km', '3 km',
+        'x = 3 km + 200 m', 'x to mi', 'c = b + 1', 'b', 'sum', 'avg', 'h(t) = if(t < 1, 1, t * h(t - 1))', 'h(5)',
+        '0.35 to %', 'b = 1/3', 'unknown + 1', 'q = sin(a)', 'f(q)', 'line20', 'f = 5', 'f + 1', 'a(x) = 1', 'a(2)'];
+    let seed = 7;
+    const rnd = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
+    let compared = 0;
+    for (let trial = 0; trial < 60; trial++) {
+        const memo = E.createMemo();
+        const lines = Array.from({ length: 5 + rnd(15) }, () => pool[rnd(pool.length)]);
+        for (let edit = 0; edit < 10; edit++) {
+            const op = rnd(3);
+            if (op === 0) lines.splice(rnd(lines.length + 1), 0, pool[rnd(pool.length)]);
+            else if (op === 1 && lines.length > 1) lines.splice(rnd(lines.length), 1);
+            else lines[rnd(lines.length)] = pool[rnd(pool.length)];
+            const text = lines.join('\n');
+            assert.strictEqual(JSON.stringify(E.evaluateSheet(text, RAD, { memo })), JSON.stringify(E.evaluateSheet(text, RAD)), text);
+            compared++;
+        }
+    }
+    assertions += compared;
+});
+
+test('memo: a heavy sheet re-evaluates in milliseconds after an edit', () => {
+    const memo = E.createMemo();
+    const heavy = Array.from({ length: 600 }, (_, k) => `nCr(4000, ${1000 + k})`).join('\n');
+    E.evaluateSheet(heavy, RAD, { memo });
+    let t0 = Date.now();
+    const r = E.evaluateSheet(`${heavy} + 1`, RAD, { memo });
+    ok(Date.now() - t0 < 150, `edit took ${Date.now() - t0} ms`);
+    eq(r.counts.errors, 0);
+    const fib = ['fib(n) = if(n < 2, n, fib(n - 1) + fib(n - 2))'].concat(Array(1500).fill('fib(18)')).join('\n');
+    t0 = Date.now();
+    const f = E.evaluateSheet(fib, RAD, { memo: E.createMemo() });
+    ok(Date.now() - t0 < 1500, `1,500 identical heavy lines took ${Date.now() - t0} ms`);
+    eq(f.lines[1500].display, '2,584');
+});
+
+test('startSheet: steps in slices, marks unreached lines pending', () => {
+    const text = Array.from({ length: 400 }, (_, k) => `nCr(3000, ${1000 + k})`).join('\n');
+    const job = E.startSheet(text, RAD, { memo: E.createMemo() });
+    job.step(5);
+    const part = job.output();
+    ok(part.pending > 0 && part.pending < 400, `pending ${part.pending}`);
+    ok(part.lines.some((l) => l.kind === 'pending'));
+    eq(part.counts.lines, 400);
+    let slices = 1;
+    let longest = 0;
+    for (let done = false; !done; slices++) {
+        const t0 = Date.now();
+        done = job.step(20);
+        longest = Math.max(longest, Date.now() - t0);
+    }
+    ok(longest < 400, `the longest slice took ${longest} ms`);
+    const done = job.output();
+    eq(done.pending, 0);
+    eq(done.counts.values, 400);
+    eq(JSON.stringify(done), JSON.stringify(E.evaluateSheet(text, RAD)));
+    ok(slices > 1, `${slices} slices`);
+    const capped = E.startSheet('fib(n) = if(n < 2, n, fib(n - 1) + fib(n - 2))\n' + Array.from({ length: 50 }, (_, k) => `fib(${30 + k})`).join('\n'), RAD, { maxMs: 30 });
+    while (!capped.step(10)) { /* keep stepping */ }
+    ok(capped.output().lines.some((l) => l.error && /Stopped here/.test(l.error.message)), 'maxMs stops the rest');
+});
+
+test('compile: reuses a finished sheet run', () => {
+    const text = 'k = 3\nscaled(t) = t^2 * k\n' + Array.from({ length: 300 }, (_, i) => `nCr(3000, ${1000 + i})`).join('\n');
+    const job = E.startSheet(text, RAD, { memo: E.createMemo() });
+    job.step(Infinity);
+    const t0 = Date.now();
+    const c = E.compile('scaled(x)', { sheet: text, angle: 'rad' });
+    ok(Date.now() - t0 < 50, `compile took ${Date.now() - t0} ms`);
+    eq(c.fn(2), 12);
 });
 
 /* ------------------------------------------------------------------ */

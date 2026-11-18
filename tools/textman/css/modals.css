@@ -5,14 +5,16 @@
  *     - File Name: modals.css
  *     - Relative Path: tools/textman/css/modals.css
  *     - Artifact Type: stylesheet
- *     - Version: 1.3.0
- *     - Date: 11/17/2026
- *     - Update: Tuesday, November 17, 2026
+ *     - Version: 1.3.1
+ *     - Date: 11/18/2026
+ *     - Update: Wednesday, November 18, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.3.1 (11/18/2026) [dendogg + Anthropic - Claude] — Modal headers use
+ *       --shell-gradient, the new name for --header-gradient.
  *     - 1.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — 07/23-styled
  *       rules for the re-ported prompt dialog, field rows, tab-size stepper,
  *       usage row, hidden form groups, and focus rings; theme radio chips
@@ -22,9 +24,6 @@
  *       confirm-message paragraph that honours the newline breaks in
  *       plain-text messages (white-space: pre-line), plus a wrapping footer so a
  *       three-button action row survives narrow viewports.
- *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Settings QoL
- *       styles: brand-accented range sliders and the local-storage usage
- *       meter (track + gold fill).
  *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
@@ -159,7 +158,7 @@
     justify-content: space-between;
     padding: var(--space-md) var(--space-lg);
 
-    background: var(--header-gradient);
+    background: var(--shell-gradient);
     position: relative;
     flex-shrink: 0;
 }

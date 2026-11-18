@@ -22,17 +22,21 @@
  *
  * ✒ Key Features:
  *     - Event bus: State.on(evt, fn) returns an unsubscribe function; events
- *       are sheets, active, text, results, history, settings, panes, reset
- *     - Sheets: add, rename, duplicate, delete (never leaves zero sheets),
- *       restore after delete, and switch; capped at 200 sheets of 200,000
- *       characters each
+ *       are sheets, active, text, results, history, settings, panes, reset,
+ *       and sync (another tab's changes merged in)
+ *     - Sheets: add, rename (names stay unique, ignoring case), duplicate,
+ *       delete (never leaves zero sheets), restore after delete, and
+ *       switch; capped at 200 sheets of 200,000 characters each
  *     - A seeded "Welcome" sheet that shows headings, labels, arithmetic,
  *       exact fractions, variables, a function, units, percentages, total,
  *       line references, bases, and notes — every line evaluates cleanly
- *     - Cached evaluation: result() re-runs MathEngine.evaluateSheet only
- *       when the active sheet, its text, or the options changed; text edits
- *       coalesce into one run per task, and a missing or failing engine
- *       yields a plain-language error result instead of an exception
+ *     - Time-sliced, cached evaluation: the active sheet runs as an engine
+ *       job with a per-sheet memo (100 ms at once, then 30 ms slices in
+ *       separate tasks), so a heavy sheet never freezes typing; unreached
+ *       lines are 'pending' and 'results' repeats as they fill in. result()
+ *       re-runs only when the active sheet, its text, or the options
+ *       changed, and a missing or failing engine yields a plain-language
+ *       error result instead of an exception
  *     - Engine options (State.engineOptions) built from the settings
  *     - History of saved results, newest first, de-duplicated against the
  *       newest entry and capped by settings.historySize (20–500)
@@ -41,6 +45,10 @@
  *       rules, and reserved pane names; anything malformed is dropped
  *     - Add-only backup merge: sheets and History entries are added, never
  *       replaced; settings that differ are reported, not applied
+ *     - Several tabs at once: each save first merges what another tab
+ *       stored (three-way, by sheet id and update time), and a 'storage'
+ *       event merges another tab's save as it lands, so no tab's stale
+ *       copy can erase another tab's sheets, edits, or History
  *     - Free-form per-pane preference objects (State.pane / State.setPane)
  *       with a size cap per pane
  *     - Failure reasons for the UI in State.lastError (plain sentences)
@@ -52,7 +60,9 @@
  *     restores saved state before the modules start. UI code changes state
  *     only through State methods and re-renders on events. Objects handed
  *     out are copies, except result(), which is the shared cached result
- *     and must be treated as read-only.
+ *     and must be treated as read-only. While a slow sheet is worked out,
+ *     result().pending counts the lines still to come; listen for 'results'
+ *     rather than polling.
  *
  * ✒ Examples:
  *     State.addSheet('Groceries', 'Milk: 3.49\nBread: 2.99\ntotal')  → { id, name, text, created, updated }
@@ -62,7 +72,8 @@
  *     State.applySettings({ angle: 'deg' })      → { applied: ['angle'], rejected: [], changed: ['angle'] }
  *     State.pushHistory({ expr: '2 + 2', display: '4', plain: '4' })
  *     State.deleteSheet(id)                      → the removed sheet (State.restoreSheet(it) brings it back)
- *     State.on('results', ({ result }) => render(result))   → unsubscribe function
+ *     State.on('results', ({ result, pending }) => render(result))   → unsubscribe function
+ *     State.renameSheet(id, 'welcome')           → null; State.lastError: "Another sheet is already called …"
  *     State.mergeBackup(backup.state)            → { sheetsAdded: 2, historyAdded: 5, settings: { … } | null, … }
  *     State.formatNumber(1234.5)                 → '1,234.5' (engine formatter when present)
  *
@@ -73,7 +84,9 @@
  *     - Compatible platforms: all evergreen browsers
  *     - Limitations: the localStorage quota applies (the trim hook drops
  *       History first); a sheet longer than 200,000 characters is cut to
- *       that length, and State.lastError says so
+ *       that length, and State.lastError says so; when two tabs edit the
+ *       same sheet at once, the later edit of that sheet wins; pane fields
+ *       and the rail layout are kept per tab
  * ----------------------------------------------------------------------------
  */
 
@@ -111,8 +124,8 @@
        settings. Line numbers matter: line6, line7, and line16 refer to them. */
     const WELCOME_TEXT = [
         '# Welcome to mathMan',
-        '// Type a calculation on any line and its answer appears beside it.',
-        '// Lines starting with # are headings; anything after // is a note.',
+        '// Type math on any line; its answer shows →',
+        '// # starts a heading and // starts a note',
         '',
         '# Arithmetic',
         '2 + 3 * 4',
@@ -237,6 +250,8 @@
 
     const AppState = {
         version: STATE_VERSION,
+        // Changes on every save; lets a tab tell its own writes from another tab's.
+        rev: '',
         sheets: [seed],
         activeSheetId: seed.id,
         history: [],
@@ -473,13 +488,52 @@
         return DEFAULT_SHEET_NAME;
     }
 
-    /* ── Evaluation cache ──────────────────────────────────── */
+    /* ── Evaluation (time-sliced, memoised) ─────────────────── */
+
+    // The active sheet is worked out by an engine job: up to SYNC_MS at
+    // once, then SLICE_MS slices in separate tasks so typing never waits on
+    // a heavy sheet. Lines not reached yet come back as kind 'pending'
+    // ("working…"); 'results' is emitted at once, every EMIT_MS while the
+    // job runs, and when it finishes. A per-sheet engine memo reuses every
+    // line whose text and inputs are unchanged, so a keystroke re-works only
+    // the lines it affects.
+    const SYNC_MS = 100;
+    const SLICE_MS = 30;
+    const EMIT_MS = 250;
+    const MEMO_SHEETS = 6;
 
     let cache = null;          // { sheetId, text, optsKey, result }
     let flushQueued = false;
+    let runToken = 0;          // bumps when a newer run replaces a running job
+    const memos = new Map();   // sheetId → engine memo (most recent last)
 
     const ENGINE_MISSING = 'The math engine did not load, so this line was not worked out. Reload the page to try again.';
     const ENGINE_FAILED = 'Something went wrong working out this sheet. Edit a line or reload the page to try again.';
+
+    /** Run fn in its own task soon (MessageChannel: no 4 ms clamp, input can run in between). */
+    const nextTask = (() => {
+        if (typeof MessageChannel !== 'function') return (fn) => setTimeout(fn, 0);
+        const channel = new MessageChannel();
+        const queue = [];
+        channel.port1.onmessage = () => {
+            const fn = queue.shift();
+            if (fn) fn();
+        };
+        return (fn) => {
+            queue.push(fn);
+            channel.port2.postMessage(0);
+        };
+    })();
+
+    function memoForSheet(engine, id) {
+        if (typeof engine.createMemo !== 'function') return undefined;
+        let memo = memos.get(id);
+        if (memo) memos.delete(id);
+        else memo = engine.createMemo();
+        memos.set(id, memo);
+        while (memos.size > MEMO_SHEETS) memos.delete(memos.keys().next().value);
+        return memo;
+    }
 
     /** A result in the contract's shape for when the engine is missing or threw. */
     function fallbackResult(text, message) {
@@ -499,6 +553,7 @@
                 exact: '',
                 unit: '',
                 numeric: null,
+                percent: false,
                 error: kind === 'error' ? { message, start: 0, end: source.length } : null
             };
         });
@@ -508,6 +563,7 @@
             variables: [],
             functions: [],
             counts: { lines: lines.length, values: 0, errors },
+            pending: 0,
             engineError: message
         };
     }
@@ -524,18 +580,8 @@
                 errors: res.lines.filter((l) => l && l.kind === 'error').length
             };
         }
+        if (!Number.isInteger(res.pending) || res.pending < 0) res.pending = 0;
         return res;
-    }
-
-    function runEngine(text, opts) {
-        const engine = window.MathEngine;
-        if (!engine || typeof engine.evaluateSheet !== 'function') return fallbackResult(text, ENGINE_MISSING);
-        try {
-            return normalizeResult(engine.evaluateSheet(text, opts), text);
-        } catch (err) {
-            console.error('[State] evaluateSheet failed:', err);
-            return fallbackResult(text, ENGINE_FAILED);
-        }
     }
 
     function cacheFresh() {
@@ -545,13 +591,66 @@
             && cache.optsKey === JSON.stringify(engineOptions());
     }
 
-    /** Evaluate the active sheet, store it, and emit 'results'. */
+    function publish(result, sheetId, text, optsKey) {
+        if (!cache || cache.sheetId !== sheetId || cache.text !== text || cache.optsKey !== optsKey) return;
+        cache = { sheetId, text, optsKey, result };
+        emit('results', { result, sheetId, pending: result.pending });
+    }
+
+    /** Keep working a job in slices until it finishes or a newer run replaces it. */
+    function continueJob(job, token, sheetId, text, optsKey) {
+        let lastEmit = Date.now();
+        const slice = () => {
+            if (token !== runToken) return;
+            let done = true;
+            let result;
+            try {
+                done = job.step(SLICE_MS);
+                if (done || Date.now() - lastEmit >= EMIT_MS) result = normalizeResult(job.output(), text);
+            } catch (err) {
+                console.error('[State] evaluating the sheet failed:', err);
+                result = fallbackResult(text, ENGINE_FAILED);
+                done = true;
+            }
+            if (result) {
+                lastEmit = Date.now();
+                publish(result, sheetId, text, optsKey);
+            }
+            if (!done) nextTask(slice);
+        };
+        nextTask(slice);
+    }
+
+    /** Evaluate the active sheet (the first slice now), store it, and emit 'results'. */
     function evaluateNow() {
         const sheet = activeSheetRef();
         const opts = engineOptions();
-        const result = runEngine(sheet.text, opts);
-        cache = { sheetId: sheet.id, text: sheet.text, optsKey: JSON.stringify(opts), result };
-        emit('results', { result, sheetId: sheet.id });
+        const optsKey = JSON.stringify(opts);
+        const token = ++runToken;
+        const engine = window.MathEngine;
+        let result;
+        let job = null;
+        if (!engine || typeof engine.evaluateSheet !== 'function') {
+            result = fallbackResult(sheet.text, ENGINE_MISSING);
+        } else {
+            try {
+                if (typeof engine.startSheet === 'function') {
+                    const j = engine.startSheet(sheet.text, opts, { memo: memoForSheet(engine, sheet.id) });
+                    const done = j.step(SYNC_MS);
+                    result = normalizeResult(j.output(), sheet.text);
+                    if (!done) job = j;
+                } else {
+                    result = normalizeResult(engine.evaluateSheet(sheet.text, opts), sheet.text);
+                }
+            } catch (err) {
+                console.error('[State] evaluateSheet failed:', err);
+                result = fallbackResult(sheet.text, ENGINE_FAILED);
+                job = null;
+            }
+        }
+        cache = { sheetId: sheet.id, text: sheet.text, optsKey, result };
+        emit('results', { result, sheetId: sheet.id, pending: result.pending });
+        if (job) continueJob(job, token, sheet.id, sheet.text, optsKey);
         return result;
     }
 
@@ -696,8 +795,229 @@
         // Layout is a per-browser preference: only the boot restore applies it.
         if (window.Workbench) Workbench.mergeUi(AppState.ui, saved.ui);
         cache = null;
+        runToken++;
+        // What was read is the base the next save or another tab's save is merged against.
+        storedRev = revOf(saved);
+        storedBase = snapshotBase(AppState);
+        pending = null;
         return null;
     }
+
+    /* ── Other tabs ────────────────────────────────────────── */
+
+    // Two mathMan tabs share one localStorage key. Each save first reads
+    // what is stored; when another tab wrote it since this tab last looked,
+    // the two are merged before writing, and a 'storage' event merges another
+    // tab's save as soon as it lands. The merge is three-way against the
+    // stored state this tab last knew for sure: a sheet another tab added
+    // is added here, one it deleted is deleted here unless this tab edited it
+    // since, the newer edit of a sheet wins, and History and settings follow
+    // the same rules. Pane fields and the rail layout stay per tab.
+
+    // storedRev / storedBase: the stored state this tab last knew for sure
+    // (read at boot, merged from another tab, or its own write once seen in
+    // storage). pending: this tab's latest write, until it is seen there.
+    let storedRev = '';
+    let storedBase = { sheets: new Map(), history: new Set(), settings: null };
+    let pending = null;
+
+    const newRev = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+    function snapshotBase(state) {
+        const sheets = Array.isArray(state.sheets) ? state.sheets : [];
+        const history = Array.isArray(state.history) ? state.history : [];
+        return {
+            sheets: new Map(sheets.map((s) => [s.id, s.updated])),
+            history: new Set(history.map((h) => h.id)),
+            settings: isPlainObject(state.settings) ? { ...state.settings } : null
+        };
+    }
+
+    /** The rev a stored payload carries, read from its first bytes when it can be; null when unknown. */
+    function peekRev(raw) {
+        const m = /^\{"version":"[^"]{0,20}","timestamp":"[^"]{0,40}","state":\{"version":"[^"]{0,20}","rev":"([A-Za-z0-9_-]{0,40})"/.exec(raw.slice(0, 220));
+        return m ? m[1] : null;
+    }
+
+    const revOf = (saved) => (saved && typeof saved.rev === 'string' ? saved.rev.slice(0, 40) : '');
+
+    /** Parse another tab's stored payload; null when it is malformed. */
+    function parseStored(raw) {
+        if (typeof raw !== 'string' || !raw || raw.length > 12000000) return null;
+        try {
+            const data = JSON.parse(raw, (k, v) => (RESERVED_KEYS.includes(k) ? undefined : v));
+            return isPlainObject(data) && isPlainObject(data.state) ? data.state : null;
+        } catch (_err) {
+            return null;
+        }
+    }
+
+    /**
+     * Merge another tab's saved state into this one, three-way against
+     * storedBase. Emits the usual events for whatever changed and returns
+     * a summary: { sheetsAdded, sheetsRemoved, sheetsUpdated, history,
+     * settings: [keys] }.
+     */
+    function mergeFromStore(saved) {
+        const report = { sheetsAdded: 0, sheetsRemoved: 0, sheetsUpdated: 0, history: false, settings: [] };
+        const incoming = sanitizeSheets(saved.sheets);
+        const seen = new Set();
+        const changedText = [];
+        const wasActive = AppState.activeSheetId;
+
+        if (incoming && incoming.length) {
+            incoming.forEach((s) => {
+                seen.add(s.id);
+                const mine = findSheet(s.id);
+                if (mine) {
+                    if (s.updated > mine.updated && (s.text !== mine.text || s.name !== mine.name)) {
+                        if (s.text !== mine.text) changedText.push(s.id);
+                        mine.text = s.text;
+                        mine.name = nameTaken(s.name, s.id) ? mine.name : s.name;
+                        mine.updated = s.updated;
+                        report.sheetsUpdated++;
+                    }
+                } else if (!storedBase.sheets.has(s.id) && AppState.sheets.length < LIMITS.sheets) {
+                    // New in the other tab (a sheet this tab deleted stays deleted).
+                    if (nameTaken(s.name)) s.name = uniqueName(s.name);
+                    AppState.sheets.push(s);
+                    report.sheetsAdded++;
+                }
+            });
+            // Deleted in the other tab, and not edited here since.
+            const keep = AppState.sheets.filter((s) => seen.has(s.id) || !storedBase.sheets.has(s.id)
+                || s.updated > storedBase.sheets.get(s.id));
+            report.sheetsRemoved = AppState.sheets.length - keep.length;
+            if (report.sheetsRemoved) {
+                AppState.sheets = keep.length ? keep : [welcomeSheet(uid('sheet'))];
+                cache = null;
+                runToken++;
+            }
+        }
+
+        const history = sanitizeHistory(saved.history);
+        if (history) {
+            const ids = new Set(history.map((h) => h.id));
+            const before = AppState.history.map((h) => h.id).join('|');
+            const kept = AppState.history.filter((h) => ids.has(h.id) || !storedBase.history.has(h.id));
+            const known = new Set(kept.map((h) => h.id));
+            history.forEach((h) => {
+                if (!known.has(h.id) && !storedBase.history.has(h.id)) kept.push(h);
+            });
+            kept.sort((a, b) => b.at - a.at);
+            if (kept.length > AppState.settings.historySize) kept.length = AppState.settings.historySize;
+            if (kept.map((h) => h.id).join('|') !== before) {
+                AppState.history = kept;
+                report.history = true;
+            }
+        }
+
+        if (isPlainObject(saved.settings) && storedBase.settings) {
+            const theirs = {};
+            Object.keys(SETTING_RULES).forEach((key) => {
+                if (!has(saved.settings, key)) return;
+                const v = SETTING_RULES[key](saved.settings[key]);
+                if (v !== undefined && v !== storedBase.settings[key]) theirs[key] = v;
+            });
+            report.settings = writeSettings(theirs).changed;
+        }
+
+        const panes = sanitizePanes(saved.panes);
+        if (panes) {
+            Object.keys(panes).forEach((name) => {
+                if (!isPlainObject(AppState.panes[name])) AppState.panes[name] = panes[name];
+            });
+        }
+
+        if (!findSheet(AppState.activeSheetId)) AppState.activeSheetId = AppState.sheets[0].id;
+        if (report.sheetsAdded || report.sheetsRemoved || report.sheetsUpdated) emit('sheets', { action: 'sync' });
+        if (AppState.activeSheetId !== wasActive) emit('active', { id: AppState.activeSheetId });
+        changedText.forEach((id) => emit('text', { id, source: 'sync' }));
+        if (report.history) emit('history', { action: 'sync' });
+        if (report.settings.length) {
+            emit('settings', { settings: { ...AppState.settings }, changed: report.settings.slice() });
+        }
+        const touched = report.sheetsAdded || report.sheetsRemoved || report.sheetsUpdated || report.history || report.settings.length;
+        if (touched) {
+            refresh();
+            emit('sync', report);
+        }
+        return report;
+    }
+
+    /** Merge a stored state another tab wrote; it then becomes what this tab knows is stored. */
+    function adoptStored(saved) {
+        let report = null;
+        try {
+            report = mergeFromStore(saved);
+        } catch (err) {
+            console.error('[State] merging another tab failed:', err);
+        }
+        storedRev = revOf(saved);
+        const settings = defaultSettings();
+        if (isPlainObject(saved.settings)) {
+            Object.keys(SETTING_RULES).forEach((key) => {
+                const v = has(saved.settings, key) ? SETTING_RULES[key](saved.settings[key]) : undefined;
+                if (v !== undefined) settings[key] = v;
+            });
+        }
+        storedBase = snapshotBase({
+            sheets: sanitizeSheets(saved.sheets) || [],
+            history: sanitizeHistory(saved.history) || [],
+            settings
+        });
+        return report;
+    }
+
+    /** Before a save: fold in what another tab stored since this tab last looked, then stamp a new rev. */
+    function syncBeforeSave() {
+        let raw = null;
+        try {
+            raw = window.localStorage.getItem(STORAGE_KEY);
+        } catch (_err) {
+            raw = null;
+        }
+        let rev = raw ? peekRev(raw) : '';
+        let saved = null;
+        if (raw && rev === null) {
+            saved = parseStored(raw);
+            rev = revOf(saved);
+        }
+        if (pending && rev === pending.rev) {
+            storedRev = pending.rev;
+            storedBase = pending.base;
+        }
+        pending = null;
+        if (raw && rev !== storedRev) {
+            saved = saved || parseStored(raw);
+            if (saved) adoptStored(saved);
+        }
+        AppState.rev = newRev();
+        pending = { rev: AppState.rev, base: snapshotBase(AppState) };
+    }
+
+    /** Another tab saved: merge it now, then save the merge if this tab has changes of its own. */
+    function onStorage(e) {
+        if (!e || e.key !== STORAGE_KEY || !e.newValue) return;
+        if (window.ToolApp && !ToolApp.initialized) return;
+        let rev = peekRev(e.newValue);
+        let saved = null;
+        if (rev === null) {
+            saved = parseStored(e.newValue);
+            rev = revOf(saved);
+        }
+        if (rev === storedRev || (pending && rev === pending.rev)) return;
+        saved = saved || parseStored(e.newValue);
+        if (!saved) return;
+        adoptStored(saved);
+        // Anything this tab has that the store lacks goes back out.
+        const differs = AppState.sheets.length !== storedBase.sheets.size
+            || AppState.sheets.some((s) => storedBase.sheets.get(s.id) !== s.updated)
+            || AppState.history.some((h) => !storedBase.history.has(h.id));
+        if (differs) save();
+    }
+
+    if (typeof window.addEventListener === 'function') window.addEventListener('storage', onStorage);
 
     /* ── Public API ────────────────────────────────────────── */
 
@@ -798,7 +1118,11 @@
             return copySheet(sheet);
         },
 
-        /** Rename a sheet; an empty name is refused. Returns the stored name or null. */
+        /**
+         * Rename a sheet; an empty name, or one another sheet already has
+         * (ignoring case), is refused. Returns the stored name or null
+         * (State.lastError says why).
+         */
         renameSheet(id, name) {
             const sheet = findSheet(id);
             const clean = cleanName(name);
@@ -808,6 +1132,11 @@
             }
             if (!clean) {
                 fail('A sheet needs a name. Type at least one letter or number.');
+                return null;
+            }
+            if (nameTaken(clean, id)) {
+                const other = AppState.sheets.find((s) => s.id !== id && s.name.toLowerCase() === clean.toLowerCase());
+                fail(`Another sheet is already called “${other ? other.name : clean}”. Each sheet needs its own name.`);
                 return null;
             }
             if (sheet.name !== clean) {
@@ -1111,6 +1440,7 @@
             Object.values(AppState.panes).forEach((p) => { Object.keys(p).forEach((k) => { delete p[k]; }); });
             AppState.settings = defaultSettings();
             cache = null;
+        runToken++;
             emit('reset', { source: 'reset' });
             emit('sheets', { action: 'reset' });
             emit('active', { id: welcome.id });
@@ -1170,7 +1500,10 @@
         Storage.configure({
             key: STORAGE_KEY,
             version: STATE_VERSION,
-            getState: () => AppState,
+            getState: () => {
+                syncBeforeSave();
+                return AppState;
+            },
             restore: (saved) => restoreInto(saved),
             trim: (state) => { state.history = []; }
         });

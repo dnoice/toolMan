@@ -1,10 +1,10 @@
 <!--
 ✒ Metadata
-    - Title: ReadMe (toolMan Edition - v1.4)
+    - Title: ReadMe (toolMan Edition - v1.5)
     - File Name: README.md
     - Relative Path: README.md
     - Artifact Type: docs
-    - Version: 1.4.0
+    - Version: 1.5.0
     - Date: 11/18/2026
     - Update: Wednesday, November 18, 2026
     - Author: Dennis 'dendogg' Smaltz
@@ -12,6 +12,11 @@
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 1.5.0 (11/18/2026) [dendogg + Anthropic - Claude] — mathMan is live:
+      ecosystem row, a full mathMan section (worksheet, library, tools,
+      shortcuts), its storage key and add-only import, and the roadmap moves
+      on. Running toolMan links the live site on GitHub Pages, and the project
+      tree now lists colorMan and mathMan.
     - 1.4.0 (11/18/2026) [dendogg + Anthropic - Claude] — Records the BSD
       3-Clause License Dennis added: a License section (with a contents entry)
       replaces the all-rights-reserved note, and the project tree lists
@@ -38,7 +43,8 @@
 
 ✒ Key Features:
     - Ecosystem overview with every tool's status
-    - textMan walkthrough: panels, tool sections, keyboard shortcuts
+    - textMan, colorMan, and mathMan walkthroughs: panels, tools, and
+      keyboard shortcuts
     - Design system, theming, and the local-data model
     - Running locally (file://, Live Server, Python) and project structure
     - Pointers to CONTRIBUTING.md, SECURITY.md, and CHANGELOG.md
@@ -68,6 +74,7 @@ works — from a static host or straight off your disk.
 - [The ecosystem](#the-ecosystem)
 - [textMan](#textman)
 - [colorMan](#colorman)
+- [mathMan](#mathman)
 - [Design system](#design-system)
 - [Your data stays local](#your-data-stays-local)
 - [Running toolMan](#running-toolman)
@@ -103,7 +110,7 @@ with its live/upcoming status, last-used time, and a pin control.
 | --- | --- | --- | --- |
 | **textMan** | Bend text to your will | A three-panel text workspace: templates, snippets, transforms, search & replace, encoding, and formatting. | Live |
 | **colorMan** | Command the spectrum | Pick, convert, and check colors; build palettes, harmonies, scales, and gradients; preview color vision; export anywhere. | Live |
-| **mathMan** | Numbers, tamed | Calculators, expression evaluation, and unit-aware math. | Coming soon |
+| **mathMan** | Numbers, tamed | A worksheet that answers every line as you type, with units, variables, and percentages, plus graphing, statistics, an equation solver, number theory, and finance. | Live |
 | **convertMan** | From anything, to anything | Units, timestamps, data formats, and file-friendly conversions. | Coming soon |
 | **devMan** | A toolbelt for builders | JSON tools, regex testing, UUIDs, hashes, and dev utilities. | Coming soon |
 | **svgMan** | Vectors on demand | Generated blobs, waves, patterns, mazes, charts, and diagrams; fill and stroke comparisons; clean, safe SVG export. | Coming soon |
@@ -255,6 +262,72 @@ and all 148 **Named Colors** with a nearest-match filter.
 | `Ctrl/Cmd + ,` · `?` | Settings · help |
 | `Ctrl/Cmd + [` · `]` · `\` | Toggle the Library rail · Tools rail · Focus mode |
 
+## mathMan
+
+mathMan is a calculator worksheet. Type one calculation per line in the center
+**Workbench** and each answer appears beside it, level with its line. The left
+rail is your **Library**, and the right rail holds **Tools** that send their
+answers back to the sheet.
+
+### The worksheet
+
+- **Plain-language math** — variables (`price = 80`), functions
+  (`area(r) = pi * r^2`), labels (`Rent: 1200`), notes (`// …`), headings
+  (`# Groceries`), `ans`, `line3`, and `total` / `average` over the block of
+  lines above.
+- **Exact where it can be** — adding, subtracting, multiplying, dividing, and
+  whole-number powers stay exact, so `0.1 + 0.2` is exactly `0.3` and
+  `1/3 + 1/6` shows its fraction, `1/2`.
+- **Units throughout** — `5 km + 300 m`, `100 km/h to mph`, `98.6 °F to °C`,
+  `60 W * 2 h` (120 Wh). Length, area, volume, mass, time, speed, force,
+  pressure, energy, power, temperature, data, angle, frequency, and electric
+  units, with SI prefixes, long names, and plurals.
+- **Percentages** — `15% of 80`, `200 + 15%`, `200 - 25%`, `0.35 to %`.
+- **Bases and formats** — `0xFF`, `0b1010`, `0o17`, and `to hex`, `to bin`,
+  `to sci`, `to fraction`.
+- **Result card and selection** — the line under the caret in full, with its
+  exact fraction and a copy button; select several lines to see their sum and
+  mean.
+- **Stays responsive** — a heavy sheet is worked out in slices while you keep
+  typing, unchanged lines are remembered, and a result too large to hold (such
+  as `9^9^9`) shows an error instead of freezing the page.
+
+### Library
+
+**Sheets** (up to 200; rename, duplicate, download as `.txt` or `.md`, and drop
+`.txt` files in to add them), the **Variables** and functions the open sheet
+defines, a searchable **Reference** of every function, constant, unit, and
+keyword, and **History** — the results you keep with `Ctrl/Cmd + Enter`.
+
+### Tools
+
+| Tool | What it does |
+| --- | --- |
+| **Keypad** | A scientific keypad that types at the worksheet caret, with its own display of the current line |
+| **Units** | A two-way converter, plus the value in every unit of that kind |
+| **Graph** | Up to four curves in x to pan, zoom, and trace; they can call the sheet's own functions |
+| **Statistics** | Summary figures and a histogram for a pasted list, a spreadsheet column, or the lines you select |
+| **Solver** | An equation in x over a range, a polynomial of degree 1 to 8 (complex roots included), or a linear system of 2 to 5 unknowns |
+| **Number Theory** | A prime check with the next and previous prime, prime factorization, GCD and LCM of a list, and a base converter |
+| **Percentages** | X% of Y, X is ?% of Y, percent change, adding or removing a percentage, reverse percentages, and ratios |
+| **Finance** | Loans with an amortization schedule, savings with compound growth, and discount, sales tax, tip, simple interest, and CAGR calculators |
+
+Most tools can send their answer to the worksheet as a line that works it out
+again, so the working stays on the sheet.
+
+### mathMan shortcuts
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl/Cmd + Shift + C` | Copy the current line's result |
+| `Ctrl/Cmd + /` | Turn the current or selected lines into notes, or back |
+| `Ctrl/Cmd + Enter` | Add the current line's result to History |
+| `Ctrl/Cmd + Alt + N` | New sheet |
+| `Ctrl/Cmd + Alt + D` | Switch angles between degrees and radians |
+| `Ctrl/Cmd + S` | Save now (mathMan also saves on its own) |
+| `Ctrl/Cmd + ,` · `?` | Settings · help |
+| `Ctrl/Cmd + [` · `]` · `\` | Toggle the Library rail · Tools rail · Focus mode |
+
 ## Design system
 
 The look is driven entirely by CSS custom properties in
@@ -295,6 +368,7 @@ parsing, quota-recovery, and versioned migrations.
 | `toolman.theme` | The active theme, shared across all tools |
 | `toolman.textman.state` | textMan's document, templates, snippets, history, favorites, and settings |
 | `toolman.colorman.state` | colorMan's palettes, saved and recent colors, working palette, gradient, pane choices, and settings |
+| `toolman.mathman.state` | mathMan's sheets, History, tool inputs, pane choices, and settings |
 | `toolman.lastUsed` | Per-tool last-opened timestamps (powers the hub's recents) |
 | `toolman.pinned` | The tools you've pinned on the hub |
 
@@ -307,7 +381,9 @@ From a tool's Settings you can **download a JSON backup** and **import** one
 back in. Imports are validated and *merged* into your existing state — never
 blindly overwritten — so restoring on a new machine is safe. colorMan's import
 only adds: palettes and colors you don't already have come in, your current
-work stays put, and it asks before any setting changes.
+work stays put, and it asks before any setting changes. mathMan's import works
+the same way: it adds the backup's sheets and History without replacing
+anything, and asks before using its settings.
 
 ### Autosave
 
@@ -320,6 +396,8 @@ backgrounded or closed.
 
 There is no build step. Pick whichever is easiest:
 
+- **Use it online** — the latest version of `main` is published to GitHub
+  Pages at [dnoice.github.io/toolMan](https://dnoice.github.io/toolMan/).
 - **Open it directly** — double-click `index.html`. It runs from `file://` with
   no server. A static server is recommended for the most consistent
   `localStorage` behavior across browsers.
@@ -361,13 +439,23 @@ toolMan/
 │   │   └── hub.js          # Hub behavior (cards, recents, pins)
 │   └── assets/             # Logos + screenshots
 ├── tools/
-│   └── textman/            # The textMan tool
+│   ├── textman/            # The textMan tool
+│   │   ├── index.html
+│   │   ├── css/            # Per-component styles
+│   │   └── js/
+│   │       ├── app.js      # Boot
+│   │       ├── state.js    # App state + persistence contract
+│   │       └── ui/         # Editor, workspace, tools, modals, layout
+│   ├── colorman/           # The colorMan tool
+│   │   ├── index.html
+│   │   ├── css/
+│   │   ├── js/             # color.js (the color engine), state, app, ui/
+│   │   └── tests/          # Engine unit tests + browser suite
+│   └── mathman/            # The mathMan tool
 │       ├── index.html
-│       ├── css/            # Per-component styles
-│       └── js/
-│           ├── app.js      # Boot
-│           ├── state.js    # App state + persistence contract
-│           └── ui/         # Editor, workspace, tools, modals, layout
+│       ├── css/
+│       ├── js/             # engine.js, numerics.js, finance.js, state, app, ui/
+│       └── tests/          # Engine, numerics, and finance unit tests + browser suite
 ├── scripts/
 │   ├── check.mjs           # Static checks + unit tests (no install needed)
 │   └── e2e.mjs             # Browser test runner (Playwright, added ad hoc)
@@ -433,7 +521,6 @@ the entrance polish). There is no support for Internet Explorer.
 
 The next tools are already stubbed in the hub registry:
 
-- **mathMan** — calculators, expression evaluation, unit-aware math
 - **convertMan** — units, timestamps, data formats, file-friendly conversions
 - **devMan** — JSON tools, regex testing, UUIDs, hashes, dev utilities
 - **svgMan** — generated blobs, waves, patterns, mazes, charts, and diagrams,

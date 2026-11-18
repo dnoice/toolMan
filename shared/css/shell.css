@@ -1,18 +1,22 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: AppShell (toolMan Edition - v2.7)
+ *     - Title: AppShell (toolMan Edition - v2.8)
  *     - File Name: shell.css
  *     - Relative Path: shared/css/shell.css
  *     - Artifact Type: stylesheet
- *     - Version: 2.7.0
- *     - Date: 11/17/2026
- *     - Update: Tuesday, November 17, 2026
+ *     - Version: 2.8.0
+ *     - Date: 11/18/2026
+ *     - Update: Wednesday, November 18, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.8.0 (11/18/2026) [dendogg + Anthropic - Claude] — The .app page
+ *       paints var(--app-background) (shell gradient in dark, cream canvas in
+ *       light) instead of the flat --bg-canvas; the app header uses the
+ *       renamed --shell-gradient.
  *     - 2.7.0 (11/17/2026) [dendogg + Anthropic - Claude] — Theme-toggle icon
  *       swap keyed to [data-theme="dark"] after the theme rename to light /
  *       dark; the retired Parchment Dossier / Sentinel Obsidian wording
@@ -22,13 +26,6 @@
  *       later .panel { position: relative }, and .app-main drops its stacking
  *       context below 768px so the scrim sits behind the drawer instead of
  *       over it; drawers size to min(320px, 100vw - 48px).
- *     - 2.5.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — The loading screen
- *       now tracks the theme instead of holding a fixed navy/gold look. Every
- *       hardcoded loader colour (card glass, title, tagline, status, bar
- *       track, progress fill and its glow, logo tint) resolves from the new
- *       --loader-* tokens in tokens.css 2.2.0, so a parchment visitor gets a
- *       warm cream loader handing off to a warm cream page — the drift
- *       between intro and app is gone.
  *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
@@ -112,7 +109,7 @@
     height: 100vh;
     height: 100dvh; /* dynamic-chrome mobile: track the VISIBLE viewport */
     width: 100vw;
-    background: var(--bg-canvas);
+    background: var(--app-background);
     color: var(--fg-default);
     overflow: hidden;
     transition: opacity var(--transition-slow);
@@ -150,7 +147,7 @@
     padding: 0 var(--space-lg);
 
     /* House header treatment: navy gradient with gold identity */
-    background: var(--header-gradient);
+    background: var(--shell-gradient);
     border-bottom: var(--border-width) solid var(--border-subtle);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.06),

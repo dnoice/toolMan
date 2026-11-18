@@ -1,18 +1,22 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: EcosystemCore (toolMan Edition - v1.4)
+ *     - Title: EcosystemCore (toolMan Edition - v1.5)
  *     - File Name: toolman.js
  *     - Relative Path: shared/js/toolman.js
- *     - Artifact Type: library
- *     - Version: 1.4.0
- *     - Date: 11/17/2026
- *     - Update: Tuesday, November 17, 2026
+ *     - Artifact Type: javascript
+ *     - Version: 1.5.0
+ *     - Date: 11/18/2026
+ *     - Update: Wednesday, November 18, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.5.0 (11/18/2026) [dendogg + Anthropic - Claude] — mathMan is live:
+ *       its registry entry gets a path, a fuller description, and a data
+ *       descriptor (sheets beyond the Welcome sheet, and History items) that
+ *       drives the hub's badge and reset wording.
  *     - 1.4.0 (11/17/2026) [dendogg + Anthropic - Claude] — colorMan goes
  *       live and svgMan joins the registry as coming soon. Registry entries
  *       can carry a data descriptor (holds, summarize), so getToolDataInfo
@@ -24,10 +28,6 @@
  *       Sentinel Obsidian names are retired and stored legacy values migrate.
  *       Adds getThemePreference, resolveTheme, themeLabel, a toolman:theme
  *       event on every painted change, and cross-tab sync.
- *     - 1.2.0 (11/17/2026) [dendogg + Anthropic - Claude] — On Dennis's
- *       direction the ecosystem returns to the 07/23 Parchment/Sentinel
- *       design; getTheme() now bridges the light/dark values the interim
- *       1.0.0 build stored, so returning visitors keep the theme they chose.
  *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
@@ -155,9 +155,16 @@
                 id: 'mathman',
                 name: 'mathMan',
                 tagline: 'Numbers, tamed',
-                description: 'Calculators, expression evaluation, and unit-aware math. Coming soon.',
-                status: 'soon',
-                path: null
+                description: 'A worksheet that answers every line as you type, with units, variables, and percentages, plus graphing, statistics, an equation solver, number theory, and finance.',
+                status: 'live',
+                path: 'tools/mathman/index.html',
+                data: {
+                    holds: 'sheets, History, settings, tool inputs, and layout',
+                    summarize: (s) => [
+                        list(s.sheets) && count(s.sheets.filter((sheet) => sheet && sheet.id !== 'sheet-welcome').length, 'sheet'),
+                        list(s.history) && count(s.history.length, 'History item')
+                    ].filter((part) => part && !part.startsWith('0 '))
+                }
             },
             {
                 id: 'convertman',

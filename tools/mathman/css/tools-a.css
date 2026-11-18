@@ -23,12 +23,14 @@
  *     - .ta-pane rhythm shared by the three panes: one small gap between
  *       blocks, kit margins reset, [hidden] always wins, and a visually
  *       hidden .ta-sr class for live announcements
- *     - Keypad display: the line, its answer in large mono, its exact
- *       fraction, and an error state marked in words as well as colour
+ *     - Keypad display: the line label, its calculation, and copy on one
+ *       row, the answer in large mono under them, its exact fraction, and
+ *       an error state marked in words as well as colour
  *     - Keypad keys built on the kit's sheen tool tiles: digits, operators
- *       in gold, function keys, edit keys, and a gold-filled = key; 40px
- *       minimum targets, a 2nd marker, and type that grows with the rail
- *       (container queries)
+ *       in gold, function keys, edit keys, and a gold-filled = key; compact
+ *       32–34px keys for a mouse so the number pad fits a short pane, 40px
+ *       or more on touch screens, a 2nd marker, and type that grows with
+ *       the rail (container queries)
  *     - Units: From and To rows (value field plus unit select), a centred
  *       Swap, the result sentence with copy, and a compact "show all" table
  *       whose value cells are buttons
@@ -174,12 +176,16 @@
     container: kp / inline-size;
 }
 
+/* The line label, its calculation, and the copy button share the top row;
+   the answer sits under them, right-aligned. */
 .kp-display {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-sm);
+    row-gap: 2px;
     min-width: 0;
-    padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-md);
+    padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-md);
     background: var(--bg-input);
     border: var(--border-width) solid var(--border-muted);
     border-left: var(--border-width-thick) solid var(--color-identity-gold);
@@ -196,11 +202,7 @@
 }
 
 .kp-display-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-sm);
-    min-height: 26px;
+    display: contents;
 }
 
 .kp-display-meta {
@@ -215,11 +217,20 @@
 }
 
 .kp-copy {
+    grid-column: 3;
+    grid-row: 1;
     width: 26px;
     height: 26px;
 }
 
+.kp-display-meta {
+    grid-column: 1;
+    grid-row: 1;
+}
+
 .kp-display-expr {
+    grid-column: 2;
+    grid-row: 1;
     min-height: 1.2em;
     font-family: var(--font-mono);
     font-size: var(--font-xs);
@@ -230,6 +241,7 @@
 }
 
 .kp-display-value {
+    grid-column: 1 / -1;
     font-family: var(--font-mono);
     font-size: var(--font-lg);
     font-weight: var(--font-semibold);
@@ -261,6 +273,7 @@
 }
 
 .kp-display-exact {
+    grid-column: 1 / -1;
     font-family: var(--font-mono);
     font-size: var(--font-xs);
     color: var(--color-brand);
@@ -288,19 +301,20 @@
 }
 
 .kp-mode-note {
+    flex: 1 1 0;
+    min-width: 0;
     margin-left: auto;
     font-size: 0.6875rem;
+    line-height: 1.3;
     color: var(--fg-subtle);
     text-align: right;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    text-wrap: balance;
 }
 
 .kp-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 5px;
+    gap: 4px;
 }
 
 /* A keypad key on the kit's tool tile: same surface, border, and sheen. */
@@ -309,7 +323,7 @@
     justify-content: center;
     gap: 0;
     min-width: 0;
-    min-height: 40px;
+    min-height: 32px;
     padding: 0 2px;
     border-radius: var(--radius-md);
     font-family: var(--font-mono);
@@ -413,11 +427,11 @@
 /* Wider rails: bigger type, roomier keys. */
 @container kp (min-width: 300px) {
     .kp-grid {
-        gap: 6px;
+        gap: 5px;
     }
 
     .tool-action-btn.kp-key {
-        min-height: 44px;
+        min-height: 34px;
     }
 
     .kp-key[data-kind="fn"] {
@@ -882,6 +896,11 @@
         height: 40px;
     }
 
+    /* Keypad keys: a mouse gets compact keys, a finger gets 40px (44px in a wide rail). */
+    .tool-action-btn.kp-key {
+        min-height: 40px;
+    }
+
     .kp-copy {
         width: 36px;
         height: 36px;
@@ -909,5 +928,13 @@
 
     .un-cell-btn {
         min-height: 32px;
+    }
+}
+
+@media (pointer: coarse) {
+    @container kp (min-width: 300px) {
+        .tool-action-btn.kp-key {
+            min-height: 44px;
+        }
     }
 }

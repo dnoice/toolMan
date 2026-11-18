@@ -33,6 +33,8 @@
  *       weaker tests, next / previous prime, the 300-digit cap
  *     - Factorization: 600851475143, Pollard-rho semiprimes, perfect
  *       powers, signs, and the time budget on a hard number
+ *     - Jobs: factorizeJob and findRootsJob reach the same answers in
+ *       short slices, keep each slice short, and report progress
  *     - GCD / LCM, base conversion (prefixes, signs, digit errors)
  *     - findRoots (√2, touching roots, poles, jumps, zero stretches),
  *       polyRoots (±i, multiple roots, degree 8), solveLinear (unique,
@@ -528,6 +530,57 @@ test('module: frozen API with every contract function', () => {
         eq(typeof N[name], 'function', name);
     }
     eq(N.limits.values, 100000);
+});
+
+/* ------------------------------------------------------------------ */
+/* Jobs: factorization and root finding in slices                      */
+/* ------------------------------------------------------------------ */
+
+test('factorizeJob: steps to the same answer factorize gives, with a result at any time', () => {
+    const job = N.factorizeJob('600851475143');
+    let slices = 0;
+    while (!job.step(2)) slices++;
+    eq(primes(job.result()), '71 × 839 × 1471 × 6857');
+    eq(job.result(), N.factorize('600851475143'));
+    const n = ((2n ** 61n - 1n) * (2n ** 31n - 1n) * 1000003n).toString();
+    const big = N.factorizeJob(n);
+    while (!big.step(5)) { /* keep stepping */ }
+    eq(primes(big.result()), '1000003 × 2147483647 × 2305843009213693951');
+    ok(slices >= 0);
+});
+
+test('factorizeJob: a hard number stops in short slices with the remainder reported', () => {
+    const rsa100 = '1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139';
+    const job = N.factorizeJob(rsa100);
+    let longest = 0;
+    for (let i = 0; i < 10; i++) {
+        const t0 = Date.now();
+        job.step(20);
+        longest = Math.max(longest, Date.now() - t0);
+    }
+    ok(longest < 200, `the longest slice took ${longest} ms`);
+    ok(job.elapsed() >= 150, 'elapsed counts the work done');
+    const r = job.result();
+    eq(r.complete, false);
+    eq(r.remainder, rsa100);
+    throwsLike(() => N.factorizeJob(0), /no prime factorization/);
+});
+
+test('findRootsJob: slices reach the same roots as findRootsDetailed, with progress', () => {
+    const fn = (x) => Math.cos(x) - x;
+    const job = N.findRootsJob(fn, { min: -2 * Math.PI, max: 2 * Math.PI });
+    eq(job.result(), null, 'no result before it finishes');
+    let last = 0;
+    let rising = true;
+    while (!job.step(0)) {
+        const p = job.progress();
+        if (p < last) rising = false;
+        last = p;
+    }
+    ok(rising, 'progress never goes backwards');
+    eq(job.progress(), 1);
+    eq(job.result(), N.findRootsDetailed(fn, { min: -2 * Math.PI, max: 2 * Math.PI }));
+    throwsLike(() => N.findRootsJob(fn, { min: 1, max: 0 }), /minimum must be less/);
 });
 
 /* ------------------------------------------------------------------ */

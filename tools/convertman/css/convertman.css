@@ -1,0 +1,562 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: ConvertManLayout (convertMan Edition - v1.0)
+ *     - File Name: convertman.css
+ *     - Relative Path: tools/convertman/css/convertman.css
+ *     - Artifact Type: stylesheet
+ *     - Version: 1.0.0
+ *     - Date: 11/18/2026
+ *     - Update: Wednesday, November 18, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     The convertMan-specific layer on top of the shared workbench kit: the
+ *     toolbar's From / swap / To format lists and Convert button, the stage
+ *     grid that holds the Input, Options, and Output cards, the secrets
+ *     notice, status pill states, rail section counts, and the settings
+ *     previews. Everything else (panels, cards, lists, dialogs) comes from
+ *     shared/css, so convertMan looks like mathMan and colorMan.
+ *
+ * ✒ Key Features:
+ *     - Density: the same tightened insets mathMan and colorMan use for the
+ *       rails, accordion sections, stage, stage cards, header and footer
+ *     - Toolbar: labelled From and To lists that share the row with the
+ *       swap arrows, a compact Convert button that is gold when the next
+ *       conversion waits for it, and the save pill
+ *     - Stage grid: Input, Options, and Output stacked; once the center
+ *       pane is 900px or wider (container query), Input and Output sit side
+ *       by side with Options across the full width beneath them
+ *     - Each card's mount is a flex column that fills the card, so an
+ *       editor or output view can grow with flex: 1
+ *     - Secrets notice: a quiet ruled note with a lock, its words, and a
+ *       Stop remembering input button
+ *     - Status pill states (ok, warn, error, waiting, working): each changes
+ *       the words as well as the colour, so colour is never the only signal
+ *     - .tool-count: mono pill between a rail section title and its chevron
+ *     - Mount fallback text when a pane module did not load
+ *     - Settings: mono previews, section headings, a Recent trim warning
+ *     - Narrow center pane and phones: the format row takes its own line,
+ *       lists share it evenly, and drawers get a solid surface
+ *
+ * ✒ Usage Instructions:
+ *     Load after the shared stylesheets (reset, tokens, shell, panels,
+ *     workbench) and before converter.css, library.css, tools-a.css,
+ *     tools-b.css, and tools-c.css. Pane modules render into the .cm-mount
+ *     elements index.html declares; an empty mount shows its data-empty
+ *     text.
+ *
+ * ✒ Examples:
+ *     <div class="cm-mount" id="mount-units" data-empty="…did not load…">  → fallback text until UnitsUI renders
+ *     <span class="stat-pill cm-status-pill" data-state="error">Error at 4:12</span>
+ *     <button class="btn btn-primary btn-sm cm-convert-btn">Convert</button>  → gold when live conversion waits
+ *     <div class="cm-notice" id="notice-secrets">…</div>                   → ruled privacy note in the Input card
+ *     <span class="tool-count">12</span>                                   → count pill in a rail header
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/reset.css, tokens.css, shell.css,
+ *       panels.css, workbench.css (load order matters)
+ *     - Compatible platforms: all evergreen browsers; container queries are
+ *       required for the side-by-side stage
+ *     - Limitations: every color is a theme token; the stage grid assumes
+ *       the three stage cards #card-input, #card-options, #card-output
+ * ----------------------------------------------------------------------------
+ */
+
+/* ═══════════════════════════════════════════════════════════
+   DENSITY — the same tightened insets mathMan and colorMan use
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+    --pad-rail: 10px;
+    --gap-rail: 10px;
+    --pad-section-head: 10px 12px;
+    --pad-section-body: 10px;
+    --pad-card: 10px;
+    --pad-stage: 10px;
+    --pad-stage-card: 12px 14px;
+}
+
+.panel-header,
+.panel-footer {
+    padding-inline: calc(var(--space-md) + var(--space-xs));
+}
+
+#panel-stage .stage-toolbar {
+    padding: var(--space-sm) var(--pad-stage);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOUNTS — each pane module renders into one of these
+   ═══════════════════════════════════════════════════════════ */
+
+.cm-mount {
+    min-width: 0;
+}
+
+/* If a module failed to load, its mount says so instead of sitting blank. */
+.cm-mount:empty::before {
+    content: attr(data-empty);
+    display: block;
+    padding: var(--space-md);
+    border: var(--border-width) dashed var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface-alt);
+    color: var(--fg-subtle);
+    font-size: var(--font-xs);
+    font-style: italic;
+    line-height: var(--leading-normal);
+    text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOOLBAR — From, swap, To, Convert, save pill
+   ═══════════════════════════════════════════════════════════ */
+
+#panel-stage .stage-toolbar {
+    flex-wrap: wrap;
+    row-gap: var(--space-xs);
+    overflow-x: visible;
+}
+
+.cm-formats {
+    flex: 1 1 420px;
+    min-width: 0;
+    gap: var(--space-xs) var(--space-sm);
+}
+
+.cm-format-field {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 290px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.cm-format-label {
+    flex-shrink: 0;
+    font-size: 0.6875rem;
+    font-weight: var(--font-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-subtle);
+}
+
+.cm-format-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+    height: 34px;
+    padding-block: 0;
+    font-weight: var(--font-medium);
+    cursor: pointer;
+}
+
+.cm-swap-btn {
+    color: var(--fg-muted);
+}
+
+.cm-swap-btn svg {
+    transition: transform var(--transition-base);
+}
+
+.cm-swap-btn:hover:not(:disabled) svg {
+    transform: rotate(180deg);
+}
+
+.cm-swap-btn:hover:not(:disabled) {
+    color: var(--color-brand);
+}
+
+.cm-convert-btn {
+    height: 34px;
+    padding-inline: var(--space-md);
+    font-weight: var(--font-semibold);
+}
+
+.cm-convert-btn:disabled {
+    cursor: progress;
+}
+
+#panel-stage .toolbar-controls {
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE — Input, Options, Output
+   ═══════════════════════════════════════════════════════════ */
+
+#panel-stage .panel-content {
+    container: cm-stage / inline-size;
+}
+
+#stage-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+        "input"
+        "options"
+        "output";
+    align-content: start;
+}
+
+#card-input {
+    grid-area: input;
+    min-height: 260px;
+}
+
+#card-options {
+    grid-area: options;
+}
+
+#card-output {
+    grid-area: output;
+    min-height: 260px;
+}
+
+/* Flex columns, so an editor or output view can grow with flex: 1. */
+#mount-input,
+#mount-output {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+#mount-input:empty,
+#mount-output:empty {
+    justify-content: center;
+}
+
+/* A wide center pane: Input and Output side by side, Options beneath. */
+@container cm-stage (min-width: 900px) {
+    #stage-main {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-rows: minmax(360px, 1fr) auto;
+        grid-template-areas:
+            "input output"
+            "options options";
+        align-content: stretch;
+    }
+
+    #card-input,
+    #card-output {
+        min-height: 0;
+    }
+}
+
+/* A narrow center pane (tablet rails, phones): the format row takes its
+   own line and the two lists share it evenly; Convert and the save pill
+   sit beneath on the right. */
+@container cm-stage (max-width: 559px) {
+    #panel-stage .toolbar-lead,
+    #panel-stage .toolbar-controls {
+        flex: 1 1 100%;
+    }
+
+    #panel-stage .toolbar-controls {
+        justify-content: flex-end;
+    }
+
+    .cm-formats {
+        flex-wrap: nowrap;
+        align-items: flex-end;
+    }
+
+    /* Each label sits above its list, so the lists get the whole width. */
+    .cm-format-field {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 2px;
+        max-width: none;
+    }
+
+    .cm-format-select {
+        padding-inline: var(--space-sm);
+    }
+
+    .cm-swap-btn {
+        width: 34px;
+        height: 34px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SECRETS NOTICE — a quiet note in the Input card
+   ═══════════════════════════════════════════════════════════ */
+
+.cm-notice {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-sm) var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--wash-note);
+    border: var(--border-width) solid var(--border-muted);
+    border-left: var(--border-width-thick) solid var(--color-brand);
+    border-radius: var(--radius-md);
+    color: var(--fg-default);
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+}
+
+.cm-notice[hidden] {
+    display: none;
+}
+
+.cm-notice-icon {
+    flex-shrink: 0;
+    color: var(--color-brand);
+}
+
+.cm-notice-text {
+    flex: 1 1 240px;
+    min-width: 0;
+    margin: 0;
+}
+
+.cm-notice .btn {
+    flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STAT PILLS — sizes, records, status
+   ═══════════════════════════════════════════════════════════ */
+
+.cm-status-pill {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cm-status-pill[data-state="ok"] {
+    border-color: var(--color-success);
+    color: var(--fg-default);
+}
+
+.cm-status-pill[data-state="warn"] {
+    border-color: var(--color-warning);
+    background: var(--wash-warning);
+    color: var(--fg-default);
+}
+
+.cm-status-pill[data-state="error"] {
+    border-color: var(--color-danger);
+    background: var(--wash-danger);
+    color: var(--color-danger);
+}
+
+.cm-status-pill[data-state="waiting"],
+.cm-status-pill[data-state="working"] {
+    border-color: var(--color-brand);
+    color: var(--fg-default);
+}
+
+.cm-status-pill[data-state="working"] {
+    animation: cmPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes cmPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RAIL — section counts, footers
+   ═══════════════════════════════════════════════════════════ */
+
+.panel-footer {
+    gap: var(--space-sm);
+}
+
+/* The Converter footer status can run long: the label keeps its width
+   and the status trims with an ellipsis (full text in its title). */
+#panel-stage .footer-left {
+    flex-shrink: 0;
+}
+
+#stage-footer-status {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* In a narrow rail the Library footer drops its label and keeps the counts. */
+#panel-library .panel-footer {
+    container: cm-library-footer / inline-size;
+}
+
+@container cm-library-footer (max-width: 229px) {
+    #panel-library .footer-left {
+        display: none;
+    }
+
+    #panel-library .footer-right {
+        margin-left: auto;
+    }
+}
+
+.tool-count {
+    margin-left: auto;
+    margin-right: var(--space-sm);
+    min-width: 24px;
+    padding: 1px 7px;
+    background: var(--bg-tag);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+    color: var(--fg-meta);
+    text-align: center;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.tool-count[hidden] {
+    display: none;
+}
+
+.tool-header:hover .tool-count {
+    border-color: var(--border-focus);
+    color: var(--fg-default);
+}
+
+/* The section clips overflow, so the global outside ring would vanish:
+   draw the keyboard focus ring inside the header instead. */
+.tool-header:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: -2px;
+}
+
+.tool-header:focus-visible .tool-title {
+    color: var(--color-brand);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DIALOGS — settings previews and notes, help tables
+   ═══════════════════════════════════════════════════════════ */
+
+.cm-settings-heading {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-md);
+    border-top: var(--border-width) solid var(--border-muted);
+}
+
+.cm-preview {
+    font-family: var(--font-mono);
+    color: var(--fg-meta);
+    overflow-wrap: anywhere;
+}
+
+.cm-note-warn {
+    padding: var(--space-xs) var(--space-sm);
+    border-left: var(--border-width-thick) solid var(--color-warning);
+    border-radius: var(--radius-sm);
+    background: var(--wash-warning);
+    color: var(--fg-default);
+}
+
+.cm-note-warn[hidden],
+#settings-error[hidden] {
+    display: none;
+}
+
+#settings-error {
+    margin-bottom: var(--space-md);
+}
+
+#modal-help .table-wrap {
+    max-height: none;
+    margin-bottom: var(--space-sm);
+}
+
+#modal-help .data-table td {
+    font-size: var(--font-xs);
+    vertical-align: top;
+}
+
+.cm-help-formats td:first-child,
+.cm-help-formats td.mono {
+    white-space: nowrap;
+}
+
+#modal-help .help-list dt code {
+    white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .panel-header,
+    .panel-footer {
+        padding-inline: var(--space-md);
+    }
+
+    /* The kit widens stage cards to 16px all round on phones; keep them
+       at the tighter density instead. */
+    .stage-card {
+        padding: var(--pad-stage-card);
+    }
+
+    #card-input,
+    #card-output {
+        min-height: 220px;
+    }
+
+    /* A phone drawer slides over a busy stage: give it a solid surface so
+       the converter does not show through the translucent rail. */
+    .panel.panel-left,
+    .panel.panel-right {
+        background: var(--bg-surface);
+    }
+}
+
+@media (max-width: 480px) {
+    #panel-stage .status-indicator {
+        margin-left: 0;
+    }
+
+    .cm-format-label {
+        letter-spacing: 0.02em;
+    }
+
+    .cm-help-formats td.mono {
+        white-space: normal;
+    }
+
+    #modal-help .help-list dt code {
+        white-space: normal;
+    }
+}
+
+/* The smallest phones: the header buttons stop crowding the logo. */
+@media (max-width: 360px) {
+    .app-header .logo-icon {
+        width: 26px;
+        height: 26px;
+    }
+
+    .app-header .header-right {
+        gap: var(--space-xs);
+    }
+
+    #panel-stage .control-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    #panel-stage .status-indicator {
+        padding: var(--space-xs) var(--space-sm);
+    }
+}

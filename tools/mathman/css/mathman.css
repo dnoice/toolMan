@@ -23,8 +23,10 @@
  *     - Density: a tad less padding than the shared defaults for the rails,
  *       accordion sections, stage, stage cards, and panel header and footer
  *     - Stage grid: the Worksheet card takes all the height the Result card
- *       leaves; side by side (Result in a 280–360px column) once the center
- *       pane is 980px or wider (container query)
+ *       leaves, with a floor (340px, 330px when narrow) that fits the
+ *       editor's minimum and the Ln / Col line; side by side (Result in a
+ *       280–360px column) once the center pane is 980px or wider
+ *       (container query)
  *     - #mount-worksheet is a flex column that fills its card, so the
  *       worksheet's editor can grow with flex: 1
  *     - Sheet name field and an inline note on its own line under it
@@ -162,12 +164,14 @@
     container: mm-stage / inline-size;
 }
 
-/* The worksheet takes whatever height the Result card leaves; when the
+/* The worksheet takes whatever height the Result card leaves. The floor
+   holds the card's head, the editor's 240px minimum (worksheet.css), and
+   the Ln / Col line under it, so nothing spills out of the card; when the
    pane is shorter than that, the stage scrolls as usual. */
 #stage-main {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(320px, 1fr) auto;
+    grid-template-rows: minmax(340px, 1fr) auto;
     align-content: stretch;
 }
 
@@ -222,8 +226,11 @@
         max-width: none;
     }
 
+    /* A narrow center pane (a tablet between rails, or a phone) leaves
+       less room for the Result card, so the floor eases a little while
+       still fitting the editor's minimum and the Ln / Col line. */
     #stage-main {
-        grid-template-rows: minmax(280px, 1fr) auto;
+        grid-template-rows: minmax(330px, 1fr) auto;
     }
 }
 

@@ -42,7 +42,8 @@
  *     - Touch: 40px minimum keys at phone width; pressing a key by touch
  *       or keyboard keeps focus on the keypad so no on-screen keyboard
  *       pops up; a mouse click leaves the caret in the worksheet
- *     - Five-column grid that scales its type with the rail width
+ *     - Five-column grids, number pad first so the digits and = stay in
+ *       view in a short pane; type scales with the rail width
  *
  * ✒ Usage Instructions:
  *     Load after js/state.js and js/ui/worksheet.js, before js/app.js.
@@ -624,13 +625,15 @@
             attrs: { type: 'button', 'aria-pressed': 'false', 'aria-label': 'Degrees mode (DEG / RAD)' }
         });
         els.modeNote = DOM.create('span', { className: 'kp-mode-note', text: 'Types at the worksheet caret' });
-        root.appendChild(DOM.create('div', { className: 'kp-modes', children: [els.second, els.angle, els.modeNote] }));
+        const modes = DOM.create('div', { className: 'kp-modes', children: [els.second, els.angle, els.modeNote] });
 
-        // Function keys, then the main pad
+        // The number pad first, so the digits and = are in view even when the
+        // pane is short; then 2nd / DEG-RAD and the function keys they change.
         els.sciGrid = grid(SCI_KEYS, 'Function keys', 'kp-grid--sci');
         els.mainGrid = grid(MAIN_KEYS, 'Number keys', 'kp-grid--main');
-        root.appendChild(els.sciGrid);
         root.appendChild(els.mainGrid);
+        root.appendChild(modes);
+        root.appendChild(els.sciGrid);
 
         // Unit shortcuts
         root.appendChild(DOM.create('p', { className: 'section-label', text: 'Units', attrs: { id: 'kp-units-label' } }));

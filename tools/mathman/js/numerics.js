@@ -24,9 +24,9 @@
  *     - parseNumberList: numbers separated by commas, spaces, tabs,
  *       semicolons, pipes, or new lines; quoted CSV cells ("1,234.5"),
  *       currency signs and trailing % are read; anything else is counted as
- *       skipped, with up to three samples; capped at 100,000 values
- *     - detectColumns + the column option: pick one column out of a pasted
- *       CSV or spreadsheet block (tab, semicolon, or comma separated)
+ *       skipped, with up to three samples; capped at 100,000 values; with
+ *       detectColumns and the column option it picks one column out of a
+ *       pasted CSV or spreadsheet block (tab, semicolon, or comma)
  *     - stats: count, compensated sum, mean, median, modes, min, max, range,
  *       sample and population variance and standard deviation, Q1, Q3, IQR,
  *       and Tukey outliers (beyond 1.5 × IQR from the quartiles)
@@ -44,13 +44,16 @@
  *     - nextPrime / prevPrime with a one-second search budget
  *     - factorize: trial division by the primes below 10,000, perfect-power
  *       detection, and Pollard's rho (Brent's variant) under a time budget;
- *       reports the unfactored remainder when the budget runs out
+ *       reports the unfactored remainder when the budget runs out;
+ *       factorizeJob runs the same search in steps (job.step(ms)) so a page
+ *       can spread a long search over short slices and cancel it
  *     - gcd / lcm of up to 1,000 integers as BigInt strings
  *     - convertBase between any bases 2–36 with signs, 0x / 0b / 0o
  *       prefixes, _ and space separators, and digit-by-digit validation
  *     - findRoots: sign changes refined with Brent's method, pole
  *       rejection, touching roots found from local minima of |f|, dedupe,
- *       and a time budget; findRootsDetailed adds diagnostics
+ *       and a time budget; findRootsDetailed adds diagnostics, and
+ *       findRootsJob runs the search in steps with a progress fraction
  *     - polyRoots: closed forms for degree 1–2, Durand-Kerner for 3–8 with
  *       Newton polishing, multiple-root clustering, and conjugate pairing
  *     - solveLinear: exact rational Gauss-Jordan elimination with partial
@@ -72,10 +75,12 @@
  *     Numerics.histogram([1, 2, 2, 3, 9], 3)       → [{ from: 1, to: 3.67, count: 4 }, …]
  *     Numerics.isPrime('2305843009213693951')      → true (2^61 − 1)
  *     Numerics.factorize(600851475143).factors     → [{ prime: '71', exponent: 1 }, … '6857']
+ *     Numerics.factorizeJob(n).step(25)            → true once fully factored; .result() any time
  *     Numerics.gcd([12, 18, 24])                   → '6'
  *     Numerics.lcm('4 6 10')                       → '60'
  *     Numerics.convertBase('ff', 16, 2)            → '11111111'
  *     Numerics.findRoots((x) => x * x - 2, { min: -3, max: 3 }) → [-1.414…, 1.414…]
+ *     Numerics.findRootsJob(fn, { min: 0, max: 30 }).progress() → 0 … 1 while it runs
  *     Numerics.polyRoots([1, 0, 1])                → [{ re: 0, im: 1 }, { re: 0, im: -1 }]
  *     Numerics.solveLinear([[1, 1], [1, -1]], [3, 1]) → { status: 'unique', solution: [2, 1], … }
  *
@@ -675,8 +680,13 @@
         return null;
     }
 
-    /** A non-trivial factor of the odd composite n by Pollard's rho (Brent), or null when time runs out. */
-    function pollardBrent(n, deadline) {
+    /**
+     * A non-trivial factor of the odd composite n by Pollard's rho
+     * (Brent's cycle finding), as a generator: it yields after every batch
+     * of 128 steps so the caller decides how long it may run, and returns
+     * the factor (or null when every constant 1–63 failed).
+     */
+    function* pollardBrentSteps(n) {
         if ((n & 1n) === 0n) return 2n;
         for (let c = 1n; c < 64n; c++) {
             const f = (v) => (v * v + c) % n;
@@ -689,7 +699,10 @@
             const m = 128;
             while (g === 1n) {
                 x = y;
-                for (let i = 0; i < r; i++) y = f(y);
+                for (let i = 0; i < r; i++) {
+                    y = f(y);
+                    if ((i & 127) === 127) yield;
+                }
                 let k = 0;
                 while (k < r && g === 1n) {
                     ys = y;
@@ -700,7 +713,7 @@
                     }
                     g = gcdBig(q, n);
                     k += m;
-                    if (now() > deadline) return null;
+                    yield;
                 }
                 r *= 2;
             }
@@ -709,7 +722,7 @@
                 do {
                     ys = f(ys);
                     g = gcdBig(x > ys ? x - ys : ys - x, n);
-                    if ((++guard & 255) === 0 && now() > deadline) return null;
+                    if ((++guard & 127) === 0) yield;
                 } while (g === 1n);
             }
             if (g !== n && g !== 1n) return g;
@@ -718,13 +731,14 @@
     }
 
     /**
-     * Prime factorization of a non-zero whole number. Returns { factors:
-     * [{ prime, exponent, probable? }], complete, remainder, sign }, where
-     * remainder is the unfactored part (a decimal string) when the time
-     * budget (opts.timeMs, default 200, at most 5,000) ran out.
+     * Start a prime factorization that runs in steps. job.step(ms) works
+     * for about ms milliseconds and returns true once the number is fully
+     * factored; job.result() is the factorize() shape at any moment (the
+     * part not factored yet is the remainder); job.elapsed() is the
+     * milliseconds spent so far. The page can call step() from a timer so
+     * a long search never blocks it, and simply stop calling to cancel.
      */
-    function factorize(value, opts = {}) {
-        const budget = clamp(Number(opts && opts.timeMs) || LIMITS.factorMs, 10, LIMITS.factorMsMax);
+    function factorizeJob(value) {
         let n = checkDigits(toBigInt(value));
         if (n === 0n) fail('0 has no prime factorization — every whole number divides 0.');
         const sign = n < 0n ? -1 : 1;
@@ -749,44 +763,105 @@
             n = 1n;
         }
 
-        const deadline = now() + budget;
         const stack = n > 1n ? [n] : [];
-        let remainder = 1n;
-        while (stack.length) {
-            const m = stack.pop();
-            if (m === 1n) continue;
-            const test = primalityBig(m);
-            if (test.prime) {
-                add(m);
-                if (!test.certain) probable.add(m.toString());
-                continue;
-            }
-            const pp = perfectPower(m);
-            if (pp) {
-                for (let i = 0; i < pp.k; i++) stack.push(pp.root);
-                continue;
-            }
-            const d = now() > deadline ? null : pollardBrent(m, deadline);
-            if (!d) {
-                remainder *= m;
-                continue;
-            }
-            stack.push(d, m / d);
-        }
+        const gaveUp = [];       // composites every Pollard constant failed on
+        let current = null;      // the composite being split right now
+        let spent = 0;
 
-        const factors = Array.from(found.entries())
-            .map(([prime, exponent]) => {
-                const f = { prime, exponent };
-                if (probable.has(prime)) f.probable = true;
-                return f;
-            })
-            .sort((a, b) => {
-                const x = BigInt(a.prime);
-                const y = BigInt(b.prime);
-                return x < y ? -1 : x > y ? 1 : 0;
-            });
-        const complete = remainder === 1n;
-        return { factors, complete, remainder: complete ? null : remainder.toString(), sign };
+        function* run() {
+            while (stack.length) {
+                const m = stack.pop();
+                if (m === 1n) continue;
+                const test = primalityBig(m);
+                if (test.prime) {
+                    add(m);
+                    if (!test.certain) probable.add(m.toString());
+                    continue;
+                }
+                const pp = perfectPower(m);
+                if (pp) {
+                    for (let i = 0; i < pp.k; i++) stack.push(pp.root);
+                    continue;
+                }
+                current = m;
+                const d = yield* pollardBrentSteps(m);
+                current = null;
+                if (!d) {
+                    gaveUp.push(m);
+                    continue;
+                }
+                stack.push(d, m / d);
+            }
+        }
+        const gen = run();
+        let done = false;
+
+        return {
+            step(ms) {
+                if (done) return true;
+                const budget = typeof ms === 'number' && ms >= 0 ? ms : Infinity;
+                const t0 = now();
+                // At least one unit of work per call, so step(0) still makes progress.
+                do {
+                    if (gen.next().done) done = true;
+                } while (!done && now() - t0 < budget);
+                spent += now() - t0;
+                return done;
+            },
+            get done() { return done; },
+            elapsed() { return spent; },
+            /** The factorization so far: prime pieces still on the stack count as factors, the rest as the remainder. */
+            result() {
+                const primes = new Map(found);
+                const maybe = new Set(probable);
+                let remainder = 1n;
+                gaveUp.forEach((m) => { remainder *= m; });
+                if (current !== null) remainder *= current;
+                const addPrime = (p, times, certain) => {
+                    const key = p.toString();
+                    primes.set(key, (primes.get(key) || 0) + times);
+                    if (!certain) maybe.add(key);
+                };
+                stack.forEach((m) => {
+                    if (m === 1n) return;
+                    const test = primalityBig(m);
+                    if (test.prime) {
+                        addPrime(m, 1, test.certain);
+                        return;
+                    }
+                    const pp = perfectPower(m);
+                    const rootTest = pp ? primalityBig(pp.root) : null;
+                    if (rootTest && rootTest.prime) addPrime(pp.root, pp.k, rootTest.certain);
+                    else remainder *= m;
+                });
+                const factors = Array.from(primes.entries())
+                    .map(([prime, exponent]) => {
+                        const f = { prime, exponent };
+                        if (maybe.has(prime)) f.probable = true;
+                        return f;
+                    })
+                    .sort((x, y) => {
+                        const a = BigInt(x.prime);
+                        const b = BigInt(y.prime);
+                        return a < b ? -1 : a > b ? 1 : 0;
+                    });
+                const complete = remainder === 1n;
+                return { factors, complete, remainder: complete ? null : remainder.toString(), sign };
+            }
+        };
+    }
+
+    /**
+     * Prime factorization of a non-zero whole number. Returns { factors:
+     * [{ prime, exponent, probable? }], complete, remainder, sign }, where
+     * remainder is the unfactored part (a decimal string) when the time
+     * budget (opts.timeMs, default 200, at most 5,000) ran out.
+     */
+    function factorize(value, opts = {}) {
+        const budget = clamp(Number(opts && opts.timeMs) || LIMITS.factorMs, 10, LIMITS.factorMsMax);
+        const job = factorizeJob(value);
+        job.step(budget);
+        return job.result();
     }
 
     /** Parse a gcd / lcm list: an array, or text separated by commas, spaces, or semicolons. */
@@ -994,13 +1069,8 @@
         return noNegZero(best);
     }
 
-    /**
-     * Roots of fn on [min, max] with diagnostics: { roots, intervals,
-     * truncated, timedOut, samples, evaluated, undefinedSamples }.
-     * intervals lists stretches where fn is exactly 0 at several samples in
-     * a row (every x there is a root).
-     */
-    function findRootsDetailed(fn, opts = {}) {
+    /** Check findRoots options: { fn, min, max, samples, budget }. */
+    function rootsOptions(fn, opts) {
         if (typeof fn !== 'function') fail('Root finding needs a function of x.');
         const o = opts && typeof opts === 'object' ? opts : {};
         const min = Number(o.min);
@@ -1012,95 +1082,158 @@
         if (!Number.isFinite(samples)) fail('Samples must be a whole number.');
         samples = clamp(samples, LIMITS.samplesMin, LIMITS.samplesMax);
         const budget = clamp(Number(o.timeMs) || LIMITS.rootsMs, 50, 10000);
-        const deadline = now() + budget;
+        return { min, max, samples, budget };
+    }
 
+    /**
+     * Start a root search that runs in steps: job.step(ms) works for about
+     * ms milliseconds and returns true when the search is finished;
+     * job.progress() is 0–1; job.result() is the findRootsDetailed() shape
+     * once done. Sampling stops when opts.timeMs of work has been spent
+     * (timedOut), exactly as findRootsDetailed() does, so the page can run
+     * it in short slices with a Cancel button and the same overall budget.
+     */
+    function findRootsJob(fn, opts = {}) {
+        const { min, max, samples, budget } = rootsOptions(fn, opts);
         const f = (x) => {
             let y;
             try { y = fn(x); } catch (_err) { return NaN; }
             return typeof y === 'number' ? y : NaN;
         };
-
         const xs = new Float64Array(samples + 1);
         const ys = new Float64Array(samples + 1);
         const step = (max - min) / samples;
         let evaluated = 0;
         let undefinedSamples = 0;
         let timedOut = false;
-        for (let i = 0; i <= samples; i++) {
-            const x = i === samples ? max : min + i * step;
-            xs[i] = x;
-            ys[i] = f(x);
-            if (!Number.isFinite(ys[i])) undefinedSamples++;
-            evaluated = i + 1;
-            if ((i & 31) === 31 && now() > deadline) {
-                timedOut = i < samples;
-                break;
-            }
-        }
+        let spent = 0;
+        let sliceStart = 0;
+        let refined = 0;
+        let out = null;
+        const used = () => spent + (now() - sliceStart);
 
-        const found = [];
-        const intervals = [];
-        for (let i = 0; i < evaluated; i++) {
-            const fa = ys[i];
-            if (fa === 0) {
-                let j = i;
-                while (j + 1 < evaluated && ys[j + 1] === 0) j++;
-                if (j - i >= 2) intervals.push({ from: noNegZero(xs[i]), to: noNegZero(xs[j]) });
-                else for (let k = i; k <= j; k++) found.push(xs[k]);
-                i = j;
-                continue;
+        function* run() {
+            for (let i = 0; i <= samples; i++) {
+                const x = i === samples ? max : min + i * step;
+                xs[i] = x;
+                ys[i] = f(x);
+                if (!Number.isFinite(ys[i])) undefinedSamples++;
+                evaluated = i + 1;
+                if ((i & 31) === 31) {
+                    if (used() > budget) {
+                        timedOut = i < samples;
+                        break;
+                    }
+                    yield;
+                }
             }
-            if (i + 1 >= evaluated) break;
-            const fb = ys[i + 1];
-            if (!Number.isFinite(fa) || !Number.isFinite(fb) || fb === 0) continue;
-            if ((fa < 0) === (fb < 0)) continue;
-            const r = brent(f, xs[i], xs[i + 1], fa, fb);
-            if (r === null) continue;
-            const fr = Math.abs(f(r));
-            // A sign change across a pole or a jump is not a root.
-            if (!Number.isFinite(fr) || fr > 1e-3 * Math.min(Math.abs(fa), Math.abs(fb))) {
-                if (!(fr <= 1e-12)) continue;
-            }
-            found.push(r);
-            if (found.length > LIMITS.roots * 4) break;
-        }
 
-        // Touching roots: local minima of |f| that reach zero without a sign change.
-        for (let i = 1; i + 1 < evaluated && found.length <= LIMITS.roots * 4; i++) {
-            const y0 = ys[i - 1];
-            const y1 = ys[i];
-            const y2 = ys[i + 1];
-            if (!Number.isFinite(y0) || !Number.isFinite(y1) || !Number.isFinite(y2) || y1 === 0) continue;
-            if ((y0 < 0) !== (y1 < 0) || (y1 < 0) !== (y2 < 0)) continue;
-            if (!(Math.abs(y1) <= Math.abs(y0) && Math.abs(y1) <= Math.abs(y2))) continue;
-            if (Math.abs(y1) === Math.abs(y0) && Math.abs(y1) === Math.abs(y2)) continue;
-            const xm = minimizeAbs(f, xs[i - 1], xs[i + 1]);
-            const fm = Math.abs(f(xm));
-            if (Number.isFinite(fm) && fm <= 1e-10 * Math.max(1, Math.abs(y0), Math.abs(y2))) found.push(xm);
-        }
-
-        const cleaned = found.filter(Number.isFinite).map((r) => snapRoot(f, r)).sort((a, b) => a - b);
-        const roots = [];
-        const span = max - min;
-        for (const r of cleaned) {
-            const prev = roots[roots.length - 1];
-            if (prev !== undefined && Math.abs(r - prev) <= Math.max(span * 1e-9, Math.abs(r) * 1e-12)) {
-                if (Math.abs(f(r)) < Math.abs(f(prev))) roots[roots.length - 1] = r;
-                continue;
+            const found = [];
+            const intervals = [];
+            for (let i = 0; i < evaluated; i++) {
+                refined = i;
+                const fa = ys[i];
+                if (fa === 0) {
+                    let j = i;
+                    while (j + 1 < evaluated && ys[j + 1] === 0) j++;
+                    if (j - i >= 2) intervals.push({ from: noNegZero(xs[i]), to: noNegZero(xs[j]) });
+                    else for (let k = i; k <= j; k++) found.push(xs[k]);
+                    i = j;
+                    continue;
+                }
+                if (i + 1 >= evaluated) break;
+                const fb = ys[i + 1];
+                if (!Number.isFinite(fa) || !Number.isFinite(fb) || fb === 0) continue;
+                if ((fa < 0) === (fb < 0)) continue;
+                const r = brent(f, xs[i], xs[i + 1], fa, fb);
+                yield;
+                if (r === null) continue;
+                const fr = Math.abs(f(r));
+                // A sign change across a pole or a jump is not a root.
+                if (!Number.isFinite(fr) || fr > 1e-3 * Math.min(Math.abs(fa), Math.abs(fb))) {
+                    if (!(fr <= 1e-12)) continue;
+                }
+                found.push(r);
+                if (found.length > LIMITS.roots * 4) break;
             }
-            if (intervals.some((iv) => r >= iv.from - step && r <= iv.to + step)) continue;
-            roots.push(r);
+
+            // Touching roots: local minima of |f| that reach zero without a sign change.
+            for (let i = 1; i + 1 < evaluated && found.length <= LIMITS.roots * 4; i++) {
+                const y0 = ys[i - 1];
+                const y1 = ys[i];
+                const y2 = ys[i + 1];
+                if (!Number.isFinite(y0) || !Number.isFinite(y1) || !Number.isFinite(y2) || y1 === 0) continue;
+                if ((y0 < 0) !== (y1 < 0) || (y1 < 0) !== (y2 < 0)) continue;
+                if (!(Math.abs(y1) <= Math.abs(y0) && Math.abs(y1) <= Math.abs(y2))) continue;
+                if (Math.abs(y1) === Math.abs(y0) && Math.abs(y1) === Math.abs(y2)) continue;
+                const xm = minimizeAbs(f, xs[i - 1], xs[i + 1]);
+                yield;
+                const fm = Math.abs(f(xm));
+                if (Number.isFinite(fm) && fm <= 1e-10 * Math.max(1, Math.abs(y0), Math.abs(y2))) found.push(xm);
+            }
+
+            const cleaned = found.filter(Number.isFinite).map((r) => snapRoot(f, r)).sort((a, b) => a - b);
+            const roots = [];
+            const span = max - min;
+            for (const r of cleaned) {
+                const prev = roots[roots.length - 1];
+                if (prev !== undefined && Math.abs(r - prev) <= Math.max(span * 1e-9, Math.abs(r) * 1e-12)) {
+                    if (Math.abs(f(r)) < Math.abs(f(prev))) roots[roots.length - 1] = r;
+                    continue;
+                }
+                if (intervals.some((iv) => r >= iv.from - step && r <= iv.to + step)) continue;
+                roots.push(r);
+            }
+            const truncated = roots.length > LIMITS.roots;
+            out = {
+                roots: truncated ? roots.slice(0, LIMITS.roots) : roots,
+                intervals,
+                truncated,
+                timedOut,
+                samples,
+                evaluated,
+                undefinedSamples
+            };
         }
-        const truncated = roots.length > LIMITS.roots;
+        const gen = run();
+        let done = false;
+
         return {
-            roots: truncated ? roots.slice(0, LIMITS.roots) : roots,
-            intervals,
-            truncated,
-            timedOut,
-            samples,
-            evaluated,
-            undefinedSamples
+            step(ms) {
+                if (done) return true;
+                const slice = typeof ms === 'number' && ms >= 0 ? ms : Infinity;
+                sliceStart = now();
+                // At least one unit of work per call, so step(0) still makes progress.
+                do {
+                    if (gen.next().done) done = true;
+                } while (!done && now() - sliceStart < slice);
+                spent += now() - sliceStart;
+                return done;
+            },
+            get done() { return done; },
+            elapsed() { return spent; },
+            /** 0 to 1: sampling is the first 80%, refining the rest. */
+            progress() {
+                if (done) return 1;
+                const sampled = evaluated / (samples + 1);
+                if (sampled < 1 && !timedOut && refined === 0) return 0.8 * sampled;
+                return 0.8 + 0.2 * (evaluated ? refined / evaluated : 1);
+            },
+            /** The findRootsDetailed() result; null until the search is done. */
+            result() { return out; }
         };
+    }
+
+    /**
+     * Roots of fn on [min, max] with diagnostics: { roots, intervals,
+     * truncated, timedOut, samples, evaluated, undefinedSamples }.
+     * intervals lists stretches where fn is exactly 0 at several samples in
+     * a row (every x there is a root).
+     */
+    function findRootsDetailed(fn, opts = {}) {
+        const job = findRootsJob(fn, opts);
+        job.step(Infinity);
+        return job.result();
     }
 
     /** Real roots of fn between opts.min and opts.max (sorted, deduplicated). */
@@ -1500,6 +1633,7 @@
         nextPrime,
         prevPrime,
         factorize,
+        factorizeJob,
         gcd,
         lcm,
         convertBase,
@@ -1508,6 +1642,7 @@
         toBigInt,
         findRoots,
         findRootsDetailed,
+        findRootsJob,
         polyRoots,
         solveLinear,
         limits: LIMITS
