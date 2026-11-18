@@ -37,6 +37,7 @@ first, under the file's path.
 
 ## `shared/css/tokens.css`
 
+- 2.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — On Dennis's direction the ecosystem keeps the 07/23 Parchment Dossier / Sentinel Obsidian palette (the interim flat 1.0.0 restyle is retired). Adds density tokens (--pad-rail, --gap-rail, --pad-section-head/-body, --pad-card, --gap-card, --pad-stage, --pad-stage-card) so container breathing room is tuned in one place, tightened a tad from 16px/24px.
 - 2.2.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Loader token family so the load screen tracks the theme instead of drifting from it: --loader-card-bg/-border, --loader-title, --loader-text, --loader-track, --loader-accent/-bright/-rgb, and --loader-sat-bg, defined per theme. Parchment's --loader-bg flipped from the shared navy gradient to a warm cream one, so a light-theme visitor no longer watches a dark loader hand off to a light landing page.
 - 2.1.1 (2026-07-23) [Anthropic - Claude Opus 4.8] — Softened the reflection-gradient sheen: lower peak alpha (0.35->0.16 parchment, 0.08->0.055 sentinel) and a narrower band, so the panel/tool-header hover glint glides rather than flashes (pairs with panels.css 2.4.2).
 - 2.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Added per-theme depth tokens (card-gradient, card-inset, card-shadow, card-shadow-hover, vignette) so cards and tool sections separate cleanly from the canvas — sharpens contrast in Sentinel Obsidian especially.
@@ -114,6 +115,7 @@ first, under the file's path.
 
 ## `index.html`
 
+- 1.4.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Hub loader gains the orbit intro: the tool family (colorMan, mathMan, textMan, convertMan, devMan) sweeps into an arc around the central toolMan mark before the landing opens (markup here; animation in hub.css, pacing in loader.js). Also removed the gunslinger signature line from the footer — that mark lives in the file-header docstrings, not as an on-page element.
 - 1.3.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Theme toggle carries both sun and moon icons (CSS swaps by data-theme). Card icons come from shared/js/hub.js, where textMan now uses its real pen mark.
 - 1.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Hub QoL batch: tool-search input in the header, "Continue where you left off" hero slot, and the version + GitHub footer line (grid enrichments live in shared/js/hub.js 1.1.0).
 - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Replaced the fountain-pen mark (textMan's identity) with the placeholder toolbox mark (logo-toolMan.svg) in the loader, header, hero, and favicon.
@@ -144,6 +146,7 @@ first, under the file's path.
 
 ## `shared/js/toolman.js`
 
+- 1.2.0 (11/17/2026) [dendogg + Anthropic - Claude] — On Dennis's direction the ecosystem returns to the 07/23 Parchment/Sentinel design; getTheme() now bridges the light/dark values the interim 1.0.0 build stored, so returning visitors keep the theme they chose.
 - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Ecosystem usage layer: stampLastUsed/getLastUsed (per-tool timestamps), pinned-tool persistence (getPinned/togglePinned), getToolDataInfo (stored bytes plus textMan snippet/template counts), and clearToolData — all consumed by the hub's card ordering, badges, and reset actions.
 - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial kernel: registry, theme management, toasts.
 

@@ -36,7 +36,8 @@
  *       every segment is named with its amount and percent in the legend,
  *       so the color is never the only signal
  *     - Schedule tables: compact rows, year rows with an expand button
- *       (chevron turns, aria-expanded), indented period rows
+ *       (chevron turns, aria-expanded), indented period rows; in a phone
+ *       drawer the cells tighten so all four columns stay in view
  *     - Coarse pointers (touch) get 40px fields, icon buttons, and chips;
  *       phone widths keep inputs at 16px so focusing does not zoom the page
  *
@@ -530,7 +531,7 @@
 }
 
 .tc-table caption {
-    padding: 0 0 var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
     font-size: var(--font-xs);
     color: var(--fg-subtle);
     text-align: left;
@@ -606,6 +607,24 @@
 
     .tc-answer-value {
         font-size: var(--font-lg);
+    }
+}
+
+/* A phone drawer: tighter schedule cells so the Balance column stays in
+   view without scrolling the table sideways. */
+@container tc (max-width: 299px) {
+    .tc-table th,
+    .tc-table td {
+        padding: var(--space-xs);
+    }
+
+    .tc-table td,
+    .tc-table .tc-expand {
+        font-size: 0.6875rem;
+    }
+
+    .tc-table .tc-expand {
+        padding-inline: 2px;
     }
 }
 

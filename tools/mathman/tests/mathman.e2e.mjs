@@ -40,6 +40,9 @@
  *       the base converter, an X% of Y calculator, and a loan payment
  *     - Settings: significant digits, degrees, and Light / Dark / System;
  *       Ctrl+Alt+D switches back to radians
+ *     - Review guards: a heavy sheet answers in slices with "working…"
+ *       rows and re-works only an edited line; sheet names stay unique; a
+ *       sheet saved in a second tab survives this tab's next save
  *     - No retired theme names anywhere on the page
  *     - Phone (390px): no sideways scroll, the Tools drawer opens, keypad
  *       taps type into the sheet with the drawer still open, Escape closes it
@@ -234,6 +237,12 @@ async function desktop(t) {
         await page.waitForTimeout(150);
         const shortcut = await lastCopy(page);
         t.check('Ctrl+Shift+C copies the current line with its unit', shortcut === '62.13711922 mph', shortcut);
+
+        await newLastLine(page);
+        await page.keyboard.type('1.414213562');
+        await page.waitForTimeout(400);
+        const labels = await page.evaluate(() => [...document.querySelectorAll('#mount-result .readout-label')].map((n) => n.textContent));
+        t.check('a typed decimal is not repeated as a long fraction', labels.includes('Input') && !labels.includes('Exact'), labels.join(','));
     });
 
     await t.step('Selection summary, notes, and History', async () => {
@@ -314,15 +323,10 @@ async function desktop(t) {
         await page.click('#mount-sheets .lib-sheet[data-active="true"] [data-act="delete"]');
         await page.waitForSelector('#modal-confirm.is-open');
         await page.click('#modal-confirm .btn-danger');
-        await page.waitForTimeout(200);
-        await page.click('#mount-sheets .lib-sheet:has-text("Trip budget") [data-act="open"]').catch(() => {});
-        await page.evaluate(() => {
-            const sheet = window.State.sheets().find((x) => x.name === 'Trip budget');
-            if (sheet) window.State.setActiveSheet(sheet.id);
-        });
-        await page.waitForTimeout(200);
-        const active = await page.evaluate(() => window.State.activeSheet().name);
-        t.check('the trip sheet is open again', active === 'Trip budget', active);
+        await page.waitForTimeout(250);
+        const active = await page.evaluate(() => [window.State.activeSheet().name, document.getElementById('sheet-title').value,
+            (document.querySelector('#mount-sheets .lib-sheet[data-active="true"] .row-title') || {}).textContent]);
+        t.check('deleting the open sheet opens its neighbour', active.every((n) => n === 'Trip budget'), active.join(' / '));
     });
 
     await t.step('Variables and Reference insert at the caret', async () => {
@@ -443,8 +447,11 @@ async function desktop(t) {
         await page.fill('#nt-factor', '360');
         await page.press('#nt-factor', 'Enter');
         await page.waitForTimeout(300);
-        const factors = await page.evaluate(() => [...document.querySelectorAll('#mount-numtheory .nt-expr .nt-p')].map((p) => p.textContent).join(' × '));
+        const factors = await page.evaluate(() => [...document.querySelectorAll('#mount-numtheory .nt-expr .nt-p')]
+            .map((p) => [...p.childNodes].filter((n) => !(n.classList && n.classList.contains('tb-sr'))).map((n) => n.textContent).join('')).join(' × '));
         t.check('360 factors as 2³ × 3² × 5', factors === '23 × 32 × 5', factors);
+        const spoken = await page.evaluate(() => document.querySelector('#mount-numtheory .nt-expr .nt-p').textContent);
+        t.check('an exponent is read as "to the power"', spoken === '2 to the power 3', spoken);
         await page.fill('#nt-base-10', '255');
         await page.waitForTimeout(250);
         const bases = await page.evaluate(() => ['#nt-base-2', '#nt-base-8', '#nt-base-16'].map((s) => document.querySelector(s).value));
@@ -541,6 +548,65 @@ async function desktop(t) {
             JSON.stringify(after.sheets) === JSON.stringify(before.sheets) && after.active.name === 'Trip budget'
             && after.active.text === before.text && after.history === 1 && after.precision === 6 && after.title === 'Trip budget'
             && after.cell === '1,500', JSON.stringify({ ...after, active: after.active.name }));
+    });
+
+    await t.step('A heavy sheet never freezes typing', async () => {
+        const first = await page.evaluate(() => {
+            const text = ['fib(n) = if(n < 2, n, fib(n - 1) + fib(n - 2))']
+                .concat(Array.from({ length: 600 }, (_, k) => `fib(${12 + (k % 8)}) + ${k}`)).join('\n');
+            const t0 = performance.now();
+            window.State.addSheet('Heavy', text);
+            return { ms: performance.now() - t0, pending: window.State.result().pending };
+        });
+        await page.waitForTimeout(100);
+        const working = await page.evaluate(() => document.querySelectorAll('#mount-worksheet .ws-pending').length);
+        t.check('a slow sheet answers in slices, with "working…" rows meanwhile',
+            first.ms < 400 && (first.pending === 0 || working > 0), `${Math.round(first.ms)} ms, ${first.pending} pending, ${working} working rows`);
+        await page.waitForFunction(() => window.State.result().pending === 0, null, { timeout: 30000 });
+        const edit = await page.evaluate(() => {
+            const id = window.State.activeSheet().id;
+            const t0 = performance.now();
+            window.State.setSheetText(id, `${window.State.activeSheet().text}\nans + 1`);
+            const r = window.State.evaluate();
+            return { ms: performance.now() - t0, pending: r.pending, last: r.lines[r.lines.length - 1].display };
+        });
+        t.check('an edit re-works only the changed line', edit.ms < 150 && edit.pending === 0 && edit.last !== '', `${Math.round(edit.ms)} ms, last = ${edit.last}`);
+        await page.evaluate(() => {
+            const heavy = window.State.sheets().find((x) => x.name === 'Heavy');
+            window.State.deleteSheet(heavy.id);
+            window.State.setActiveSheet(window.State.sheets().find((x) => x.name === 'Trip budget').id);
+        });
+    });
+
+    await t.step('Sheet names stay unique', async () => {
+        await page.fill('#sheet-title', 'welcome');
+        await page.press('#sheet-title', 'Enter');
+        await page.waitForTimeout(150);
+        const r = await page.evaluate(() => ({ name: window.State.activeSheet().name, error: document.getElementById('sheet-title-error').textContent }));
+        t.check('a name another sheet has is refused with a reason', r.name === 'Trip budget' && /already called/.test(r.error), JSON.stringify(r));
+        await page.press('#sheet-title', 'Escape');
+    });
+
+    await t.step('Two tabs keep each other\'s sheets', async () => {
+        const other = await page.context().newPage();
+        await other.goto(page.url());
+        await other.waitForFunction(() => !document.getElementById('loader-screen') && window.State, null, { timeout: 15000 });
+        await other.evaluate(() => {
+            window.State.addSheet('From tab two', 'answer = 42');
+            window.Storage.save();
+        });
+        await page.waitForTimeout(400);
+        const here = await page.evaluate(() => window.State.sheets().map((x) => x.name));
+        await page.evaluate(() => window.Storage.save());
+        const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('toolman.mathman.state')).state.sheets.map((x) => x.name));
+        await other.close();
+        t.check('a sheet saved in another tab appears here and survives this tab\'s next save',
+            here.includes('From tab two') && stored.includes('From tab two') && stored.includes('Trip budget'), stored.join(', '));
+        await page.evaluate(() => {
+            const extra = window.State.sheets().find((x) => x.name === 'From tab two');
+            if (extra) window.State.deleteSheet(extra.id);
+            window.State.setActiveSheet(window.State.sheets().find((x) => x.name === 'Trip budget').id);
+        });
     });
 
     await t.step('No retired theme names on the page', async () => {

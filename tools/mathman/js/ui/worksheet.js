@@ -24,7 +24,9 @@
  *       gutter and a results column that follow its scroll position exactly
  *     - Re-evaluates 120 ms after typing stops, at once on paste, on a new or
  *       removed line, when the editor loses focus, and before a Ctrl / Cmd
- *       shortcut, Copy all, or a sheet switch reads the results
+ *       shortcut, Copy all, or a sheet switch reads the results; on a slow
+ *       sheet, lines State has not reached yet read "working…" until their
+ *       answers arrive, and typing never waits for them
  *     - Results are real buttons: click, Enter, or Space copies the plain
  *       value with its unit; arrow keys move between them (one Tab stop)
  *     - Short exact fractions (up to 9 characters, like 22/7) as a muted
@@ -41,9 +43,12 @@
  *       (value, with unit, fraction), Add to History, error explanations,
  *       and plain notes for headings, notes, and blanks
  *     - Selection summary for several selected lines: count, sum, and mean,
- *       converting compatible units to the first line's unit, or a clear
- *       note when the units cannot be added
- *     - Ctrl+/ comment toggle that keeps the browser's undo history
+ *       converting compatible units to the first line's unit and counting a
+ *       line shown as a percentage (0.35 to %) as its value, or a clear note
+ *       when the units cannot be added or a value is too large to add up
+ *     - Ctrl+/ comment toggle and lines sent by the tool panes both keep
+ *       the browser's undo history; in a phone drawer, where the editor is
+ *       not focused, Ctrl+Z right after a send still takes it back
  *     - Remembers the caret and scroll position of each sheet while the page
  *       is open; saves pending typing when the sheet changes or the tab hides
  *     - Copy all: the whole sheet with each line's result, ready to paste
@@ -65,7 +70,7 @@
  *     WorksheetUI.appendLine('15% of 80')   → new last line, evaluated; returns its LineResult (display '12')
  *     WorksheetUI.currentResult()           → the LineResult under the caret (cheap; safe on every caret move)
  *     WorksheetUI.currentResult({ fresh: true })  → the same, after evaluating typing still waiting on the debounce
- *     WorksheetUI.selectionSummary()        → { count: 3, sum: 1830, mean: 610, unit: '' } or null
+ *     WorksheetUI.selectionSummary()        → { count: 3, sum: 1830, mean: 610, unit: '', reason: null } or null
  *     WorksheetUI.selectedLines()           → { first: 5, last: 7, lines: [LineResult, …] } or null
  *     WorksheetUI.toggleComment()           → '// ' added to (or removed from) the selected lines
  *     WorksheetUI.goToLine(16)              → caret at the end of line 16, scrolled into view
@@ -78,9 +83,9 @@
  *     - Compatible platforms: all evergreen browsers; the line alignment
  *       relies on wrap="off" and a fixed line height
  *     - Limitations: very long lines scroll sideways rather than wrapping;
- *       the browser's undo history restarts when another sheet is opened or
- *       a tool appends a line; the stat pills under the stage are drawn by
- *       app.js from selectionSummary()
+ *       the browser's undo history restarts when another sheet is opened;
+ *       the stat pills under the stage are drawn by app.js from
+ *       selectionSummary()
  * ----------------------------------------------------------------------------
  */
 
@@ -107,7 +112,8 @@
         error: ['Error', 'fail'],
         comment: ['Note', ''],
         heading: ['Heading', ''],
-        blank: ['Blank line', '']
+        blank: ['Blank line', ''],
+        pending: ['Working…', 'info']
     };
 
     const COPY_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
@@ -260,7 +266,8 @@
         frame: 0,
         cardKey: '',
         tipFor: null,
-        warnedLines: false
+        warnedLines: false,
+        undo: null
     };
 
     /* ── DOM construction ──────────────────────────────────── */
@@ -424,6 +431,7 @@
         if (hasValue(l)) return `v\u0000${l.display || l.plain}\u0000${columnFraction(l)}\u0000${l.plain}`;
         if (l.kind === 'function') return `f\u0000${functionHead(l.source)}`;
         if (l.kind === 'error') return `e\u0000${l.error ? l.error.message : ''}`;
+        if (l.kind === 'pending') return 'p';
         return '';
     }
 
@@ -453,6 +461,12 @@
                 className: 'ws-fn',
                 text: `ƒ ${functionHead(l.source)} defined`,
                 attrs: { title: `Line ${n} defines ${functionHead(l.source)}; use it on a later line` }
+            }));
+        } else if (l.kind === 'pending') {
+            row.appendChild(DOM.create('span', {
+                className: 'ws-pending',
+                text: 'working…',
+                attrs: { title: `Line ${n} is still being worked out — its answer appears in a moment` }
             }));
         } else if (l.kind === 'error') {
             const msg = l.error && l.error.message ? l.error.message : 'This line could not be worked out';
@@ -730,6 +744,7 @@
         if (!sheet || !el.ta) return;
         S.loadedId = sheet.id;
         S.pending = false;
+        S.undo = null;
         clearTimeout(S.timer);
         el.ta.value = sheet.text;
         S.lineCount = countLines(sheet.text);
@@ -847,6 +862,8 @@
                 return l.label
                     ? [`Line ${n} is a label without a value.`, `Type a number or calculation after “${shorten(l.label, 30)}:” to give it one.`]
                     : [`Line ${n} is a note.`, 'mathMan skips everything after //. Press Ctrl + / to turn a note back into a calculation.'];
+            case 'pending':
+                return [`Line ${n} is still being worked out.`, 'This sheet has slow lines, so mathMan works them out in the background. The answer appears here in a moment, and you can keep typing.'];
             default:
                 return [`Line ${n} has no result.`, 'Put the caret on a line with a calculation.'];
         }
@@ -952,11 +969,13 @@
         if (s.sum === null) {
             sec.appendChild(DOM.create('div', {
                 className: 'tool-feedback rc-sel-note',
-                text: `These lines use units that can't be added together (${s.units.join(', ')}), so there is no sum. Select lines that measure the same thing.`,
+                text: s.reason === 'large'
+                    ? 'At least one of these values is too large to add up here, so there is no sum. Use total on a line below them for an exact sum.'
+                    : `These lines use units that can't be added together (${s.units.join(', ')}), so there is no sum. Select lines that measure the same thing.`,
                 attrs: { 'data-state': 'warn' }
             }));
         } else {
-            const unit = s.unit ? ` ${s.unit}` : '';
+            const unit = s.unit === '%' ? '%' : s.unit ? ` ${s.unit}` : '';
             const fmt = (n) => `${State.formatNumber(n)}${unit}`;
             const list = DOM.create('div', { className: 'stat-list rc-stats' });
             const block = (label, value, wide) => {
@@ -995,7 +1014,7 @@
         const l = lines[i] || null;
         const sel = selectionSummary();
         const key = [i, rowKey(l), l ? l.source : lineSourceAt(i), l && l.label, l && l.exact,
-            sel ? `${sel.count}|${sel.sum}|${sel.unit}|${sel.lines}` : '', S.lineCount].join('\u0001');
+            sel ? `${sel.count}|${sel.sum}|${sel.unit}|${sel.lines}|${sel.reason}` : '', S.lineCount].join('\u0001');
         if (!force && key === S.cardKey) return;
         S.cardKey = key;
 
@@ -1092,9 +1111,36 @@
     }
 
     /**
+     * An edit made without focusing the editor (phone drawers, keypad taps):
+     * the browser cannot undo it, so the text before it is kept and
+     * Ctrl+Z right after it puts that back.
+     */
+    function quietEdit(start, end, text) {
+        const ta = el.ta;
+        const before = { value: ta.value, start: ta.selectionStart, end: ta.selectionEnd };
+        ta.setRangeText(text, start, end, 'end');
+        S.undo = { before, after: ta.value };
+        onInput();
+    }
+
+    /** Ctrl+Z right after a quiet edit: put the text back as it was. */
+    function undoQuietEdit(e) {
+        const u = S.undo;
+        if (!u || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'z') return;
+        S.undo = null;
+        if (el.ta.value !== u.after) return;
+        e.preventDefault();
+        el.ta.value = u.before.value;
+        el.ta.setSelectionRange(u.before.start, u.before.end);
+        onInput();
+        flush();
+        updateCaret();
+    }
+
+    /**
      * Type text at the caret, replacing any selection, then focus the
      * editor. opts.focus = false leaves focus where it is (no phone
-     * keyboard, no drawer change); the browser's undo history then restarts.
+     * keyboard, no drawer change); Ctrl+Z right after still undoes it.
      */
     function insert(text, opts = {}) {
         if (!el.ta) return false;
@@ -1109,8 +1155,7 @@
         }
         S.activeSource = 'caret';
         if (opts && opts.focus === false) {
-            ta.setRangeText(s, start, end, 'end');
-            onInput();
+            quietEdit(start, end, s);
         } else {
             closeDrawer();
             replaceRange(start, end, s);
@@ -1121,6 +1166,13 @@
         return true;
     }
 
+    /**
+     * Add text as a new last line and evaluate it; returns its LineResult.
+     * On a desktop the edit goes through the browser's own editing, so
+     * Ctrl+Z in the worksheet undoes it (and the typing before it); focus
+     * goes back to where it was. In a phone drawer the editor is not
+     * focused (no keyboard pops up) and Ctrl+Z right after still undoes it.
+     */
     function appendLine(text) {
         if (!el.ta) return null;
         const s = cleanInput(text).replace(/^\n+|\n+$/g, '');
@@ -1129,9 +1181,21 @@
         const ta = el.ta;
         const cur = ta.value;
         let next;
-        if (!cur.trim()) next = s;
-        else if (/\n[ \t]*$/.test(cur)) next = cur.replace(/[ \t]*$/, '') + s;
-        else next = `${cur}\n${s}`;
+        let from;
+        let piece;
+        if (!cur.trim()) {
+            next = s;
+            from = 0;
+            piece = s;
+        } else if (/\n[ \t]*$/.test(cur)) {
+            from = cur.search(/[ \t]*$/);
+            piece = s;
+            next = cur.slice(0, from) + s;
+        } else {
+            from = cur.length;
+            piece = `\n${s}`;
+            next = cur + piece;
+        }
         if (next.length > MAX_CHARS) {
             notify(`This sheet is full (${MAX_CHARS.toLocaleString('en-US')} characters). Start a new sheet to keep adding lines.`, 'warning', 4500);
             return null;
@@ -1141,10 +1205,22 @@
             notify(`This sheet already has ${MAX_LINES.toLocaleString('en-US')} lines, the most mathMan works out. Start a new sheet to keep adding lines.`, 'warning', 4500);
             return null;
         }
-        ta.value = next;
+        S.activeSource = 'caret';
+        const phone = Boolean(window.Workbench && Workbench.isMobile && Workbench.isMobile());
+        const back = document.activeElement;
+        if (phone || !document.hasFocus()) {
+            quietEdit(from, cur.length, piece);
+        } else {
+            replaceRange(from, cur.length, piece);
+            if (back && back !== ta && back !== document.body && typeof back.focus === 'function') back.focus({ preventScroll: true });
+        }
+        if (ta.value !== next) {
+            // The browser edited differently (an extension, an IME): settle on the intended text.
+            ta.value = next;
+            onInput();
+        }
         ta.setSelectionRange(next.length, next.length);
         S.lineCount = lineCount;
-        S.activeSource = 'caret';
         S.pending = true;
         commit();
         const index = lineCount - 1;
@@ -1205,34 +1281,47 @@
 
     /**
      * Sum and mean of the value lines touched by a selection that spans two
-     * or more lines. Units are converted to the first value's unit when they
-     * measure the same thing; otherwise sum and mean are null.
+     * or more lines: { count, sum, mean, unit, units, lines, converted,
+     * reason }. Units are converted to the first value's unit when they
+     * measure the same thing. A line shown as a percentage (0.35 to %)
+     * counts as its value, 0.35, unless every selected value is a
+     * percentage (then the sum is in %, unit '%'). When there is no sum,
+     * sum and mean are null and reason says why: 'mixed' (units that can't
+     * be added) or 'large' (a value too large to add up here).
      */
     function selectionSummary() {
         const range = selectedLineRange();
         if (!range || range.last === range.first || !S.result) return null;
-        const values = S.result.lines.slice(range.first, range.last + 1)
-            .filter((l) => hasValue(l) && typeof l.numeric === 'number' && Number.isFinite(l.numeric));
-        if (!values.length) return null;
-        const unit = values[0].unit || '';
+        const lines = range.last - range.first + 1;
+        const touched = S.result.lines.slice(range.first, range.last + 1).filter(hasValue);
+        if (!touched.length) return null;
+        const count = touched.length;
+        const finite = touched.filter((l) => typeof l.numeric === 'number' && Number.isFinite(l.numeric));
+        if (finite.length < count) {
+            return { count, sum: null, mean: null, unit: null, units: [], lines, converted: false, reason: 'large' };
+        }
+        const allPct = finite.every((l) => l.percent);
+        const valueOf = (l) => (l.percent && !allPct ? l.numeric / 100 : l.numeric);
+        const unitOf = (l) => (l.percent ? (allPct ? '%' : '') : (l.unit || ''));
+        const unit = unitOf(finite[0]);
         const units = [];
         let sum = 0;
         let converted = false;
         let mixed = false;
-        values.forEach((l) => {
-            const u = l.unit || '';
+        finite.forEach((l) => {
+            const u = unitOf(l);
             if (!units.includes(u || 'no unit')) units.push(u || 'no unit');
             if (mixed) return;
             if (u === unit) {
-                sum += l.numeric;
+                sum += valueOf(l);
                 return;
             }
-            if (!u || !unit || !window.MathEngine || !MathEngine.units) {
+            if (!u || !unit || u === '%' || !window.MathEngine || !MathEngine.units) {
                 mixed = true;
                 return;
             }
             try {
-                const v = MathEngine.units.convert(l.numeric, u, unit);
+                const v = MathEngine.units.convert(valueOf(l), u, unit);
                 if (!Number.isFinite(v)) throw new Error('not finite');
                 sum += v;
                 converted = true;
@@ -1240,11 +1329,9 @@
                 mixed = true;
             }
         });
-        const count = values.length;
-        if (mixed || !Number.isFinite(sum)) {
-            return { count, sum: null, mean: null, unit: null, units, lines: range.last - range.first + 1, converted: false };
-        }
-        return { count, sum, mean: sum / count, unit, units, lines: range.last - range.first + 1, converted };
+        if (mixed) return { count, sum: null, mean: null, unit: null, units, lines, converted: false, reason: 'mixed' };
+        if (!Number.isFinite(sum)) return { count, sum: null, mean: null, unit: null, units, lines, converted: false, reason: 'large' };
+        return { count, sum, mean: sum / count, unit, units, lines, converted, reason: null };
     }
 
     /**
@@ -1315,7 +1402,10 @@
         }));
         DOM.on(ta, 'keydown', (e) => {
             if (e.key === 'Escape' && S.tipFor) hideTip();
+            undoQuietEdit(e);
         });
+        // Typing after a quiet edit hands undo back to the browser.
+        DOM.on(ta, 'beforeinput', () => { S.undo = null; });
         DOM.on(ta, 'blur', () => {
             commit();
             rememberCaret();

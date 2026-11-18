@@ -27,8 +27,11 @@
  *       variables work; range ends accept expressions like -2pi
  *     - Equation results: every root in the range with copy buttons,
  *       stretches where both sides are equal, and plain guidance when
- *       there are no roots, the expression has no real value there, or the
- *       search ran out of time
+ *       there are no roots, the expression has no real value there, it
+ *       takes too many steps to work out, or the search ran out of time
+ *     - A slow equation (a heavy sheet function) is searched in short
+ *       slices with a progress bar and Cancel, within the same 2-second
+ *       budget, so the page never stalls
  *     - Polynomial: degree stepper, one labelled field per power (numbers or
  *       expressions like 1/3), a live preview of the equation, and roots as
  *       a or a ± bi with double / triple roots named
@@ -46,7 +49,8 @@
  *     Load after js/engine.js, js/numerics.js, and js/state.js, before
  *     js/app.js. app.js calls SolverUI.init() once through ToolApp.boot();
  *     the module renders into #mount-solver. Enter in any field solves the
- *     current mode.
+ *     current mode. The pane reloads its saved fields on State 'reset' and
+ *     after a backup import ('panes' with action 'import').
  *
  * ✒ Examples:
  *     SolverUI.init()                                   → builds the pane inside #mount-solver
@@ -85,6 +89,10 @@
     const FIELD_MAX = 400;
     const EQ_MAX = 1000;
     const MULTIPLICITY = ['', '', 'double root', 'triple root'];
+    // An equation search gets 2 s of work in all; slow ones run in short slices so the page never stalls.
+    const SOLVE_MS = 2000;
+    const FIRST_SLICE_MS = 40;
+    const SLICE_MS = 25;
 
     const DEFAULTS = Object.freeze({
         mode: 'equation',
@@ -267,6 +275,35 @@
         return { el: DOM.create('div', { className: 'tb-actions', children: [solve, example, clear] }), solve, example, clear };
     }
 
+    /** A progress row with a Cancel button for a search that runs in slices. */
+    function busyRow(label, onCancel) {
+        const fill = DOM.create('div', { className: 'usage-fill' });
+        const meter = DOM.create('div', {
+            className: 'usage-meter tb-busy-meter',
+            attrs: { role: 'progressbar', 'aria-label': label, 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': '0' },
+            children: [fill]
+        });
+        const text = DOM.create('span', { className: 'tb-busy-text', attrs: { role: 'status', 'aria-live': 'polite' } });
+        const cancel = DOM.create('button', { className: 'btn btn-ghost btn-sm', text: 'Cancel', attrs: { type: 'button', title: 'Stop the search' } });
+        cancel.addEventListener('click', onCancel);
+        const el = DOM.create('div', { className: 'tb-busy', children: [meter, DOM.create('div', { className: 'tb-busy-row', children: [text, cancel] })] });
+        el.hidden = true;
+        return {
+            el,
+            show(fraction, message) {
+                const pct = Math.max(0, Math.min(100, Math.round(fraction * 100)));
+                fill.style.width = `${Math.max(1, pct)}%`;
+                meter.setAttribute('aria-valuenow', String(pct));
+                if (text.textContent !== message) text.textContent = message;
+                if (el.hidden) {
+                    el.hidden = false;
+                    el.scrollIntoView({ block: 'nearest' });
+                }
+            },
+            hide() { el.hidden = true; }
+        };
+    }
+
     function resultBlock() {
         const feedback = DOM.create('div', { className: 'tool-feedback tb-feedback', attrs: { role: 'status', 'aria-live': 'polite' } });
         const list = DOM.create('div', { className: 'readout-list tb-readouts sv-roots' });
@@ -406,6 +443,8 @@
         const actions = actionRow('Solve', exampleEquation, clearEquation, 'Find every x in the range that makes both sides equal');
         p.appendChild(actions.el);
         els.eqResult = resultBlock();
+        els.eqBusy = busyRow('Solver progress', () => stopSolve(true));
+        p.appendChild(els.eqBusy.el);
         els.eqResult.nodes.forEach((n) => p.appendChild(n));
         els.eqResult.send.addEventListener('click', () => sendEquation());
         p.addEventListener('submit', (e) => { e.preventDefault(); solveEquationUI(); });
@@ -434,8 +473,8 @@
         return { left, right };
     }
 
-    /** Solve text in x over [min, max]: { roots, detail, fn } or throws a plain message. */
-    function solveEquation(text, min, max) {
+    /** Compile the equation text in x: { fn, stats } (stats.stops counts step-budget stops) or throws a plain message. */
+    function prepareEquation(text) {
         if (!window.MathEngine || typeof MathEngine.compile !== 'function') throw new Error('The math engine did not load. Reload the page to try again.');
         if (!window.Numerics) throw new Error('The solver library did not load. Reload the page to try again.');
         const { left, right } = splitEquation(String(text || ''));
@@ -455,11 +494,35 @@
             }
             throw new Error(compiled.error);
         }
-        const detail = Numerics.findRootsDetailed(compiled.fn, { min, max, samples: 2000, timeMs: 2000 });
-        return { roots: detail.roots, detail, fn: compiled.fn };
+        return { fn: compiled.fn, stats: compiled.stats || { stops: 0 } };
+    }
+
+    /** Solve text in x over [min, max] now: { roots, detail, fn, stops } or throws a plain message. */
+    function solveEquation(text, min, max) {
+        const prep = prepareEquation(text);
+        const detail = Numerics.findRootsDetailed(prep.fn, { min, max, samples: 2000, timeMs: SOLVE_MS });
+        return { roots: detail.roots, detail, fn: prep.fn, stops: prep.stats.stops };
+    }
+
+    let solveRun = null;   // { job, prep, text, min, max } while a search runs in slices
+
+    /** Stop a running search; cancelled says so and leaves the fields as they are. */
+    function stopSolve(cancelled) {
+        const run = solveRun;
+        solveRun = null;
+        els.eqBusy.hide();
+        if (!run || !cancelled) return;
+        showFeedback(els.eqResult, 'Stopped before the search finished. Narrow the range or simplify the equation, then Solve again.', 'info');
+    }
+
+    function finishSolve(run) {
+        const d = run.job.result();
+        last.equation = { text: run.text, min: run.min, max: run.max, roots: d.roots, detail: d, stops: run.prep.stats.stops };
+        renderEquation();
     }
 
     function solveEquationUI() {
+        stopSolve(false);
         const block = els.eqResult;
         resetResult(block);
         last.equation = null;
@@ -479,17 +542,44 @@
             showFeedback(block, err.message, 'error');
             return;
         }
-        let out;
+        let run;
         try {
             if (!(min < max)) throw new Error(`"From" (${fmt(min)}) must be less than "To" (${fmt(max)}).`);
-            out = solveEquation(els.eq.value, min, max);
+            const prep = prepareEquation(els.eq.value);
+            const job = Numerics.findRootsJob(prep.fn, { min, max, samples: 2000, timeMs: SOLVE_MS });
+            run = { job, prep, text: els.eq.value.trim(), min, max };
         } catch (err) {
             if (!/From|To|range/.test(err.message)) els.eq.setAttribute('aria-invalid', 'true');
             showFeedback(block, err.message, 'error');
             return;
         }
-        last.equation = { text: els.eq.value.trim(), min, max, roots: out.roots, detail: out.detail };
-        renderEquation();
+        // Most equations finish at once; a slow one works in slices with progress and Cancel.
+        if (run.job.step(FIRST_SLICE_MS)) {
+            finishSolve(run);
+            return;
+        }
+        solveRun = run;
+        const slice = () => {
+            if (solveRun !== run) return;
+            let done;
+            try {
+                done = run.job.step(SLICE_MS);
+            } catch (err) {
+                stopSolve(false);
+                showFeedback(block, err && err.message ? err.message : 'That equation could not be solved.', 'error');
+                return;
+            }
+            if (done) {
+                solveRun = null;
+                els.eqBusy.hide();
+                finishSolve(run);
+                return;
+            }
+            els.eqBusy.show(run.job.progress(), `Solving… ${Math.round(run.job.progress() * 100)}%`);
+            setTimeout(slice, 0);
+        };
+        els.eqBusy.show(run.job.progress(), `Solving… ${Math.round(run.job.progress() * 100)}%`);
+        setTimeout(slice, 0);
     }
 
     function renderEquation() {
@@ -500,13 +590,20 @@
         const d = res.detail;
         const range = `${pretty(fmt(res.min))} and ${pretty(fmt(res.max))}`;
         const notes = [];
+        const stops = res.stops || 0;
         if (d.timedOut) notes.push(`The search stopped after 2 seconds, part way through the range. Narrow the range or simplify the equation to search all of it.`);
-        if (d.undefinedSamples && d.undefinedSamples < d.evaluated) notes.push('Parts of the range were skipped because the equation has no real value there (or takes too many steps to work out).');
+        if (d.undefinedSamples && d.undefinedSamples < d.evaluated) {
+            notes.push(stops
+                ? 'Parts of the range were skipped because the equation takes too many steps to work out there.'
+                : 'Parts of the range were skipped because the equation has no real value there.');
+        }
         d.intervals.forEach((iv) => {
             answerRow(block, 'every x', `${pretty(fmt(iv.from))} to ${pretty(fmt(iv.to))}`, `${plain(iv.from)} to ${plain(iv.to)}`, 'the stretch where both sides are equal', '(both sides are equal throughout)');
         });
         if (!res.roots.length && !d.intervals.length) {
-            if (d.evaluated && d.undefinedSamples >= d.evaluated) {
+            if (d.evaluated && d.undefinedSamples >= d.evaluated && stops) {
+                showFeedback(block, `This equation takes too many steps to work out between ${range} — simplify it (a function that calls itself twice per step grows very fast) or narrow the range.`, 'warn');
+            } else if (d.evaluated && d.undefinedSamples >= d.evaluated) {
                 showFeedback(block, `The equation has no real value anywhere between ${range}. Check its domain — for example, sqrt and ln need inputs above 0.`, 'warn');
             } else {
                 showFeedback(block, `No solutions between ${range}. Try a wider range, or graph both sides to see whether they meet.${notes.length ? ` ${notes.join(' ')}` : ''}`, 'info');
@@ -549,6 +646,7 @@
 
     async function clearEquation() {
         if ((els.eq.value || els.min.value || els.max.value) && !(await confirmClear('equation'))) return;
+        stopSolve(false);
         els.eq.value = '';
         els.min.value = DEFAULTS.min;
         els.max.value = DEFAULTS.max;
@@ -1039,6 +1137,7 @@
         els.cells = [];
         setUnknowns(p.unknowns, false);
         setMode(p.mode, false);
+        stopSolve(false);
         last.equation = null;
         last.poly = null;
         last.linear = null;
@@ -1068,6 +1167,8 @@
             if (window.State) {
                 State.on('settings', rerender);
                 State.on('reset', load);
+                // A backup import can fill in preferences this pane never had.
+                State.on('panes', (e) => { if (e && e.action === 'import') load(); });
             }
         },
 

@@ -35,8 +35,11 @@
  *       example result in the current settings; click inserts "sqrt(" (units
  *       and keywords get sensible spacing) and + adds the example as a line
  *     - History: newest first with the calculation, result, sheet, and age;
- *       click inserts the result, a copy button, a filter, and Clear all
- *       (confirmed); the note shows the size limit from Settings
+ *       a copy button, a filter, and Clear all (confirmed); the note shows
+ *       the size limit from Settings
+ *     - History insert: click types the result at the caret; a result too
+ *       long for one worksheet line (1000! has 2,568 digits) types its
+ *       calculation instead and puts the full value on the clipboard
  *     - Focus survives every redraw; relative times refresh every 30 s
  *     - All visitor text reaches the page through textContent only
  *
@@ -533,7 +536,11 @@
         const opts = options || (window.State ? State.engineOptions() : {});
         let result = null;
         try {
-            result = window.MathEngine ? MathEngine.evaluateSheet(sheet.text, opts) : null;
+            // The open sheet is already worked out (and may be heavy): reuse that result.
+            const live = window.State && !options ? State.result() : null;
+            const active = window.State ? State.activeSheet() : null;
+            if (live && active && active.id === sheet.id && active.text === sheet.text && !live.pending) result = live;
+            else result = window.MathEngine ? MathEngine.evaluateSheet(sheet.text, opts) : null;
         } catch (_err) {
             result = null;
         }
@@ -1172,6 +1179,28 @@
         return String(h.plain || h.display || '').replace(/^≈\s*/, '');
     }
 
+    // A worksheet line holds 2,000 characters; leave room for what is already on it.
+    const LINE_ROOM = 1900;
+
+    /**
+     * Insert a History result at the caret. A result too long for one
+     * line (1000! has 2,568 digits) is not typed: its calculation goes in
+     * instead (when that fits) and the full value goes to the clipboard.
+     */
+    async function insertHistory(h) {
+        const value = insertableResult(h);
+        if (value.length <= LINE_ROOM) return insert(value);
+        const expr = String(h.expr || '').trim();
+        const fits = expr && expr.length <= LINE_ROOM;
+        if (fits) insert(/^[\p{L}\p{N}_.]+!?$/u.test(expr) ? expr : `(${expr})`);
+        const copied = await DOM.copyText(value);
+        const size = `${value.length.toLocaleString('en-US')} characters`;
+        const typed = fits ? `its calculation, ${shorten(expr, 40)}, was typed instead` : 'nothing was typed';
+        notify(`That result is ${size} long — more than one line holds — so ${typed}. ${copied ? 'The full value is on the clipboard.' : 'Use the copy button to copy the full value.'}`,
+            copied ? 'info' : 'warning', 6500);
+        return fits;
+    }
+
     function historyRow(h) {
         const row = DOM.create('article', { className: 'list-row lib-hist', data: { id: h.id } });
         const main = DOM.create('button', {
@@ -1297,7 +1326,7 @@
             if (!h) return;
             const value = insertableResult(h);
             if (b.dataset.act === 'copy') ToolApp.copy(value, shorten(value, 32), b);
-            else if (b.dataset.act === 'insert') insert(value);
+            else if (b.dataset.act === 'insert') insertHistory(h);
         });
         renderHistory();
     }

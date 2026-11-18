@@ -63,7 +63,7 @@
     <title>mathMan – Numbers, tamed</title>
 
     <!-- Favicon: the mathMan calculator mark -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C9A84C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='2' width='16' height='20' rx='2.5'/%3E%3Cline x1='8' y1='6.5' x2='16' y2='6.5'/%3E%3Cpath d='M7.5 15c1.13-3 3.38-3 4.5 0s3.38 3 4.5 0'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C9A84C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 7h6M8 4v6M14 6h5M14 16l5 5M19 16l-5 5M5 17h6'/%3E%3C/svg%3E">
 
     <!-- Ecosystem kernel FIRST: applies saved theme before first paint -->
     <script src="../../shared/js/toolman.js"></script>
@@ -91,7 +91,7 @@
     <div id="loader-screen" class="loader-screen" role="status" aria-live="polite">
         <div class="loader-card">
             <div class="loader-logo" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2.5"></rect><line x1="8" y1="6.5" x2="16" y2="6.5"></line><path d="M7.5 15c1.13-3 3.38-3 4.5 0s3.38 3 4.5 0"></path></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h6M8 4v6M14 6h5M14 16l5 5M19 16l-5 5M5 17h6"></path></svg>
             </div>
             <h1 class="loader-title">math<span class="logo-accent">Man</span></h1>
             <p class="loader-tagline">Numbers, tamed</p>
@@ -111,7 +111,7 @@
                     <span class="hub-link-arrow" aria-hidden="true">←</span>
                     <span class="hub-link-label">Hub</span>
                 </a>
-                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2.5"></rect><line x1="8" y1="6.5" x2="16" y2="6.5"></line><path d="M7.5 15c1.13-3 3.38-3 4.5 0s3.38 3 4.5 0"></path></svg>
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h6M8 4v6M14 6h5M14 16l5 5M19 16l-5 5M5 17h6"></path></svg>
                 <span class="logo-text" title="mathMan · Numbers, tamed">math<span class="logo-accent">Man</span></span>
             </div>
 
@@ -423,7 +423,7 @@
                     </div>
                     <input type="hidden" data-setting="precision" data-type="number" value="10">
                     <p class="help-text mm-preview" id="precision-preview" data-display="precisionPreview" aria-live="polite">π shows as 3.141592654</p>
-                    <p class="help-text">Results are rounded to this many significant digits, with trailing zeros dropped. Exact fractions are never rounded.</p>
+                    <p class="help-text">Results are rounded to this many significant digits, with trailing zeros dropped. Rounding only ever trims decimals: whole numbers up to 15 digits are always shown in full, so 123456.789 at 4 digits shows as 123,457. Exact fractions are never rounded.</p>
                 </div>
 
                 <div class="form-group">
@@ -572,6 +572,7 @@
                         </table>
                     </div>
                     <p>Operators of equal rank work left to right, so <code>1/2x</code> is (1/2) × x and <code>8 / 2 / 2</code> is 2. Use parentheses whenever you want a different order.</p>
+                    <p>After <code>/</code>, a number and the unit right after it are one quantity: <code>5 km / 2 h</code> is 2.5 km/h and <code>60 / 1 min</code> is 60 per minute. The one exception is a plain fraction typed without spaces in front of a unit, like <code>1/2 cup</code> or <code>pi/2 rad</code>: that is that fraction of the unit. <code>%</code> means percent, never remainder; for a remainder use <code>10 mod 3</code>.</p>
                 </section>
 
                 <section class="help-section">
@@ -593,7 +594,8 @@
                 <section class="help-section">
                     <h4>Units and conversion</h4>
                     <p>Write a unit after a number: <code>5 km</code>, <code>3 feet</code>, <code>2.5 kWh</code>. Units mix when they measure the same thing (<code>5 km + 300 m</code> is 5.3 km), build up from expressions (<code>3 ft * 2 ft</code> is an area, <code>100 kg * 9.8 m/s^2 to N</code> is a force), and convert with <code>to</code>, <code>as</code>, or <code>in</code>. On its own, <code>in</code> means inches; after a complete quantity and before a unit, as in <code>100 km in miles</code>, it converts.</p>
-                    <p>Covered: length, area, volume, mass, time, speed, acceleration, force, pressure, energy, power, temperature, data, angle, frequency, and electric units, with SI prefixes, long names, and plurals. Temperatures convert and add to the same unit, but °C × °C is refused. The Reference pane lists every unit.</p>
+                    <p>Long names work with or without a hyphen (<code>2 kilowatt-hours</code>, <code>2 kilowatt hours</code>), and <code>per</code>, <code>squared</code>, and <code>cubed</code> join units: <code>9.8 meters per second squared</code> is 9.8 m/s². Products and quotients become a named unit when one fits exactly: <code>60 W * 2 h</code> is 120 Wh and <code>10 V / 2 ohm</code> is 5 A.</p>
+                    <p>Covered: length, area, volume, mass, time, speed, acceleration, force, pressure, energy, power, temperature, data, angle, frequency, and electric units, with SI prefixes, long names, and plurals. Temperatures convert and add to the same unit, but °C × °C is refused, and nothing can be colder than absolute zero (−273.15 °C). The Reference pane lists every unit.</p>
                 </section>
 
                 <section class="help-section">
@@ -626,7 +628,8 @@
 
                 <section class="help-section">
                     <h4>Numbers, bases, and conversion targets</h4>
-                    <p>Write <code>42</code>, <code>3.14</code>, <code>.5</code>, <code>1e-3</code>, <code>1_000_000</code>, or other bases: <code>0xFF</code> (hex), <code>0b1010</code> (binary), <code>0o17</code> (octal). End a line with <code>to hex</code>, <code>to bin</code>, <code>to oct</code>, <code>to dec</code>, <code>to sci</code>, <code>to fraction</code>, <code>to %</code>, or <code>to</code> a unit to change how its answer is shown.</p>
+                    <p>Write <code>42</code>, <code>3.14</code>, <code>.5</code>, <code>1e-3</code>, <code>1_000_000</code>, or other bases: <code>0xFF</code> (hex), <code>0b1010</code> (binary), <code>0o17</code> (octal). End a line with <code>to hex</code>, <code>to bin</code>, <code>to oct</code>, <code>to dec</code>, <code>to sci</code>, <code>to fraction</code>, <code>to %</code>, or <code>to</code> a unit to change how its answer is shown (<code>in hex</code> works too).</p>
+                    <p>Commas group thousands only outside brackets: <code>1,000 * 2</code> is 2,000. Inside brackets a comma separates values, so write <code>max(1000, 2)</code> or <code>max(1_000, 2)</code>; mathMan points out a <code>1,000</code> it finds there.</p>
                     <p>Adding, subtracting, multiplying, dividing, and whole-number powers stay exact, so <code>1/3 + 1/6</code> is exactly 1/2 and <code>0.1 + 0.2</code> is exactly 0.3. Square roots, logarithms, and trigonometry use ordinary floating point.</p>
                 </section>
 

@@ -26,29 +26,40 @@
  *       is ever turned into code
  *     - Exact BigInt rationals for + - * / and integer powers (1/3 + 1/6 is
  *       exactly 1/2, 0.1 + 0.2 shows 0.3), exact roots and exact logs when
- *       the answer is rational, floats for everything transcendental
+ *       the answer is rational, floats for everything transcendental (logs
+ *       near 1 through log1p, trig snapped only at exact angles)
  *     - Numbers: 42, 3.14, .5, 1e-3, 1_000_000, 1,000 (outside brackets),
  *       0xFF, 0b1010, 0o17; booleans from comparisons
  *     - Operators low to high: to / as / in conversion, comparison, + -,
  *       * / mod of and implicit multiplication, unary minus, ^ (right
- *       associative), postfix ! and %
+ *       associative), postfix ! and %; after /, a number and its unit are
+ *       one quantity (5 km / 2 h), except a fraction typed without spaces
+ *       in front of a unit (1/2 cup)
  *     - Percent arithmetic: 15%, 150 + 10%, 150 - 10%, 20% of 150, 0.25 to %
  *     - Dimensioned units: dimension vectors, exact scale factors, SI and
- *       binary prefixes, long names, plurals, aliases, two- to four-word
- *       names (fl oz, miles per hour), compound units (km/h, kg*m/s^2),
- *       affine temperatures, and plain-language mismatch errors
+ *       binary prefixes, long names (hyphenated or not), plurals, aliases,
+ *       multi-word names, "per" / "squared" / "cubed", compound units that
+ *       simplify to a named unit when one fits (W*h → Wh, V/Ω → A), affine
+ *       temperatures that never go below absolute zero, and plain-language
+ *       mismatch errors
  *     - Variables, user functions with recursion (lazy if()), labels,
  *       // comments, # headings, ans, line3, total / sum, average / avg
  *     - Conversion targets: hex, bin, oct, dec, sci, eng, fraction, % and
  *       any unit expression
- *     - Formatting by significant digits with auto / fixed / scientific /
- *       engineering notation, thousands separators and exact fractions
+ *     - Formatting by significant digits (decimals only; whole numbers up
+ *       to 15 digits stay whole) with auto / fixed / scientific /
+ *       engineering notation, thousands separators, exact fractions, and
+ *       percentages always in plain form
+ *     - A per-line memo (createMemo) keyed by each line's text and every
+ *       value it read, and startSheet(): a sheet worked out in time slices
+ *       with unreached lines marked 'pending', so a heavy sheet never
+ *       freezes the page and an edit re-works only the lines it affects
  *     - compile(): a float-only closure for graphs and the solver that can
- *       call the sheet's own functions and variables
- *     - Reference metadata for every function, constant, unit and keyword
+ *       call the sheet's own functions and variables, reuses a finished
+ *       sheet run, refuses equations, and counts step-budget stops
  *     - Safety budgets: 2,000 lines, 2,000 characters per line, exact
  *       integers up to 20,000 bits, nesting depth 100, recursion depth 64,
- *       a per-line step and time budget and a per-sheet time budget
+ *       a per-line step and time budget, and per-call / per-job time caps
  *
  * ✒ Usage Instructions:
  *     Browser: load after the shared scripts and before js/state.js:
@@ -62,20 +73,25 @@
  *     input: errors come back inside the LineResult. In evaluateSheet()
  *     output, LineResult.index is 0-based while variables[].line and
  *     functions[].line are 1-based (the number shown in the gutter); both
- *     also carry a 0-based index.
+ *     also carry a 0-based index. LineResult.percent is true for a line
+ *     shown as a percentage (0.35 to % has numeric 35 for the value 0.35).
+ *     For a sheet that is edited live, keep one createMemo() per sheet and
+ *     drive startSheet(text, O, { memo }).step(ms) from short tasks.
  *
  * ✒ Examples:
  *     MathEngine.evaluate('1/3 + 1/6')            → display '0.5', exact '1/2'
  *     MathEngine.evaluate('5 km + 300 m')         → display '5.3 km', plain '5.3 km'
  *     MathEngine.evaluate('60 mph to km/h')       → display '96.56064 km/h'
  *     MathEngine.evaluate('98.6 °F to °C')        → numeric 37, unit '°C'
+ *     MathEngine.evaluate('60 W * 2 h')           → display '120 Wh'
  *     MathEngine.evaluate('255 to hex')           → display '0xFF'
  *     MathEngine.evaluate('sin(30 deg)')          → display '0.5' in either angle mode
  *     MathEngine.evaluate('foo + 1').error        → { message: "Unknown name 'foo' — …", start: 0, end: 3 }
  *     MathEngine.evaluateSheet('Rent: 1200\nFood: 300\ntotal').lines[2].display → '1,500'
+ *     MathEngine.startSheet(text, O, { memo }).step(30) → true once every line is worked out
  *     MathEngine.compile('x^2 - 2').fn(2)          → 2
  *     MathEngine.units.convert(1, 'GiB', 'MB')     → 1073.741824
- *     MathEngine.formatNumber(1234567.891, { precision: 6 }) → '1,234,570'
+ *     MathEngine.formatNumber(1234567.891, { precision: 6 }) → '1,234,568'
  *
  * ✒ Other Important Information:
  *     - Dependencies: none (no DOM access; safe in Node and in the browser)
@@ -86,7 +102,8 @@
  *       IEEE doubles; temperatures in °C / °F convert, add in the same unit
  *       and scale by plain numbers, but cannot be multiplied by other units;
  *       month and year are average Gregorian lengths; currencies are not
- *       units (the Finance pane handles money)
+ *       units (the Finance pane handles money); a single line can still take
+ *       up to its 250 ms budget before a job can yield
  * ----------------------------------------------------------------------------
  */
 
@@ -111,7 +128,8 @@
         nesting: 100,       // nested brackets and operators while parsing
         ops: 200000,        // evaluation steps per line
         lineMs: 250,        // time budget per line
-        sheetMs: 4000,      // time budget per sheet
+        sheetMs: 4000,      // time budget for one synchronous evaluateSheet() call
+        jobMs: 30000,       // compute budget for a time-sliced startSheet() job
         nameLength: 64,     // characters in a variable or function name
         args: 500,          // values passed to one function call
         params: 16,         // inputs of one user function
@@ -127,6 +145,7 @@
     const NO_REAL = 'No real result — the answer is not a real number';
     const BUDGET = 'This line takes too many steps to work out — try smaller numbers or fewer repeats';
     const AFFINE = 'Temperatures in °C or °F can only be converted, added in the same unit, or scaled by a plain number — convert to K first';
+    const BELOW_ZERO = "That's below absolute zero (−273.15 °C, −459.67 °F, or 0 K) — no temperature can be colder";
 
     /** An error with a plain-language message and a character span in the line. */
     class EngineError extends Error {
@@ -345,7 +364,13 @@
         const shift = bitLen(x) - 64;
         return Math.log(Number(x >> BigInt(shift))) + shift * Math.LN2;
     }
-    function nLn(a) { return isR(a) ? lnBig(a.n) - lnBig(a.d) : Math.log(a); }
+    /** ln(a); an exact value near 1 goes through log1p of the exact a − 1, so ln(1 + 1e-15) keeps its digits. */
+    function nLn(a) {
+        if (!isR(a)) return Math.log(a);
+        const diff = a.n - a.d;
+        if (diff !== 0n && (diff < 0n ? -diff : diff) * 2n < a.d) return Math.log1p(ratToFloat(diff, a.d));
+        return lnBig(a.n) - lnBig(a.d);
+    }
 
     /* ================================================================== */
     /* Units: dimension vectors, exact scales, prefixes, names             */
@@ -477,7 +502,9 @@
     const unitBySym = (s) => UNIT_SYM.get(s);
     const DEG_UNIT = unitBySym('deg');
     const RAD_UNIT = unitBySym('rad');
-    const NAMED_DERIVED = ['N', 'J', 'W', 'Pa', 'V', 'Ω'].map(unitBySym);
+    const NAMED_DERIVED = ['N', 'J', 'W', 'Pa', 'V', 'Ω', 'A'].map(unitBySym);
+    // Plain units a compound result may simplify to (no °C / °F, no mph-style composites).
+    const SIMPLE_UNITS = UNITS.filter((u) => !u.affine && !u.expandSpec && !dimZero(u.dim));
 
     // [symbol, long name, power of ten (or of two for binary), kind]
     const PREFIXES = [
@@ -494,6 +521,8 @@
     }));
     const LONG_PREFIXES = PREFIXES.filter((p) => p.sym !== 'u' && p.sym !== 'K')
         .concat([{ sym: 'da', long: 'deka', exp: 1, kind: 'si', factor: pow10(1) }]);
+    // Everyday prefixes a simplified result may use (kW, MWh, mAh, µs…).
+    const SIMPLIFY_PREFIXES = PREFIXES.filter((p) => ['k', 'M', 'G', 'T', 'm', 'µ', 'n'].includes(p.sym));
 
     function prefixAllowed(base, p) {
         if (base.prefix === 'si') return p.kind === 'si';
@@ -644,15 +673,21 @@
             const radix = { x: 16, b: 2, o: 8 }[c1.toLowerCase()];
             const ok = radix === 16 ? /[0-9a-fA-F]/ : radix === 2 ? /[01]/ : /[0-7]/;
             const label = { 16: 'hex', 2: 'binary', 8: 'octal' }[radix];
+            const allowed = { 16: 'hex digits are 0–9 and A–F', 2: 'binary digits are 0 and 1', 8: 'octal digits are 0 to 7' }[radix];
             let j = i + 2;
             let digits = '';
             while (j < to && (ok.test(src[j]) || (src[j] === '_' && digits && ok.test(src[j + 1] || '')))) {
                 if (src[j] !== '_') digits += src[j];
                 j++;
             }
+            // 0o8, 0b2, 0xG: the prefix is there but the next character can't be a digit of that base.
+            const bad = j < to && (radix === 16 ? /[0-9A-Za-z]/ : /[0-9]/).test(src[j]);
+            if (!digits && bad) {
+                throw new EngineError(`'${src.slice(s, j + 1)}' isn't a valid ${label} number — ${allowed}`, s, j + 1);
+            }
             if (digits) {
                 if (j < to && /[0-9A-Za-z]/.test(src[j])) {
-                    throw new EngineError(`'${src.slice(s, j + 1)}' isn't a valid ${label} number`, s, j + 1);
+                    throw new EngineError(`'${src.slice(s, j + 1)}' isn't a valid ${label} number — ${allowed}`, s, j + 1);
                 }
                 if (digits.length > 7000) throw new EngineError(TOO_LARGE, s, j);
                 const n = BigInt(`0${c1.toLowerCase()}${digits}`);
@@ -707,6 +742,22 @@
         return { type: 'num', value, radix: 10, text, s, e: j };
     }
 
+    /** The longest hyphenated unit name starting with word at i (watt-hour, pounds-force), or null. */
+    function hyphenUnitAt(src, i, word, to) {
+        let best = null;
+        let text = word;
+        for (let n = 0; n < 2; n++) {
+            const k = i + text.length;
+            if (src[k] !== '-' || k + 1 >= to) break;
+            ID_RE.lastIndex = k + 1;
+            const m = ID_RE.exec(src);
+            if (!m || m.index !== k + 1) break;
+            text = `${text}-${m[0].slice(0, to - k - 1)}`;
+            if (findUnit(normId(text))) best = text;
+        }
+        return best;
+    }
+
     /** Tokens of src[from, to) with positions relative to the whole line. */
     function tokenize(src, from, to) {
         const toks = [];
@@ -724,7 +775,9 @@
             ID_RE.lastIndex = i;
             const m = ID_RE.exec(src);
             if (m && m.index === i) {
-                const text = m[0].slice(0, to - i);
+                const word = m[0].slice(0, to - i);
+                // A hyphenated unit name (pound-force, kilowatt-hour) is one word, not a subtraction.
+                const text = hyphenUnitAt(src, i, word, to) || word;
                 toks.push({ type: 'id', value: normId(text), text, s: i, e: i + text.length });
                 i += text.length;
                 continue;
@@ -788,21 +841,77 @@
         return t;
     }
 
-    function leftoverError(t) {
+    /** 1,000 written where a comma separates values: a digit run, a comma, then 0dd with no spaces. */
+    function looksLikeThousands(P, comma) {
+        const k = P.toks.indexOf(comma);
+        const a = P.toks[k - 1];
+        const b = P.toks[k + 1];
+        return Boolean(a && b && a.type === 'num' && b.type === 'num' && a.radix === 10 && b.radix === 10
+            && a.e === comma.s && comma.e === b.s && /^\d{1,3}$/.test(a.text) && /^0\d\d$/.test(b.text));
+    }
+    const THOUSANDS_HINT = 'Inside brackets a comma separates values, so 1,000 is read as 1 and 000 — write 1000 or 1_000';
+
+    /** Why token t can't come next; P (when given) adds hints from the tokens around it. */
+    function leftoverError(t, P) {
+        const prev = P ? P.toks[P.toks.indexOf(t) - 1] : null;
         if (t.type === 'op') {
             if (t.value === '=') return new EngineError('To compare, use ==. To store a value, put a name on the left, like x = 5', t.s, t.e);
             if (t.value === ')') return new EngineError("Unexpected ')' — there's no '(' for it to close", t.s, t.e);
-            if (t.value === ',') return new EngineError('Unexpected comma — commas separate values inside brackets, like max(1, 2)', t.s, t.e);
+            if (t.value === ',') {
+                if (P && looksLikeThousands(P, t)) return new EngineError(THOUSANDS_HINT, prev.s, P.toks[P.toks.indexOf(t) + 1].e);
+                if (P && P.inGroup) return new EngineError('Commas separate the values of a function call, like max(1, 2) — these brackets only group, so use one value or name the function', t.s, t.e);
+                return new EngineError('Unexpected comma — commas separate values inside a function call, like max(1, 2)', t.s, t.e);
+            }
             if (t.value === '(') return new EngineError("Missing operator before '(' — write 2*(3+4), or turn on implicit multiplication in Settings", t.s, t.e);
             return new EngineError(`Unexpected '${t.text}'`, t.s, t.e);
+        }
+        if (isOp(prev, '%') && (t.type === 'num' || t.type === 'id')) {
+            return new EngineError(`Missing operator before '${t.text}' — % means percent here; for a remainder use mod, like 5 mod 3`, t.s, t.e);
         }
         if (t.type === 'num') return new EngineError(`Missing operator before '${t.text}'`, t.s, t.e);
         if (t.type === 'id') return new EngineError(`Missing operator before '${t.text}' — write 2*${t.text}, or turn on implicit multiplication in Settings`, t.s, t.e);
         return new EngineError('Unexpected text', t.s, t.e);
     }
 
-    /** A unit (possibly two to four words, or sq/cu + length) starting at token idx. */
+    /**
+     * A unit starting at token idx: one word, two to four words (fl oz,
+     * kilowatt hours, miles per hour), or sq/cu + a length; then any number
+     * of "per <unit>" parts, so meters per second is m/s and meters per
+     * second per second is m/s^2.
+     */
     function unitAt(P, idx) {
+        const first = withPowerWord(P, unitWordsAt(P, idx));
+        if (!first) return null;
+        let r = first;
+        for (;;) {
+            const per = P.toks[r.next];
+            if (!per || per.type !== 'id' || per.value.toLowerCase() !== 'per' || P.scope.isVar(per.value)) break;
+            let den = withPowerWord(P, unitWordsAt(P, r.next + 1));
+            if (!den) break;
+            // per m^3 / per s²: the power belongs to the unit after per.
+            const caret = P.toks[den.next];
+            const pw = P.toks[den.next + 1];
+            if (isOp(caret, '^') && pw && pw.type === 'num' && isR(pw.value) && pw.value.d === 1n && pw.value.n >= 1n && pw.value.n <= 12n) {
+                const k = Number(pw.value.n);
+                den = { ue: den.ue.map((f) => ({ def: f.def, p: f.p * k })), next: den.next + 2, e: pw.e };
+            }
+            r = { ue: ueMul(r.ue, den.ue, -1), next: den.next, e: den.e };
+        }
+        return r;
+    }
+
+    const POWER_WORDS = Object.assign(dict(), { squared: 2, cubed: 3 });
+
+    /** "meters squared", "second squared", "foot cubed": the word raises the unit before it. */
+    function withPowerWord(P, r) {
+        if (!r) return r;
+        const w = P.toks[r.next];
+        const k = w && w.type === 'id' && !P.scope.isVar(w.value) ? POWER_WORDS[w.value.toLowerCase()] : 0;
+        if (!k) return r;
+        return { ue: r.ue.map((f) => ({ def: f.def, p: f.p * k })), next: r.next + 1, e: w.e };
+    }
+
+    function unitWordsAt(P, idx) {
         const t = P.toks[idx];
         if (!t || t.type !== 'id') return null;
         const w = t.value;
@@ -815,8 +924,7 @@
                 words.push(tj.value);
             }
             if (words.length !== k) continue;
-            const joined = words.join(' ');
-            const u = UNIT_SYM.get(joined) || UNIT_NAME.get(joined.toLowerCase());
+            const u = findUnit(words.join(' '));
             if (u) return { ue: [{ def: u, p: 1 }], next: idx + k, e: P.toks[idx + k - 1].e };
         }
         const lw = w.toLowerCase();
@@ -839,12 +947,16 @@
 
     const isBareNumber = (n) => n.t === 'num' || (n.t === 'neg' && n.a.t === 'num');
 
-    /** 'in' converts only after a quantity and before a unit or format word. */
+    /**
+     * 'in' converts before a format word (255 in hex) and, after a quantity,
+     * before a unit (100 km in mi); after a bare number it means inches.
+     */
     function isConversionIn(P, left) {
-        if (isBareNumber(left)) return false;
         const nx = peek(P, 1);
         if (!nx || nx.type !== 'id') return false;
-        return !!FORMAT_WORDS[nx.value.toLowerCase()] || !!unitAt(P, P.i + 1);
+        if (FORMAT_WORDS[nx.value.toLowerCase()]) return true;
+        if (isBareNumber(left)) return false;
+        return !!unitAt(P, P.i + 1);
     }
 
     function leftBp(P, t, left) {
@@ -897,7 +1009,9 @@
                     let right = expr(P, 40);
                     if (right.t === 'num' && unitAt(P, P.i)) {
                         const unit = expr(P, 40);
-                        right = { t: 'numunit', num: right, unit, s: right.s, e: unit.e };
+                        // Typed without spaces (1/2 cup, pi/2 rad) the slash may be a fraction in front of the unit.
+                        const loose = left.e === t.s && t.e === right.s;
+                        right = { t: 'numunit', num: right, unit, loose, s: right.s, e: unit.e };
                     }
                     return bin('/', left, right);
                 }
@@ -933,12 +1047,25 @@
                     const x = peek(P);
                     throw new EngineError(`A function can take at most ${LIMITS.args} values`, x.s, x.e);
                 }
+                const lead = peek(P);
+                if (isOp(lead, ',') || (args.length && isOp(lead, ')'))) {
+                    const comma = P.toks[P.i - 1];
+                    if (isOp(lead, ',')) throw new EngineError("Missing a value before ',' — put a value between the commas", lead.s, lead.e);
+                    throw new EngineError("Missing a value after ',' — put a value there or remove the comma", comma.s, comma.e);
+                }
                 args.push(expr(P, 0));
                 const sep = peek(P);
-                if (isOp(sep, ',')) { next(P); continue; }
+                if (isOp(sep, ',')) {
+                    if (looksLikeThousands(P, sep)) {
+                        const after = P.toks[P.i + 1];
+                        throw new EngineError(THOUSANDS_HINT, P.toks[P.i - 1].s, after.e);
+                    }
+                    next(P);
+                    continue;
+                }
                 if (isOp(sep, ')')) { next(P); break; }
                 if (sep.type === 'end') throw new EngineError("Missing ')'", open.s, sep.s);
-                throw leftoverError(sep);
+                throw leftoverError(sep, P);
             }
         }
         const close = P.toks[P.i - 1];
@@ -960,7 +1087,10 @@
                     const inner = expr(P, 0);
                     const close = peek(P);
                     if (close.type === 'end') throw new EngineError("Missing ')'", t.s, close.s);
-                    if (!isOp(close, ')')) throw leftoverError(close);
+                    if (!isOp(close, ')')) {
+                        P.inGroup = true;
+                        throw leftoverError(close, P);
+                    }
                     next(P);
                     return { t: 'group', a: inner, s: t.s, e: close.e };
                 }
@@ -973,7 +1103,7 @@
                     const a = expr(P, 60);
                     return { t: 'call', name: 'sqrt', user: false, args: [a], s: t.s, e: a.e };
                 }
-                default: throw leftoverError(t);
+                default: throw leftoverError(t, P);
             }
         }
         return nudId(P, t);
@@ -1119,7 +1249,7 @@
         }
         const node = expr(P, 0);
         const t = peek(P);
-        if (t.type !== 'end') throw leftoverError(t);
+        if (t.type !== 'end') throw leftoverError(t, P);
         return node;
     }
 
@@ -1164,16 +1294,37 @@
         return v;
     }
 
+    /**
+     * The single named unit that measures dimension d with exactly scale s,
+     * or null: the SI names first (N, J, W, Pa, V, Ω, A), then any plain
+     * unit (Wh, Ah, psi, h), then an everyday prefix of one (kW, kWh, mAh,
+     * kPa, kg). Composite units such as mph or kph are never chosen, so
+     * km/h stays km/h.
+     */
+    function namedUnitFor(d, s) {
+        if (!isR(s)) return null;
+        const same = (u) => dimEq(u.dim, d) && isR(u.scale) && nCmp(u.scale, s) === 0;
+        const named = NAMED_DERIVED.find(same);
+        if (named) return named;
+        const plain = SIMPLE_UNITS.find(same);
+        if (plain) return plain;
+        for (const base of SIMPLE_UNITS) {
+            if (!base.prefix || !dimEq(base.dim, d) || !isR(base.scale)) continue;
+            const ratio = nDiv(s, base.scale);
+            if (!isR(ratio)) continue;
+            const p = SIMPLIFY_PREFIXES.find((q) => prefixAllowed(base, q) && nCmp(q.factor, ratio) === 0);
+            if (p) return derive(base, p);
+        }
+        return null;
+    }
+
     function simplify(v, ue) {
         if (!ue.length) return qty(v, null);
         const d = ueDim(ue);
         if (dimZero(d)) return qty(nMul(v, ueScale(ue)), null);
         if (ue.length >= 2 && !ueHasAffine(ue)) {
-            const s = ueScale(ue);
-            if (isR(s) && s.n === 1n && s.d === 1n) {
-                const named = NAMED_DERIVED.find((u) => dimEq(u.dim, d));
-                if (named) return qty(v, [{ def: named, p: 1 }]);
-            }
+            const named = namedUnitFor(d, ueScale(ue));
+            if (named) return qty(v, [{ def: named, p: 1 }]);
         }
         return qty(v, ue);
     }
@@ -1254,6 +1405,12 @@
         return qty(nSub(a.v, nMul(bv, whole)), a.u);
     }
 
+    /** True when v in the temperature unit def (K, °C, °F) is colder than 0 K. */
+    function belowAbsoluteZero(v, def) {
+        const si = nMul(nAdd(v, def.offset), def.scale);
+        return isR(si) ? si.n < 0n : si < -1e-9;
+    }
+
     /** Convert a quantity to a target unit expression (affine-aware). */
     function convertQ(a, tue, node, O) {
         let src = a.u;
@@ -1267,6 +1424,7 @@
         if (!dimEq(ueDim(src), ueDim(tue))) {
             fail(`Can't convert ${describe(a)} to ${ueStr(tue)} — ${dimNameOf(src)} and ${dimNameOf(tue)} don't match`, node);
         }
+        if (isTempSingle(src) && isTempSingle(tue) && belowAbsoluteZero(a.v, src[0].def)) fail(BELOW_ZERO, node);
         if (ueEq(src, tue)) return qty(a.v, tue);
         if (ueHasAffine(src) || ueHasAffine(tue)) {
             if (!isTempSingle(src) || !isTempSingle(tue)) fail(AFFINE, node);
@@ -1337,7 +1495,11 @@
     function lookupVar(node, ctx, env) {
         const name = node.name;
         if (env && hasOwn(env, name)) return env[name];
-        if (hasOwn(ctx.vars, name)) return ctx.vars[name].value;
+        const found = hasOwn(ctx.vars, name);
+        noteRead(ctx.sheet, 'V', name, found ? ctx.vars[name].value : null);
+        if (found) return ctx.vars[name].value;
+        if (RESERVED.has(name)) return fail(`'${name}' is a reserved word, not a value — it can't be used as a name`, node);
+        if (name.length > LIMITS.nameLength) return fail(`Unknown name '${name.slice(0, 20)}…' — names can be at most ${LIMITS.nameLength} characters long`, node);
         return fail(`Unknown name '${name}' — define it first, like ${name} = 5`, node);
     }
 
@@ -1355,10 +1517,14 @@
             return addQ(a, b, op === '+' ? 1 : -1, node);
         }
         if (op === '/' && node.b.t === 'numunit') {
+            // A number written right before a unit after '/' is one quantity:
+            // 5 km / 2 h is 2.5 km/h and 60 / 1 min is 60 per minute. The one
+            // exception is a plain fraction typed without spaces in front of a
+            // unit — 1/2 cup, pi/2 rad — which is that fraction of the unit.
             const a = reqN(ev(node.a, ctx, env), node.a);
             const n = reqN(ev(node.b.num, ctx, env), node.b);
             const u = reqN(ev(node.b.unit, ctx, env), node.b);
-            if (!a.u) return mulQ(divQ(a, n, node), u, node);
+            if (node.b.loose && !a.u) return mulQ(divQ(a, n, node), u, node);
             return divQ(a, mulQ(n, u, node), node);
         }
         const a = reqN(ev(node.a, ctx, env), node.a);
@@ -1421,22 +1587,23 @@
         return { k: 'n', v: a.v, u: a.u, fmt: tg.fmt };
     }
 
-    function evRef(node, ctx) {
-        const sheet = ctx.sheet;
-        const i = ctx.index;
-        if (node.kind === 'ans') {
+    /**
+     * What a line reference reads on line i right now: for ans a value or
+     * null; for lineN a value or 'range' / 'below' / 'none'; for total and
+     * average the block's values, nearest first. The memo re-reads this to
+     * check that a remembered line still sees the same thing.
+     */
+    function readRef(kind, n, sheet, i) {
+        if (kind === 'ans') {
             for (let j = i - 1; j >= 0; j--) if (sheet.values[j]) return sheet.values[j].v;
-            return fail("There's no earlier result for ans to use yet", node);
+            return null;
         }
-        if (node.kind === 'line') {
-            const n = node.n;
-            if (n < 1 || n > sheet.count) fail(`There's no line ${n} in this sheet`, node);
-            if (n - 1 >= i) fail(`line${n} isn't above this line — a line can only use results above it`, node);
+        if (kind === 'line') {
+            if (n < 1 || n > sheet.count) return 'range';
+            if (n - 1 >= i) return 'below';
             const val = sheet.values[n - 1];
-            if (!val) fail(`Line ${n} has no result to use`, node);
-            return val.v;
+            return val ? val.v : 'none';
         }
-        ctx.aggregate = true;
         const items = [];
         for (let j = i - 1; j >= 0; j--) {
             const k = sheet.kinds[j];
@@ -1444,6 +1611,28 @@
             const val = sheet.values[j];
             if (val && !val.aggregate && val.v.k === 'n') items.push(val.v);
         }
+        return items;
+    }
+
+    function evRef(node, ctx) {
+        const sheet = ctx.sheet;
+        const i = ctx.index;
+        const kind = node.kind === 'avg' ? 'total' : node.kind;
+        const got = readRef(kind, node.n, sheet, i);
+        noteRead(sheet, 'R', kind === 'line' ? `line${node.n}` : kind, got, { kind, n: node.n });
+        if (node.kind === 'ans') {
+            if (!got) return fail("There's no earlier result for ans to use yet", node);
+            return got;
+        }
+        if (node.kind === 'line') {
+            const n = node.n;
+            if (got === 'range') fail(`There's no line ${n} in this sheet`, node);
+            if (got === 'below') fail(`line${n} isn't above this line — a line can only use results above it`, node);
+            if (got === 'none') fail(`Line ${n} has no result to use`, node);
+            return got;
+        }
+        ctx.aggregate = true;
+        const items = got.slice();
         const word = node.word || node.kind;
         if (!items.length) {
             fail(`There are no values above to ${node.kind === 'total' ? 'add up' : 'average'} — ${word} uses the lines above it, up to a blank line or heading`, node);
@@ -1493,6 +1682,7 @@
     function callUser(node, ctx, env) {
         const name = node.name;
         const fn = hasOwn(ctx.funcs, name) ? ctx.funcs[name] : null;
+        noteRead(ctx.sheet, 'F', name, fn);
         if (!fn) return fail(`Unknown function '${name}' — define it first, like ${name}(x) = x * 2`, node);
         const want = fn.params.length;
         if (node.args.length !== want) {
@@ -1608,10 +1798,19 @@
         return r;
     };
 
-    /** Snap trig noise: sin(pi) → 0, sin(30 deg) → 0.5. */
-    function snapTrig(v) {
+    /**
+     * Snap trig noise at the angles with exact answers: sin(pi) → 0,
+     * sin(30 deg) → 0.5, tan(45 deg) → 1. Only an angle x (radians) that is a
+     * non-zero multiple of 15° is snapped, and only when the result is within
+     * float noise of a multiple of 0.5, so sin(1e-20) stays 1e-20.
+     */
+    function snapTrig(v, x) {
+        if (!Number.isFinite(v) || !Number.isFinite(x) || x === 0) return v;
+        const m = x / (PI / 12);
+        const k = Math.round(m);
+        if (k === 0 || Math.abs(m - k) > 1e-9 * Math.abs(k)) return v;
         const r = Math.round(v * 2) / 2;
-        return Math.abs(v - r) < 1e-14 ? r + 0 : v;
+        return Math.abs(v - r) <= Math.max(1e-14, 8 * Math.abs(x) * Number.EPSILON) ? r + 0 : v;
     }
     /** Snap a degree result to a whole number when it is within float noise. */
     function snapNice(v) {
@@ -1800,6 +1999,8 @@
             if (j - i > bestCount) { best = s[i]; bestCount = j - i; }
             i = j;
         }
+        // The same rule as the Statistics pane: a mode must repeat.
+        if (bestCount < 2) fail("No value repeats, so there's no mode — mode needs a value that appears more than once", n);
         return qty(best, u);
     });
     def('var', 2, Infinity, 'var(2, 4, 4, 4, 5, 5, 7, 9)', (a, c, n) => {
@@ -1851,18 +2052,18 @@
         const x = angleRad(a[0], name, c, n);
         return qty(realOr(f(x, n), n, `${name} is undefined there`), null);
     });
-    const cosS = (x) => snapTrig(Math.cos(x));
-    const sinS = (x) => snapTrig(Math.sin(x));
-    const divOrFail = (p, q, n, name) => {
+    const cosS = (x) => snapTrig(Math.cos(x), x);
+    const sinS = (x) => snapTrig(Math.sin(x), x);
+    const divOrFail = (p, q, x, n, name) => {
         if (q === 0) fail(`No real result — ${name} is undefined at that angle`, n);
-        return snapTrig(p / q);
+        return snapTrig(p / q, x);
     };
     trig('sin', sinS);
     trig('cos', cosS);
-    trig('tan', (x, n) => divOrFail(sinS(x), cosS(x), n, 'tan'));
-    trig('sec', (x, n) => divOrFail(1, cosS(x), n, 'sec'));
-    trig('csc', (x, n) => divOrFail(1, sinS(x), n, 'csc'));
-    trig('cot', (x, n) => divOrFail(cosS(x), sinS(x), n, 'cot'));
+    trig('tan', (x, n) => divOrFail(sinS(x), cosS(x), x, n, 'tan'));
+    trig('sec', (x, n) => divOrFail(1, cosS(x), x, n, 'sec'));
+    trig('csc', (x, n) => divOrFail(1, sinS(x), x, n, 'csc'));
+    trig('cot', (x, n) => divOrFail(cosS(x), sinS(x), x, n, 'cot'));
     const inv = (name, f, lo, hi) => def(name, 1, 1, `${name}(0.5)`, (a, c, n) => {
         const x = toF(plainArg(a[0], name, n));
         if (lo !== null && (x < lo || x > hi)) fail(`No real result — ${name} needs a number from ${lo} to ${hi}`, n);
@@ -1950,6 +2151,17 @@
         return { neg: x < 0, digits: (m[1] + (m[2] || '')).replace(/0+$/, '') || '0', exp: Number(m[3]) };
     }
 
+    /** Digits before the decimal point of |x| (1 for values below 1), without rounding. */
+    function intDigits(x) {
+        if (isR(x)) {
+            const a = x.n < 0n ? -x.n : x.n;
+            const q = a / x.d;
+            return q === 0n ? 1 : q.toString().length;
+        }
+        const a = Math.abs(x);
+        return a < 1 ? 1 : Math.floor(a).toFixed(0).length;
+    }
+
     function group(s, sep) {
         if (!sep || s.length <= 3) return s;
         return s.replace(/\B(?=(\d{3})+(?!\d))/g, sep);
@@ -1979,11 +2191,17 @@
             const s = (neg ? -x.n : x.n).toString();
             if (notation === 'fixed' || (notation === 'auto' && s.length <= 15)) return (neg ? '-' : '') + group(s, sep);
         }
-        const dg = digitsOf(x, P);
+        let dg = digitsOf(x, P);
         if (!dg) return '0';
         let mode = notation;
         if (mode === 'auto') mode = dg.exp >= 15 || dg.exp < -6 ? 'scientific' : 'fixed';
         if (mode === 'fixed' && Math.abs(dg.exp) > 100) mode = 'scientific';
+        // Significant digits round decimals, never the whole part: below 10^15
+        // 123456.789 at 4 digits is 123,457, not 123,500 with made-up zeros.
+        if (mode === 'fixed' && dg.exp >= P && dg.exp < 15) {
+            const whole = intDigits(x);
+            if (whole > P) dg = digitsOf(x, whole);
+        }
         let body;
         if (mode === 'fixed') {
             body = positional(dg.digits, dg.exp, sep);
@@ -2063,8 +2281,13 @@
             return { display: s, plain: s, exact: '', unit: '', numeric: numeric(x) };
         }
         if (V.fmt === 'pct') {
+            // Percentages stay in plain form (35%, not 3.5e1%) whatever the notation setting.
             const y = nMul(x, HUNDRED);
-            return { display: `${fmtN(y, P, O.notation, sep)}%`, plain: `${fmtN(y, P, O.notation, '')}%`, exact: '', unit: '', numeric: numeric(y) };
+            const pn = O.notation === 'fixed' ? 'fixed' : 'auto';
+            return {
+                display: `${fmtN(y, P, pn, sep)}%`, plain: `${fmtN(y, P, pn, '')}%`, exact: '', unit: '',
+                numeric: numeric(y), percent: true
+            };
         }
         if (V.fmt === 'frac') {
             const s = withUnit(fracString(x));
@@ -2116,7 +2339,7 @@
     const LABEL_RE = /^[\p{L}\p{N}][\p{L}\p{N} _'’&()\-.,/#+]*$/u;
 
     function blankResult(index, source) {
-        return { index, source, kind: 'blank', label: null, display: '', plain: '', exact: '', unit: '', numeric: null, error: null };
+        return { index, source, kind: 'blank', label: null, display: '', plain: '', exact: '', unit: '', numeric: null, percent: false, error: null };
     }
 
     function setError(res, message, start, end) {
@@ -2126,6 +2349,7 @@
         res.exact = '';
         res.unit = '';
         res.numeric = null;
+        res.percent = false;
         res.error = { message, start, end };
         return res;
     }
@@ -2153,7 +2377,182 @@
     }
 
     function newSheet(O, count) {
-        return { O, vars: dict(), funcs: dict(), values: [], kinds: [], count, t0: Date.now() };
+        return { O, vars: dict(), funcs: dict(), values: [], kinds: [], count, t0: Date.now(), track: null, effect: null };
+    }
+
+    /* Reads a line makes, recorded for the memo --------------------------- */
+
+    /**
+     * Record one thing the line being worked out read from the sheet: 'v' /
+     * 'f' whether a name is a variable / function (parsing), 'V' a
+     * variable's value, 'F' a function definition, 'R' a line reference.
+     * The first read of each name wins; the sheet cannot change mid-line.
+     */
+    function noteRead(sheet, k, name, val, ref) {
+        const t = sheet && sheet.track;
+        if (!t) return;
+        const key = `${k}\u0000${name}`;
+        if (!t.has(key)) t.set(key, { k, name, val, ref: ref || null });
+    }
+
+    function trackedIsVar(sheet, n) {
+        const r = hasOwn(sheet.vars, n);
+        noteRead(sheet, 'v', n, r);
+        return r;
+    }
+
+    function trackedIsFunc(sheet, n) {
+        const r = hasOwn(sheet.funcs, n);
+        noteRead(sheet, 'f', n, r);
+        return r;
+    }
+
+    /** Two values are the same: kind, exact number or float, unit factors, and format. */
+    function valEq(a, b) {
+        if (a === b) return true;
+        if (!a || !b || a.k !== b.k) return false;
+        if (a.k === 'b') return a.v === b.v;
+        if ((a.fmt || null) !== (b.fmt || null)) return false;
+        const x = a.v;
+        const y = b.v;
+        if (isR(x) !== isR(y)) return false;
+        if (isR(x) ? (x.n !== y.n || x.d !== y.d) : !Object.is(x, y)) return false;
+        const u = a.u;
+        const w = b.u;
+        if (!u || !w) return !u && !w;
+        if (u.length !== w.length) return false;
+        for (let k = 0; k < u.length; k++) if (u[k].def !== w[k].def || u[k].p !== w[k].p) return false;
+        return true;
+    }
+
+    function outcomeEq(a, b) {
+        if (a === b) return true;
+        if (Array.isArray(a) || Array.isArray(b)) {
+            if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+            for (let k = 0; k < a.length; k++) if (!valEq(a[k], b[k])) return false;
+            return true;
+        }
+        return Boolean(a && b && typeof a === 'object' && typeof b === 'object' && valEq(a, b));
+    }
+
+    /** True when every recorded read gives the same answer on line `index` of this sheet now. */
+    function depsHold(deps, sheet, index) {
+        for (const d of deps) {
+            switch (d.k) {
+                case 'v': if (hasOwn(sheet.vars, d.name) !== d.val) return false; break;
+                case 'f': if (hasOwn(sheet.funcs, d.name) !== d.val) return false; break;
+                case 'V': {
+                    const cur = hasOwn(sheet.vars, d.name) ? sheet.vars[d.name].value : null;
+                    if (cur === null || d.val === null ? cur !== d.val : !valEq(cur, d.val)) return false;
+                    break;
+                }
+                case 'F': if ((hasOwn(sheet.funcs, d.name) ? sheet.funcs[d.name] : null) !== d.val) return false; break;
+                default: if (!outcomeEq(readRef(d.ref.kind, d.ref.n, sheet, index), d.val)) return false;
+            }
+        }
+        return true;
+    }
+
+    /* The per-line memo ---------------------------------------------------- */
+
+    // A memo is an opaque handle; its entries live here. Entries are keyed
+    // by the line's text and kept with the reads the line made, so a line is
+    // reused only when its text and everything it read are unchanged.
+    const MEMOS = new WeakMap();
+    const MEMO_CAP = 6000;        // entries in the current generation before it rolls over
+    const MEMO_PER_TEXT = 24;     // remembered variants of one line text
+
+    function createMemo() {
+        const handle = Object.freeze({ kind: 'MathEngine memo' });
+        MEMOS.set(handle, { key: '', cur: new Map(), prev: new Map(), size: 0 });
+        return handle;
+    }
+
+    /** The memo's store for these options (a change of options empties it). */
+    function memoFor(handle, O) {
+        const m = handle && typeof handle === 'object' ? MEMOS.get(handle) : null;
+        if (!m) return null;
+        const key = `${O.angle}|${O.precision}|${O.notation}|${O.thousands}|${O.fractions}|${O.implicitMult}`;
+        if (m.key !== key) {
+            m.key = key;
+            m.cur = new Map();
+            m.prev = new Map();
+            m.size = 0;
+        }
+        return m;
+    }
+
+    function memoPut(m, source, entry) {
+        if (m.size >= MEMO_CAP) {
+            m.prev = m.cur;
+            m.cur = new Map();
+            m.size = 0;
+        }
+        let list = m.cur.get(source);
+        if (!list) {
+            list = [];
+            m.cur.set(source, list);
+        }
+        if (list.includes(entry)) return;
+        list.push(entry);
+        m.size++;
+        if (list.length > MEMO_PER_TEXT) list.shift();
+    }
+
+    function memoFind(m, source, sheet, index) {
+        const scan = (gen) => {
+            const list = gen.get(source);
+            if (!list) return null;
+            for (let k = list.length - 1; k >= 0; k--) if (depsHold(list[k].deps, sheet, index)) return list[k];
+            return null;
+        };
+        let hit = scan(m.cur);
+        if (hit) return hit;
+        hit = scan(m.prev);
+        if (hit) memoPut(m, source, hit);
+        return hit;
+    }
+
+    /** Replay what a remembered line did to the sheet: its value, variable, or function. */
+    function applyEffect(e, sheet, index) {
+        if (!e) return;
+        if (e.t === 'func') {
+            if (hasOwn(sheet.vars, e.name)) delete sheet.vars[e.name];
+            e.entry.line = index;
+            sheet.funcs[e.name] = e.entry;
+            return;
+        }
+        sheet.values[index] = { v: e.value, aggregate: e.aggregate };
+        if (e.t === 'assign') {
+            sheet.vars[e.name] = { value: e.value, line: index };
+            if (hasOwn(sheet.funcs, e.name)) delete sheet.funcs[e.name];
+        }
+    }
+
+    function copyResult(r, index, source) {
+        const out = Object.assign({}, r, { index, source });
+        if (r.error) out.error = Object.assign({}, r.error);
+        return out;
+    }
+
+    /** evalLine through the memo: a remembered line is replayed, a new one is worked out and remembered. */
+    function evalLineMemo(source, index, sheet, m) {
+        if (!m || source.length > LIMITS.lineChars) return evalLine(source, index, sheet);
+        const hit = memoFind(m, source, sheet, index);
+        if (hit) {
+            applyEffect(hit.effect, sheet, index);
+            return copyResult(hit.result, index, source);
+        }
+        sheet.track = new Map();
+        let res;
+        try {
+            res = evalLine(source, index, sheet);
+        } finally {
+            const deps = Array.from(sheet.track.values());
+            sheet.track = null;
+            if (res) memoPut(m, source, { deps, effect: sheet.effect, result: copyResult(res, index, source) });
+        }
+        return res;
     }
 
     function defineFunction(st, toks, sheet, index, source) {
@@ -2172,18 +2571,21 @@
         });
         const scope = {
             implicit: sheet.O.implicitMult,
-            isVar: (n) => params.has(n) || hasOwn(sheet.vars, n),
-            isFunc: (n) => !params.has(n) && (n === st.name || hasOwn(sheet.funcs, n))
+            isVar: (n) => params.has(n) || trackedIsVar(sheet, n),
+            isFunc: (n) => !params.has(n) && (n === st.name || trackedIsFunc(sheet, n))
         };
         const body = parseRest({ toks, i: st.bodyStart, scope, depth: 0 }, st.eq);
         const last = toks[toks.length - 1];
         const bodyText = source.slice(toks[st.bodyStart].s, last.s).trim();
+        const entry = { name: st.name, params: st.params.slice(), body, bodyText, line: index };
         if (hasOwn(sheet.vars, st.name)) delete sheet.vars[st.name];
-        sheet.funcs[st.name] = { name: st.name, params: st.params.slice(), body, bodyText, line: index };
+        sheet.funcs[st.name] = entry;
+        sheet.effect = { t: 'func', name: st.name, entry };
     }
 
     function evalLine(source, index, sheet) {
         const res = blankResult(index, source);
+        sheet.effect = null;
         if (source.length > LIMITS.lineChars) {
             return setError(res, `This line is too long — keep each line under ${fmtInt(LIMITS.lineChars)} characters`, 0, source.length);
         }
@@ -2208,7 +2610,7 @@
         const ctx = { O, sheet, index, ops: 0, nextCheck: 256, t0: Date.now(), depth: 0, aggregate: false, vars: sheet.vars, funcs: sheet.funcs };
         try {
             const toks = tokenize(source, start, end);
-            const scope = { implicit: O.implicitMult, isVar: (n) => hasOwn(sheet.vars, n), isFunc: (n) => hasOwn(sheet.funcs, n) };
+            const scope = { implicit: O.implicitMult, isVar: (n) => trackedIsVar(sheet, n), isFunc: (n) => trackedIsFunc(sheet, n) };
             const st = parseStatement(toks, scope);
             if (st.type === 'func') {
                 defineFunction(st, toks, sheet, index, source);
@@ -2220,6 +2622,7 @@
                 if (problem) throw new EngineError(problem, st.nameTok.s, st.nameTok.e);
             }
             const v = ev(st.expr, ctx, null);
+            if (v.k === 'n' && isTempSingle(v.u) && belowAbsoluteZero(v.v, v.u[0].def)) fail(BELOW_ZERO, st.expr);
             const out = present(v, O);
             const stored = v.fmt ? { k: v.k, v: v.v, u: v.u, fmt: null } : v;
             sheet.values[index] = { v: stored, aggregate: ctx.aggregate };
@@ -2230,58 +2633,157 @@
             } else {
                 res.kind = 'value';
             }
+            sheet.effect = { t: st.type === 'assign' ? 'assign' : 'value', name: st.name || null, value: stored, aggregate: ctx.aggregate };
             Object.assign(res, out);
             return res;
         } catch (err) {
             if (!(err && err.isEngine) && typeof process !== 'undefined' && process.env && process.env.MATHMAN_DEBUG) {
                 console.error(err);
             }
+            sheet.effect = null;
             return fromError(res, err, start, end, source);
         }
     }
 
-    function runSheet(text, options) {
+    /* Sheets: a time-sliced job, and the synchronous evaluateSheet() ------ */
+
+    const STOPPED = 'Stopped here — this sheet takes too long to work out. Split it into smaller sheets.';
+
+    /** A line before it is worked out: blanks, headings and notes are known at once; the rest are 'pending'. */
+    function pendingResult(index, source) {
+        const r = blankResult(index, source);
+        const trimmed = source.trim();
+        if (!trimmed) return r;
+        if (source.length <= LIMITS.lineChars && trimmed[0] === '#') r.kind = 'heading';
+        else if (source.length <= LIMITS.lineChars && trimmed.startsWith('//')) r.kind = 'comment';
+        else r.kind = 'pending';
+        return r;
+    }
+
+    // Recently finished sheets' variables and functions, for compile().
+    const SCOPES = [];
+    const scopeKey = (text, O) => `${O.angle}|${O.implicitMult ? 1 : 0}|${text}`;
+
+    function rememberScope(text, O, sheet) {
+        const key = scopeKey(text, O);
+        const at = SCOPES.findIndex((s) => s.key === key);
+        if (at !== -1) SCOPES.splice(at, 1);
+        SCOPES.unshift({ key, vars: sheet.vars, funcs: sheet.funcs });
+        if (SCOPES.length > 4) SCOPES.pop();
+    }
+
+    /**
+     * Start working out a sheet in steps. job.step(ms) works out lines for
+     * about ms milliseconds (at least one line) and returns true once every
+     * line is done; job.output() is the evaluateSheet() shape at any point,
+     * with lines not reached yet marked kind 'pending' and output.pending
+     * counting them. opts: { memo (from createMemo), maxMs (total compute
+     * before the rest is marked "Stopped here"; LIMITS.jobMs by default) }.
+     */
+    function startSheet(text, options, opts) {
+        const o = opts && typeof opts === 'object' ? opts : {};
         const O = normOptions(options);
         const src = typeof text === 'string' ? text : (text === null || text === undefined ? '' : String(text));
         const all = src.split(/\r\n|\r|\n/);
         const count = Math.min(all.length, LIMITS.lines);
         const sheet = newSheet(O, count);
-        const lines = [];
-        for (let i = 0; i < count; i++) {
-            let r;
-            if (Date.now() - sheet.t0 > LIMITS.sheetMs) {
-                r = setError(blankResult(i, all[i]), 'Stopped here — this sheet takes too long to work out. Split it into smaller sheets.', 0, all[i].length);
-            } else {
-                r = evalLine(all[i], i, sheet);
+        const memo = memoFor(o.memo, O);
+        const maxMs = Number.isFinite(o.maxMs) && o.maxMs > 0 ? o.maxMs : LIMITS.jobMs;
+        const lines = new Array(count);
+        for (let i = 0; i < count; i++) lines[i] = pendingResult(i, all[i]);
+        let next = 0;
+        let spent = 0;
+        let finished = false;
+        let stopped = false;
+
+        function stopRest() {
+            for (let i = next; i < count; i++) {
+                if (lines[i].kind === 'pending') setError(lines[i], STOPPED, 0, all[i].length);
+                sheet.kinds[i] = lines[i].kind;
             }
-            sheet.kinds[i] = r.kind;
-            lines.push(r);
+            next = count;
+            stopped = true;
         }
-        if (all.length > LIMITS.lines) {
-            const rest = all[LIMITS.lines];
-            lines.push(setError(blankResult(LIMITS.lines, rest), `Only the first ${fmtInt(LIMITS.lines)} lines are worked out — move the rest to another sheet`, 0, rest.length));
+
+        function finish() {
+            finished = true;
+            if (memo) {
+                // Lines this run used (or worked out) become the generation the next run checks.
+                memo.prev = memo.cur;
+                memo.cur = new Map();
+                memo.size = 0;
+            }
+            if (!stopped) rememberScope(src, O, sheet);
         }
-        CUR_O = O;
-        const variables = Object.keys(sheet.vars).map((name) => {
-            const rec = sheet.vars[name];
-            let display = '';
-            try { display = present(rec.value, O).display; } catch (_) { display = ''; }
-            return { name, display, line: rec.line + 1, index: rec.line };
-        }).sort((a, b) => a.index - b.index || (a.name < b.name ? -1 : 1));
-        const functions = Object.keys(sheet.funcs).map((name) => {
-            const f = sheet.funcs[name];
-            return { name, params: f.params.slice(), body: f.bodyText, line: f.line + 1, index: f.line };
-        }).sort((a, b) => a.index - b.index);
-        const counts = {
-            lines: all.length,
-            values: lines.filter((l) => l.kind === 'value' || l.kind === 'assignment').length,
-            errors: lines.filter((l) => l.kind === 'error').length
+
+        return {
+            step(ms) {
+                if (finished) return true;
+                const budget = typeof ms === 'number' && ms >= 0 ? ms : Infinity;
+                const t0 = Date.now();
+                let first = true;
+                while (next < count) {
+                    const now = Date.now();
+                    if (!first && now - t0 >= budget) break;
+                    if (spent + (now - t0) > maxMs) {
+                        stopRest();
+                        break;
+                    }
+                    first = false;
+                    const r = evalLineMemo(all[next], next, sheet, memo);
+                    sheet.kinds[next] = r.kind;
+                    lines[next] = r;
+                    next++;
+                }
+                spent += Date.now() - t0;
+                if (next >= count) finish();
+                return finished;
+            },
+            get done() { return finished; },
+            /** Lines worked out so far (0-based count). */
+            get progress() { return next; },
+            output() {
+                CUR_O = O;
+                const out = lines.slice();
+                if (all.length > LIMITS.lines) {
+                    const rest = all[LIMITS.lines];
+                    out.push(setError(blankResult(LIMITS.lines, rest), `Only the first ${fmtInt(LIMITS.lines)} lines are worked out — move the rest to another sheet`, 0, rest.length));
+                }
+                const variables = Object.keys(sheet.vars).map((name) => {
+                    const rec = sheet.vars[name];
+                    let display = '';
+                    try { display = present(rec.value, O).display; } catch (_) { display = ''; }
+                    return { name, display, line: rec.line + 1, index: rec.line };
+                }).sort((a, b) => a.index - b.index || (a.name < b.name ? -1 : 1));
+                const functions = Object.keys(sheet.funcs).map((name) => {
+                    const f = sheet.funcs[name];
+                    return { name, params: f.params.slice(), body: f.bodyText, line: f.line + 1, index: f.line };
+                }).sort((a, b) => a.index - b.index);
+                let values = 0;
+                let errors = 0;
+                let pending = 0;
+                for (const l of out) {
+                    if (l.kind === 'value' || l.kind === 'assignment') values++;
+                    else if (l.kind === 'error') errors++;
+                    else if (l.kind === 'pending') pending++;
+                }
+                return { lines: out, variables, functions, counts: { lines: all.length, values, errors }, pending };
+            },
+            /** The sheet's variables and functions so far (internal; for compile()). */
+            scope() { return { vars: sheet.vars, funcs: sheet.funcs }; }
         };
-        return { output: { lines, variables, functions, counts }, sheet };
     }
 
-    function evaluateSheet(text, options) {
-        return runSheet(text, options).output;
+    /**
+     * Work out a whole sheet now. opts.memo (from createMemo()) reuses lines
+     * whose text and inputs are unchanged since an earlier run; the call
+     * stops after LIMITS.sheetMs and marks the rest "Stopped here".
+     */
+    function evaluateSheet(text, options, opts) {
+        const memo = opts && typeof opts === 'object' ? opts.memo : undefined;
+        const job = startSheet(text, options, { memo, maxMs: LIMITS.sheetMs });
+        job.step(Infinity);
+        return job.output();
     }
 
     function evaluate(expr, options) {
@@ -2378,7 +2880,7 @@
                 if (j - i > bestCount) { best = s[i]; bestCount = j - i; }
                 i = j;
             }
-            return best;
+            return bestCount < 2 ? NaN : best;
         });
         put('var', (a) => statsF(a).variance);
         put('stdev', (a) => Math.sqrt(statsF(a).variance));
@@ -2576,11 +3078,25 @@
         return { state, build };
     }
 
+    // compile() keeps its own memo so a sheet it has read is cheap to read again.
+    const COMPILE_MEMO = createMemo();
+
+    /** A sheet's variables and functions: from a recent finished run of the same text, or worked out now. */
+    function sheetScope(text, angle) {
+        const O = normOptions({ angle });
+        const key = scopeKey(text, O);
+        const found = SCOPES.find((s) => s.key === key);
+        if (found) return found;
+        const job = startSheet(text, O, { memo: COMPILE_MEMO, maxMs: LIMITS.sheetMs });
+        job.step(Infinity);
+        return job.scope();
+    }
+
     function compile(expr, opts) {
         const o = opts && typeof opts === 'object' ? opts : {};
         let variable = typeof o.variable === 'string' && NAME_RE.test(o.variable) && !RESERVED.has(o.variable) ? o.variable : 'x';
         const angle = o.angle === 'deg' ? 'deg' : 'rad';
-        const failed = (message) => ({ fn: NAN_FN, error: message });
+        const failed = (message) => ({ fn: NAN_FN, error: message, stats: { stops: 0 } });
         try {
             const raw = typeof expr === 'string' ? expr : (expr === null || expr === undefined ? '' : String(expr));
             if (raw.length > LIMITS.lineChars) return failed(`That expression is too long — keep it under ${fmtInt(LIMITS.lineChars)} characters`);
@@ -2591,9 +3107,9 @@
             let vars = dict();
             let funcs = dict();
             if (typeof o.sheet === 'string' && o.sheet.trim()) {
-                const run = runSheet(o.sheet, { angle });
-                vars = run.sheet.vars;
-                funcs = run.sheet.funcs;
+                const sc = sheetScope(o.sheet, angle);
+                vars = sc.vars;
+                funcs = sc.funcs;
             }
             const toks = tokenize(src, 0, end);
             const eqAt = toks.findIndex((t) => isOp(t, '='));
@@ -2615,25 +3131,26 @@
                 } else if (eqAt === 1 && toks[0].type === 'id' && toks[0].value !== variable) {
                     node = parseRest({ toks: toks.slice(2), i: 0, scope: scopeFor(variable), depth: 0 }, eqTok);
                 } else {
-                    const lhsToks = toks.slice(0, eqAt).concat([{ type: 'end', value: '', text: '', s: eqTok.s, e: eqTok.s }]);
-                    const lhs = parseRest({ toks: lhsToks, i: 0, scope: scopeFor(variable), depth: 0 }, null);
-                    const rhs = parseRest({ toks: toks.slice(eqAt + 1), i: 0, scope: scopeFor(variable), depth: 0 }, eqTok);
-                    node = bin('-', lhs, rhs);
+                    // Only "y =" or "f(x) =" may lead: anything else is an equation, not a curve.
+                    return failed(`That's an equation, not a curve — write y = expression, like y = ${variable}^2 - 4; to find where both sides are equal, use the Solver`);
                 }
             }
             const C = makeCompiler(variable, angle, vars, funcs);
             const f = C.build(node, null);
+            // stats.stops counts the values that hit the step budget (they come back as NaN).
+            const stats = { stops: 0 };
             const fn = (x) => {
                 C.state.ops = 0;
                 C.state.depth = 0;
                 try {
                     const r = f(Number(x), null);
                     return typeof r === 'number' ? r : NaN;
-                } catch (_) {
+                } catch (err) {
+                    if (err === STOP || err instanceof RangeError) stats.stops++;
                     return NaN;
                 }
             };
-            return { fn, error: null };
+            return { fn, error: null, stats };
         } catch (err) {
             return failed(err && err.isEngine ? err.message : 'That expression could not be read');
         }
@@ -2665,7 +3182,7 @@
         ['avg', 'avg(a, b, …)', 'Arithmetic mean. Bare avg (no brackets) averages the lines above.', 'Lists & statistics', 'avg(2, 4, 9)'],
         ['mean', 'mean(a, b, …)', 'Arithmetic mean (same as avg).', 'Lists & statistics', 'mean(2, 4, 9)'],
         ['median', 'median(a, b, …)', 'The middle value; the mean of the two middle values for an even count.', 'Lists & statistics', 'median(3, 1, 4, 1, 5)'],
-        ['mode', 'mode(a, b, …)', 'The most frequent value (the smallest one on a tie).', 'Lists & statistics', 'mode(1, 2, 2, 3)'],
+        ['mode', 'mode(a, b, …)', 'The value that appears most often; some value must appear more than once. On a tie it gives the smallest tied value (the Statistics pane lists them all).', 'Lists & statistics', 'mode(1, 2, 2, 3)'],
         ['stdev', 'stdev(a, b, …)', 'Sample standard deviation (divides by n - 1); needs at least 2 values.', 'Lists & statistics', 'stdev(2, 4, 4, 4, 5, 5, 7, 9)'],
         ['var', 'var(a, b, …)', 'Sample variance (divides by n - 1); needs at least 2 values.', 'Lists & statistics', 'var(2, 4, 4, 4, 5, 5, 7, 9)'],
         ['hypot', 'hypot(a, b, …)', 'Square root of the sum of squares, such as the long side of a right triangle.', 'Lists & statistics', 'hypot(3, 4)'],
@@ -2701,9 +3218,9 @@
     const KEYWORD_DOCS = [
         ['to', 'Converts to a unit or format: hex, bin, oct, dec, sci, eng, fraction or %.', '5 km to mi'],
         ['as', 'Same as to.', '0.25 as %'],
-        ['in', 'Converts when it follows a quantity and comes before a unit; otherwise it means inches.', '100 km in miles'],
+        ['in', 'Converts when it comes before a format word (hex, bin, fraction…) or follows a quantity and comes before a unit; otherwise it means inches.', '100 km in miles'],
         ['of', 'Percent of a value.', '20% of 150'],
-        ['%', 'Percent: 15% is 0.15. a + b% and a - b% raise or lower a by b percent.', '150 + 10%'],
+        ['%', 'Percent: 15% is 0.15. a + b% and a - b% raise or lower a by b percent. For a remainder use mod.', '150 + 10%'],
         ['mod', 'Remainder after division (the sign follows the divisor).', '10 mod 3'],
         ['ans', 'The result of the nearest line above that has one.', 'ans * 2'],
         ['total', 'Adds the values in the block of lines above, up to a blank line or heading (sum without brackets works too).', 'total'],
@@ -2717,6 +3234,7 @@
         ['eng', 'Conversion target: engineering notation (powers of ten in steps of 3).', '12345 to eng'],
         ['fraction', 'Conversion target: an exact fraction (≈ marks an approximation).', '0.75 to fraction'],
         ['sq / cu', 'Square and cubic units before a length unit.', '3 sq ft'],
+        ['per', 'Divides one unit by the next; squared and cubed raise the unit before them.', '9.8 meters per second squared'],
         ['true / false', 'The results of comparisons such as 3 > 2; use them with if().', 'if(true, 1, 2)'],
         ['name = value', 'Stores a value in a variable for the lines below.', 'rate = 0.05'],
         ['f(x) = …', 'Defines a function; it may call itself up to 64 levels deep.', 'f(x) = x^2 + 1'],
@@ -2844,6 +3362,8 @@
 
     return Object.freeze({
         evaluateSheet,
+        startSheet,
+        createMemo,
         evaluate,
         compile,
         formatNumber,

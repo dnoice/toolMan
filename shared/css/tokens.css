@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: DesignTokens (toolMan Edition - v2.5)
+ *     - Title: DesignTokens (toolMan Edition - v2.6)
  *     - File Name: tokens.css
  *     - Relative Path: shared/css/tokens.css
  *     - Artifact Type: stylesheet
- *     - Version: 2.5.0
+ *     - Version: 2.6.0
  *     - Date: 11/18/2026
  *     - Update: Wednesday, November 18, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,10 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.6.0 (11/18/2026) [dendogg + Anthropic - Claude] — The
+ *       --header-gradient alias is removed now that nothing reads it, which
+ *       completes the rename to --shell-gradient; the description names
+ *       toolMan, not textMan.
  *     - 2.5.0 (11/18/2026) [dendogg + Anthropic - Claude] — On Dennis's
  *       direction the dark page is no longer flat near-black:
  *       --header-gradient is renamed --shell-gradient (it now paints the page
@@ -23,16 +27,10 @@
  *       direction the themes are simply light and dark: the palette blocks
  *       are now keyed [data-theme="light"] and [data-theme="dark"] (formerly
  *       parchment / sentinel). Every color value is unchanged.
- *     - 2.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — On Dennis's
- *       direction the ecosystem keeps the 07/23 Parchment Dossier / Sentinel
- *       Obsidian palette (the interim flat 1.0.0 restyle is retired). Adds
- *       density tokens (--pad-rail, --gap-rail, --pad-section-head/-body,
- *       --pad-card, --gap-card, --pad-stage, --pad-stage-card) so container
- *       breathing room is tuned in one place, tightened a tad from 16px/24px.
  *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
- *     The single source of truth for textMan's visual design system. Defines
+ *     The single source of truth for toolMan's visual design system. Defines
  *     the digiSpace brand anchors, both theme palettes (light and dark),
  *     and every structural token (spacing,
  *     typography, sizing, radii, shadows, transitions, z-index) the component
@@ -306,7 +304,6 @@
     --color-error: var(--color-danger);
     --border-header: var(--border-subtle);
     --bg-panel-header: var(--shell-gradient);
-    --header-gradient: var(--shell-gradient); /* renamed 11/18/2026 */
     --bg-modal-backdrop: var(--bg-overlay);
     --bg-modal-panel: var(--bg-elevated);
     --glow-primary: var(--glow-brand);

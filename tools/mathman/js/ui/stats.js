@@ -23,13 +23,18 @@
  *     - Data box that reads commas, spaces, tabs, semicolons, and new lines;
  *       quoted CSV cells, currency signs, and % are understood
  *     - A live note under the box: how many values were read, how many
- *       entries were skipped and which, and when the 100,000-value cap or
- *       the 2,000,000-character cap cut the data short
+ *       entries were skipped and which, and when the 100,000-value cap cut
+ *       the data short
+ *     - A paste larger than the box holds (600,000 characters) or than the
+ *       statistics use (100,000 numbers) is cut before it lands, with a
+ *       note saying how much was left out, so a huge paste never freezes
+ *       the page
  *     - Column picker that appears when the paste looks like a table with
  *       several columns (headers are used as the names)
  *     - "Use selected lines" takes the numeric results of the worksheet
  *       lines under the selection (through WorksheetUI.selectedLines()),
- *       converting compatible units to the first line's unit
+ *       converting compatible units to the first line's unit; a line shown
+ *       as a percentage (0.35 to %) counts as its value, 0.35
  *     - Readouts with copy buttons: count, sum, mean, median, modes, min,
  *       max, range, sample and population variance and standard deviation,
  *       Q1, Q3, IQR, and outliers; each label explains itself on hover
@@ -47,7 +52,8 @@
  *     Load after js/numerics.js, js/state.js, and js/ui/worksheet.js, before
  *     js/app.js. app.js calls StatsUI.init() once through ToolApp.boot();
  *     the module renders into #mount-stats and keeps itself current from
- *     State events.
+ *     State events ('settings', 'reset', and 'panes' after a backup
+ *     import).
  *
  * ✒ Examples:
  *     StatsUI.init()                       → builds the pane inside #mount-stats
@@ -72,7 +78,12 @@
 
     const PANE = 'stats';
     const KEEP_CHARS = 15000;
-    const INPUT_MAX = 2000000;
+    // The data box holds at most 600,000 characters (laying out more text
+    // than that stalls the page for most of a second); a bigger paste is
+    // cut there, or at the first PASTE_VALUES numbers (the most the
+    // statistics use), before it reaches the box.
+    const INPUT_MAX = 600000;
+    const PASTE_VALUES = 100000;
     const BIN_CHOICES = ['auto', '5', '10', '20', '50'];
     const LIST_SHOWN = 8;
     const EXAMPLE = '72, 85, 90, 66, 85, 78, 92, 88, 85, 70, 95, 61, 79, 84, 99, 45';
@@ -444,6 +455,58 @@
         analyze();
     }
 
+    /**
+     * Where to cut pasted text so it keeps at most `max` numbers: after the
+     * line holding the max-th entry (or right after that entry when the
+     * list is one long line). Returns { cut }, with cut === -1 when nothing
+     * needs cutting.
+     */
+    function pasteCut(text, max) {
+        const re = /[^\s,;|]+/g;
+        let entries = 0;
+        let m;
+        while ((m = re.exec(text))) {
+            entries++;
+            if (entries === max) {
+                const end = m.index + m[0].length;
+                const nl = text.indexOf('\n', end);
+                const lineCut = nl === -1 ? text.length : nl;
+                // A table row keeps its other columns; a one-line list stops at the entry.
+                const cut = lineCut - end <= 2000 ? lineCut : end;
+                return { cut: cut >= text.length ? -1 : cut };
+            }
+        }
+        return { cut: -1 };
+    }
+
+    /** A paste bigger than the box can hold or the statistics use is cut before it lands. */
+    function onPaste(e) {
+        const data = e.clipboardData;
+        if (!data) return;
+        const text = data.getData('text/plain');
+        if (!text || text.length <= 50000) return;
+        const ta = els.data;
+        const room = INPUT_MAX - (ta.value.length - (ta.selectionEnd - ta.selectionStart));
+        let keep = text;
+        const counted = pasteCut(text, PASTE_VALUES);
+        if (counted.cut !== -1) keep = text.slice(0, counted.cut);
+        if (keep.length > room) {
+            const at = Math.max(keep.lastIndexOf('\n', room), keep.lastIndexOf(',', room), keep.lastIndexOf(' ', room));
+            keep = keep.slice(0, Math.max(0, at));
+        }
+        if (keep.length === text.length) return;
+        e.preventDefault();
+        ta.setRangeText(keep, ta.selectionStart, ta.selectionEnd, 'end');
+        current.source = '';
+        persistText();
+        // Work the numbers out in the next task, so the pasted text shows first.
+        clearTimeout(timer);
+        timer = setTimeout(analyze, 0);
+        const dropped = text.length - keep.length;
+        const kb = (n) => `${Math.max(1, Math.round(n / 1024)).toLocaleString('en-US')} KB`;
+        feedback(`That paste was large, so only the first part was kept (${kb(keep.length)} of ${kb(text.length)}; ${kb(dropped)} left out). The statistics use at most ${PASTE_VALUES.toLocaleString('en-US')} numbers.`, 'warn');
+    }
+
     /** Values of the worksheet lines under the selection, converted to the first unit. */
     const NO_SELECTION = 'Select the lines you want in the worksheet first (drag across them, or Shift+click), then press Use selected lines.';
 
@@ -482,18 +545,23 @@
         if (!picked.length) {
             return { error: `The selected ${first === last ? 'line has' : 'lines have'} no numeric results. Select lines that show a number.` };
         }
-        const unit = picked[0].unit || '';
+        // A line shown as a percentage (0.35 to %) has numeric 35 for its value 0.35:
+        // it counts as 0.35 unless every picked line is a percentage (then all stay in %).
+        const allPct = picked.every((l) => l.percent);
+        const valueOf = (l) => (l.percent && !allPct ? l.numeric / 100 : l.numeric);
+        const unitOf = (l) => (l.percent ? (allPct ? '%' : '') : (l.unit || ''));
+        const unit = unitOf(picked[0]);
         const values = [];
         let mismatched = 0;
         picked.forEach((l) => {
-            const u = l.unit || '';
+            const u = unitOf(l);
             if (u === unit) {
-                values.push(l.numeric);
+                values.push(valueOf(l));
                 return;
             }
             try {
-                if (!u || !unit || !window.MathEngine || !MathEngine.units) throw new Error('no unit');
-                const v = MathEngine.units.convert(l.numeric, u, unit);
+                if (!u || !unit || u === '%' || !window.MathEngine || !MathEngine.units) throw new Error('no unit');
+                const v = MathEngine.units.convert(valueOf(l), u, unit);
                 if (!Number.isFinite(v)) throw new Error('not finite');
                 values.push(v);
             } catch (_err) {
@@ -692,6 +760,7 @@
             schedule();
         });
         els.data.addEventListener('blur', () => { if (timer) { clearTimeout(timer); analyze(); } });
+        els.data.addEventListener('paste', onPaste);
         els.column.addEventListener('change', () => {
             save({ column: selectedColumn() });
             analyze();
@@ -723,6 +792,8 @@
         if (window.State) {
             State.on('settings', () => render());
             State.on('reset', () => load());
+            // A backup import can fill in preferences this pane never had.
+            State.on('panes', (e) => { if (e && e.action === 'import') load(); });
         }
     }
 

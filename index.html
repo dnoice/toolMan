@@ -1,17 +1,20 @@
 <!--
 ✒ Metadata
-    - Title: HubPage (toolMan Edition - v1.6)
+    - Title: HubPage (toolMan Edition - v1.7)
     - File Name: index.html
     - Relative Path: index.html
     - Artifact Type: markup
-    - Version: 1.6.0
-    - Date: 11/17/2026
-    - Update: Tuesday, November 17, 2026
+    - Version: 1.7.0
+    - Date: 11/18/2026
+    - Update: Wednesday, November 18, 2026
     - Author: Dennis 'dendogg' Smaltz
     - A.I. Acknowledgement: Anthropic - Claude
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 1.7.0 (11/18/2026) [dendogg + Anthropic - Claude] — mathMan joins
+      colorMan and textMan as a lit satellite in the loader orbit, and the
+      description no longer names which tools are live.
     - 1.6.0 (11/17/2026) [dendogg + Anthropic - Claude] — colorMan joins
       textMan as a lit (live) satellite in the loader orbit, and svgMan takes
       a sixth place; the six satellites are spaced 36 degrees apart across the
@@ -19,20 +22,14 @@
     - 1.5.0 (11/17/2026) [dendogg + Anthropic - Claude] — Theme toggle
       labelled for light and dark (the Parchment Dossier / Sentinel Obsidian
       names are retired); the pre-paint default is data-theme="light".
-    - 1.4.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Hub loader gains the
-      orbit intro: the tool family (colorMan, mathMan, textMan, convertMan,
-      devMan) sweeps into an arc around the central toolMan mark before the
-      landing opens (markup here; animation in hub.css, pacing in loader.js).
-      Also removed the gunslinger signature line from the footer — that mark
-      lives in the file-header docstrings, not as an on-page element.
     Earlier entries: see CHANGELOG.md
 
 ✒ Description:
     The toolMan ecosystem's front door — a live application page, not
     documentation, hence Artifact Type "other". Shows the branded loading
     screen, then a launcher grid of every tool in the TOOLMAN registry — live
-    tools (textMan) link through; future tools (colorMan, mathMan, convertMan,
-    devMan) appear as coming-soon cards. Theme choice persists ecosystem-wide.
+    tools link through; upcoming tools appear as coming-soon cards. Theme
+    choice persists ecosystem-wide.
 
 ✒ Key Features:
     - Branded loading screen: the six-tool family sweeps into an arc
@@ -94,7 +91,7 @@
                     <span class="loader-sat loader-sat--live" style="--orbit-index: 0; --orbit-angle: 270deg;" title="colorMan">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="12.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="13.5" r="2.5"/><path d="M12 22a10 10 0 1 1 10-10c0 2-1.5 3-3 3h-2a2 2 0 0 0-2 2c0 .5.2 1 .5 1.5.3.5.5 1 .5 1.5 0 1-1 2-4 2z"/></svg>
                     </span>
-                    <span class="loader-sat" style="--orbit-index: 1; --orbit-angle: 306deg;" title="mathMan">
+                    <span class="loader-sat loader-sat--live" style="--orbit-index: 1; --orbit-angle: 306deg;" title="mathMan">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h6M8 4v6M14 6h5M14 16l5 5M19 16l-5 5M5 17h6"/></svg>
                     </span>
                     <span class="loader-sat loader-sat--live" style="--orbit-index: 2; --orbit-angle: 342deg;" title="textMan">

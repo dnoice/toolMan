@@ -34,16 +34,20 @@
  *       State.result() when the module or method is missing
  *     - Toolbar controls that no module claimed (data-wired) get handlers
  *       here, so nothing is ever bound twice
- *     - Sheet name field: Enter keeps, Escape reverts, an empty name is
- *       explained inline and never saved
+ *     - Sheet name field: Enter keeps, Escape reverts; an empty name or one
+ *       another sheet already has is explained inline and never saved
  *     - Chrome sync from State events: stat pills (lines, values, errors,
- *       selection sum and mean), rail counts, Library and Workbench footers,
- *       the DEG / RAD button, and the sheet name
+ *       selection sum and mean, or why there is none), rail counts, Library
+ *       and Workbench footers (with "working out N lines…" on a slow
+ *       sheet), the DEG / RAD button, and the sheet name; a toast when
+ *       another mathMan tab's changes are merged in
  *     - Settings binder with live labels and previews (digits, notation),
  *       inline checks that hold Save on an unusable value, a History trim
  *       warning, and a guarded reset
- *     - Backup import report: what was added, and a confirm before the
- *       backup's differing settings replace the visitor's own
+ *     - Backup import: a wrong or oversized file is explained in plain
+ *       words before anything is read into State; the report says what was
+ *       added (no "merged" toast when nothing was), and a confirm comes
+ *       before the backup's differing settings replace the visitor's own
  *     - Stray file drops are refused with a hint instead of navigating away
  *     - Loader messages in the mathMan voice
  *
@@ -89,6 +93,9 @@
     ];
 
     const KIND_WORDS = { blank: 'blank line', comment: 'note', heading: 'heading', function: 'function definition' };
+
+    // Backups larger than this are refused before they are read.
+    const MAX_BACKUP_BYTES = 20 * 1024 * 1024;
 
     const SETTING_HINTS = {
         precision: 'Significant digits must be a whole number from 4 to 16.',
@@ -284,6 +291,7 @@
             const why = line.error && line.error.message ? line.error.message : 'it could not be worked out';
             return `Line ${n} has an error: ${why}`;
         }
+        if (line.kind === 'pending') return `Line ${n} is still being worked out. Try again in a moment.`;
         if (!hasValue(line)) {
             const kind = Object.prototype.hasOwnProperty.call(KIND_WORDS, line.kind) ? KIND_WORDS[line.kind] : 'line without a value';
             return `Line ${n} is a ${kind}, so it has no result. Put the caret on a line with a result.`;
@@ -384,22 +392,24 @@
         const current = () => State.activeSheet().name;
         let reverting = false;
 
+        /** Save the typed name; false (with the reason shown) when it can't be used. */
         const commit = () => {
-            if (reverting) return;
+            if (reverting) return true;
             const name = current();
             if (!input.value.trim()) {
                 input.value = name;
                 show('');
                 notify(`Kept the name “${name}” — a sheet needs a name.`, 'info', 2400);
-                return;
+                return true;
             }
             const saved = State.renameSheet(State.activeSheet().id, input.value);
             if (saved) {
                 input.value = saved;
                 show('');
-            } else {
-                show(State.lastError || 'That name could not be saved.');
+                return true;
             }
+            show(State.lastError || 'That name could not be saved.');
+            return false;
         };
 
         DOM.on(input, 'input', () => {
@@ -408,8 +418,9 @@
         DOM.on(input, 'keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                commit();
-                focusWorksheet();
+                // A name that can't be used keeps focus here, with the reason under the field.
+                if (commit()) focusWorksheet();
+                else input.select();
             } else if (e.key === 'Escape') {
                 e.preventDefault();
                 reverting = true;
@@ -419,7 +430,14 @@
                 reverting = false;
             }
         });
-        DOM.on(input, 'change', commit);
+        DOM.on(input, 'change', () => {
+            if (commit()) return;
+            // Leaving the field with a name that can't be used: say why and keep the old one.
+            const why = State.lastError || 'That name could not be saved.';
+            input.value = current();
+            show('');
+            notify(`${why} Kept “${current()}”.`, 'warning', 4200);
+        });
     }
 
     /* ── Chrome sync: pills, counts, footers, angle, title ──── */
@@ -471,11 +489,16 @@
         let text = 'No selection';
         let title = 'Select several lines in the worksheet to see their sum and mean';
         if (s && Number(s.count) > 0) {
-            const unit = s.unit ? ` ${s.unit}` : '';
+            const unit = s.unit === '%' ? '%' : s.unit ? ` ${s.unit}` : '';
             const fmt = (n) => `${State.formatNumber(n)}${unit}`;
             if (s.sum === null || s.sum === undefined || !Number.isFinite(Number(s.sum))) {
-                text = `${plural(Number(s.count), 'value')} · mixed units`;
-                title = 'The selected lines use different units, so they are not added up';
+                if (s.reason === 'large') {
+                    text = `${plural(Number(s.count), 'value')} · too large to sum`;
+                    title = 'At least one selected value is too large to add up here; use total on a line below them for an exact sum';
+                } else {
+                    text = `${plural(Number(s.count), 'value')} · mixed units`;
+                    title = 'The selected lines use different units, so they are not added up';
+                }
             } else if (Number(s.count) === 1) {
                 text = `Selection: ${fmt(Number(s.sum))}`;
                 title = 'One selected line has a value';
@@ -553,9 +576,11 @@
         const lines = Number(c.lines) || 0;
         const angle = State.settings().angle === 'deg' ? 'Degrees' : 'Radians';
         const sheet = State.activeSheet().name;
+        const pending = Number(result.pending) || 0;
         const health = result.engineError
             ? 'math engine missing — reload the page'
-            : errors ? plural(errors, 'error') : 'no errors';
+            : pending ? `working out ${plural(pending, 'line')}…`
+                : errors ? plural(errors, 'error') : 'no errors';
         const text = `${sheet} · ${plural(lines, 'line')} · ${health} · ${angle}`;
         const el = setText('stage-footer-status', text);
         if (el && el.title !== text) el.title = text;
@@ -596,6 +621,18 @@
             scheduleSelection();
         });
         State.on('reset', sync);
+        // Another mathMan tab saved changes that are now merged in here.
+        State.on('sync', (r = {}) => {
+            syncTitle();
+            syncCounts();
+            const parts = [];
+            if (r.sheetsAdded) parts.push(`${plural(r.sheetsAdded, 'new sheet')}`);
+            if (r.sheetsUpdated) parts.push(`${plural(r.sheetsUpdated, 'edited sheet')}`);
+            if (r.sheetsRemoved) parts.push(`${plural(r.sheetsRemoved, 'deleted sheet')}`);
+            if (r.history) parts.push('History');
+            if (Array.isArray(r.settings) && r.settings.length) parts.push('settings');
+            if (parts.length) notify(`Updated from another mathMan tab: ${joinList(parts)}.`, 'info', 3600);
+        });
     }
 
     /* ── File drops outside a drop zone ────────────────────── */
@@ -734,7 +771,8 @@
     async function reportImport(r) {
         const summary = importSummary(r);
         if (!r.settings) {
-            notify(`${summary} Your current sheet and settings were kept.`, 'info', 6000);
+            const added = r.sheetsAdded || r.historyAdded;
+            notify(added ? `${summary} Your current sheet and settings were kept.` : `${summary} Nothing was changed.`, added ? 'success' : 'info', 6000);
             return;
         }
         const mine = State.settings();
@@ -757,7 +795,57 @@
             : 'Settings unchanged', 'success', 2400);
     }
 
+    const KIT_IMPORT_TOAST = 'Backup merged into this browser';
+    const CHOOSE_BACKUP = 'Choose a file made by Download backup in mathMan’s Settings.';
+
+    /** Check a chosen backup file; rejects with a plain sentence when it can't be a mathMan backup. */
+    async function checkBackupFile(file) {
+        const not = 'That file isn’t a mathMan backup';
+        if (!file) throw new Error(`No file was chosen. ${CHOOSE_BACKUP}`);
+        if (file.size > MAX_BACKUP_BYTES) {
+            throw new Error(`${not} — at ${(file.size / 1048576).toFixed(1)} MB it is far larger than any backup. ${CHOOSE_BACKUP}`);
+        }
+        let text;
+        try {
+            text = await file.text();
+        } catch (_err) {
+            throw new Error(`That file could not be read. ${CHOOSE_BACKUP}`);
+        }
+        let data;
+        try {
+            data = JSON.parse(text, (k, v) => (k === '__proto__' || k === 'constructor' || k === 'prototype' ? undefined : v));
+        } catch (_err) {
+            throw new Error(`${not} (it isn’t valid JSON). ${CHOOSE_BACKUP}`);
+        }
+        const isObj = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
+        if (!isObj(data) || !isObj(data.state) || !data.version) throw new Error(`${not} — it has no mathMan data in it. ${CHOOSE_BACKUP}`);
+        if (!Array.isArray(data.state.sheets) && !Array.isArray(data.state.history)) {
+            throw new Error(`${not} — it has no sheets or History. ${CHOOSE_BACKUP}`);
+        }
+    }
+
+    /**
+     * The kit's Import reads the file itself and shows its own toasts. A
+     * check runs first so a wrong file is explained in plain words instead
+     * of a parser message; only this page's Storage.import is wrapped.
+     */
+    function guardImport() {
+        if (!window.Storage || typeof Storage.import !== 'function' || Storage.import.mathManChecked) return;
+        const kitImport = Storage.import.bind(Storage);
+        const checked = (file) => checkBackupFile(file).then(() => kitImport(file));
+        checked.mathManChecked = true;
+        Storage.import = checked;
+    }
+
+    /** Hide the kit's "Backup merged" toast when the import added nothing. */
+    function dropKitImportToast() {
+        DOM.$$('.toast-stack .toast').forEach((t) => {
+            if (t.textContent === KIT_IMPORT_TOAST) t.style.display = 'none';
+        });
+    }
+
     function bindSettings() {
+        guardImport();
         Dialogs.bindSettings({
             getSettings: () => State.settings(),
             applySettings: (values) => {
@@ -784,9 +872,11 @@
                 sync();
                 const report = State.lastImport;
                 State.lastImport = null;
-                // After the kit's own "Backup merged" toast, so the detail reads second.
+                // After the kit's own "Backup merged" toast, so the detail reads second;
+                // when nothing was added that toast would contradict the report, so it is hidden.
                 if (report) {
                     setTimeout(() => {
+                        if (!report.sheetsAdded && !report.historyAdded) dropKitImportToast();
                         reportImport(report).catch((err) => console.error('[mathMan] import report failed:', err));
                     }, 0);
                 }

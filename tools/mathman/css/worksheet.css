@@ -33,6 +33,8 @@
  *       transparent mirror layer under the text
  *     - Error tooltip on hover and focus, and a brief highlight on a line a
  *       tool just added
+ *     - "working…" in the results column for a line a slow sheet has not
+ *       reached yet (a soft pulse, off with reduced motion)
  *     - "Ln, Col" status and a hint line under the editor
  *     - Result card: line number, kind badge, label chip, the value large,
  *       readout facts, copy buttons, error excerpt with the problem marked,
@@ -360,6 +362,31 @@
     font-size: var(--font-xs);
     font-style: italic;
     color: var(--fg-muted);
+}
+
+/* A line still being worked out on a slow sheet: muted, with a soft pulse
+   (the word "working…" says it, so motion is never the only signal). */
+.ws-pending {
+    min-width: 0;
+    padding: 0 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    font-style: italic;
+    color: var(--fg-subtle);
+    animation: ws-pending-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ws-pending-pulse {
+    50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ws-pending {
+        animation: none;
+    }
 }
 
 /* ── Error tooltip, status line, screen-reader text ── */

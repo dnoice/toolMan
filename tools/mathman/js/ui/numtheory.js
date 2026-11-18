@@ -24,12 +24,17 @@
  *       an expression such as 2^61 - 1, worked out exactly by the engine;
  *       up to 300 digits
  *     - Prime check: a "✓ Prime" / "✕ Not prime" badge in words as well as
- *       colour, the reason (91 = 7 × 13, or its smallest factor), the note
- *       that numbers above 3.3 × 10^24 are strong probable primes, and
- *       Previous / Next prime buttons that step through the primes
- *     - Prime factors in 2³ × 3 × 5 form with superscripts, the divisor
- *       count, a copyable 2^3 × 3 × 5 text form, and a "Keep trying" button
- *       when the 200 ms budget leaves part of the number unfactored
+ *       colour, the reason (91 = 7 × 13, or its smallest factor), and the
+ *       note that numbers above 3.3 × 10^24 are strong probable primes
+ *     - Previous / Next prime buttons that step through the primes from the
+ *       number in the field
+ *     - Prime factors in 2³ × 3 × 5 form with superscripts that screen
+ *       readers hear as "2 to the power 3", the divisor count, and a
+ *       copyable 2^3 × 3 × 5 text form
+ *     - "Keep trying" when the 200 ms budget leaves part of the number
+ *       unfactored: up to 2 more seconds of search in short slices, with a
+ *       progress bar, the seconds used, and Cancel (which keeps what was
+ *       found), so the page never stalls
  *     - GCD & LCM of up to 1,000 whole numbers, worked out as you type
  *     - Base converter with binary, octal, decimal, hexadecimal, and a
  *       custom base (2–36) field; editing any field updates the others, and
@@ -39,14 +44,16 @@
  *       a factor product, gcd() / lcm(), or a decimal value with its other
  *       bases as a note
  *     - Inputs and the custom base are remembered per browser through
- *       State.pane('numtheory'); digit grouping follows the thousands
- *       separator setting
+ *       State.pane('numtheory'); short prime and factor entries (up to 18
+ *       characters, like the defaults 97 and 360) are worked out as the
+ *       pane loads; digit grouping follows the thousands separator setting
  *
  * ✒ Usage Instructions:
  *     Load after js/engine.js, js/numerics.js, and js/state.js, before
  *     js/app.js. app.js calls NumTheoryUI.init() once through
  *     ToolApp.boot(); the module renders into #mount-numtheory. Enter in a
- *     field runs that section.
+ *     field runs that section. The pane reloads its saved fields on State
+ *     'reset' and after a backup import ('panes' with action 'import').
  *
  * ✒ Examples:
  *     NumTheoryUI.init()                     → builds the pane inside #mount-numtheory
@@ -74,6 +81,9 @@
     const PANE = 'numtheory';
     const FIELD_MAX = 2000;
     const LINE_MAX = 1900;
+    // "Keep trying" searches for this long in total, in short slices so the page never stalls.
+    const KEEP_TRYING_MS = 2000;
+    const SLICE_MS = 25;
     const SUPERS = { 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
     const BASE_FIELDS = [
         { base: 2, label: 'Binary', words: 'the binary value' },
@@ -82,6 +92,8 @@
         { base: 16, label: 'Hex', words: 'the hexadecimal value' }
     ];
     const DEFAULTS = Object.freeze({ prime: '97', factor: '360', list: '12, 18, 24', base: '255', customBase: 36 });
+    // Prime check and factor fields this short are worked out when the pane loads.
+    const AUTO_MAX = 18;
 
     const svg = (paths, size = 14) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
     const ICONS = {
@@ -397,6 +409,8 @@
 
         els.factorFeedback = DOM.create('div', { className: 'tool-feedback tb-feedback', attrs: { role: 'status', 'aria-live': 'polite' } });
         sec.appendChild(els.factorFeedback);
+        els.factorBusy = busyRow('Factor search progress', () => stopKeepTrying(true));
+        sec.appendChild(els.factorBusy.el);
         const actions = DOM.create('div', { className: 'tb-actions' });
         els.factorMore = DOM.create('button', {
             className: 'btn btn-secondary btn-sm',
@@ -417,7 +431,7 @@
         els.factorCopy.addEventListener('click', () => {
             if (last.factor) copy(factorText(last.factor.result, true, true), 'the factorization', els.factorCopy);
         });
-        els.factorMore.addEventListener('click', () => factorUI(2000));
+        els.factorMore.addEventListener('click', keepTrying);
         els.factorSend.addEventListener('click', sendFactor);
     }
 
@@ -439,7 +453,92 @@
         return body;
     }
 
+    /** A progress row with a Cancel button for a search that runs in slices. */
+    function busyRow(label, onCancel) {
+        const fill = DOM.create('div', { className: 'usage-fill' });
+        const meter = DOM.create('div', {
+            className: 'usage-meter tb-busy-meter',
+            attrs: { role: 'progressbar', 'aria-label': label, 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': '0' },
+            children: [fill]
+        });
+        const text = DOM.create('span', { className: 'tb-busy-text', attrs: { role: 'status', 'aria-live': 'polite' } });
+        const cancel = DOM.create('button', { className: 'btn btn-ghost btn-sm', text: 'Cancel', attrs: { type: 'button', title: 'Stop the search and keep what it found so far' } });
+        cancel.addEventListener('click', onCancel);
+        const el = DOM.create('div', { className: 'tb-busy', children: [meter, DOM.create('div', { className: 'tb-busy-row', children: [text, cancel] })] });
+        el.hidden = true;
+        return {
+            el,
+            cancel,
+            show(fraction, message) {
+                const pct = Math.max(0, Math.min(100, Math.round(fraction * 100)));
+                fill.style.width = `${Math.max(1, pct)}%`;
+                meter.setAttribute('aria-valuenow', String(pct));
+                if (text.textContent !== message) text.textContent = message;
+                if (el.hidden) {
+                    el.hidden = false;
+                    el.scrollIntoView({ block: 'nearest' });
+                }
+            },
+            hide() { el.hidden = true; }
+        };
+    }
+
+    let factorRun = null;   // { job, value } while "Keep trying" searches
+
+    /** "Keep trying": search up to 2 seconds more in slices, with progress and Cancel. */
+    function keepTrying() {
+        const lf = last.factor;
+        if (!lf || factorRun || !hasNumerics() || typeof Numerics.factorizeJob !== 'function') return;
+        let job;
+        try {
+            job = Numerics.factorizeJob(lf.value);
+        } catch (err) {
+            setFeedback(els.factorFeedback, err && err.message ? err.message : 'That number could not be factored.', 'error');
+            return;
+        }
+        const run = { job, value: lf.value };
+        factorRun = run;
+        els.factorMore.hidden = true;
+        setFeedback(els.factorFeedback, '');
+        els.factorBusy.show(0, 'Searching for factors… 0 of 2 seconds');
+        const slice = () => {
+            if (factorRun !== run) return;
+            let done;
+            try {
+                done = job.step(SLICE_MS);
+            } catch (err) {
+                stopKeepTrying(false);
+                setFeedback(els.factorFeedback, err && err.message ? err.message : 'That number could not be factored.', 'error');
+                return;
+            }
+            const spent = job.elapsed();
+            if (done || spent >= KEEP_TRYING_MS) {
+                factorRun = null;
+                els.factorBusy.hide();
+                last.factor = { value: run.value, result: job.result(), extended: true };
+                renderFactor();
+                return;
+            }
+            els.factorBusy.show(spent / KEEP_TRYING_MS, `Searching for factors… ${(spent / 1000).toFixed(1)} of 2 seconds`);
+            setTimeout(slice, 0);
+        };
+        setTimeout(slice, 0);
+    }
+
+    /** Stop a running "Keep trying"; cancelled keeps what it found and offers the button again. */
+    function stopKeepTrying(cancelled) {
+        const run = factorRun;
+        factorRun = null;
+        els.factorBusy.hide();
+        if (!run || !cancelled) return;
+        last.factor = { value: run.value, result: run.job.result(), extended: false };
+        renderFactor();
+        setFeedback(els.factorFeedback, 'Stopped. The part in brackets is still not factored — Keep trying searches again.', 'info');
+        els.factorMore.focus();
+    }
+
     function factorUI(timeMs) {
+        if (factorRun) stopKeepTrying(false);
         setFeedback(els.factorFeedback, '');
         els.factorMore.hidden = true;
         if (!hasNumerics()) {
@@ -483,7 +582,11 @@
             f.factors.forEach((x, i) => {
                 if (i) els.factorExpr.appendChild(document.createTextNode(' × '));
                 const span = DOM.create('span', { className: 'nt-p', text: groupInt(x.prime) });
-                if (x.exponent > 1) span.appendChild(DOM.create('sup', { text: String(x.exponent) }));
+                if (x.exponent > 1) {
+                    // Read aloud as "2 to the power 3", not "2 3".
+                    span.appendChild(DOM.create('span', { className: 'tb-sr', text: ' to the power ' }));
+                    span.appendChild(DOM.create('sup', { text: String(x.exponent) }));
+                }
                 if (x.probable) span.title = 'A strong probable prime (too large for a guaranteed test)';
                 els.factorExpr.appendChild(span);
             });
@@ -762,6 +865,7 @@
     /* ── Init ──────────────────────────────────────────────── */
 
     function load() {
+        if (factorRun) stopKeepTrying(false);
         const p = prefs();
         els.prime.value = p.prime;
         els.factor.value = p.factor;
@@ -788,6 +892,11 @@
             last.gcd = null;
             renderGcd();
         }
+        // Short values (the defaults 97 and 360, or a short saved entry) are
+        // worked out at once, so the pane opens with answers rather than
+        // bare fields; a long one waits for Check or Factor.
+        if (p.prime.trim() && p.prime.length <= AUTO_MAX) checkPrimeUI();
+        if (p.factor.trim() && p.factor.length <= AUTO_MAX) factorUI();
     }
 
     function rerender() {
@@ -811,6 +920,8 @@
             if (window.State) {
                 State.on('settings', rerender);
                 State.on('reset', load);
+                // A backup import can fill in preferences this pane never had.
+                State.on('panes', (e) => { if (e && e.action === 'import') load(); });
             }
         },
 

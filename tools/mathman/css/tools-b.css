@@ -36,6 +36,8 @@
  *     - Number Theory: prime verdict with a worded badge, the factor product
  *       on the house card with the gold left rule and superscript
  *       exponents, and a label / field / copy grid for the base converter
+ *     - Progress rows for searches that run in slices (Solve, Keep
+ *       trying): the kit's usage meter, a worded status, and Cancel
  *     - Visible focus rings on every control, including the bin table's
  *       disclosure and the grid cells
  *     - Touch screens get 40px icon buttons, steppers, and tabs; phone
@@ -242,6 +244,33 @@
     border: 0;
 }
 
+/* A search running in slices (Solver, Keep trying): the kit's usage meter
+   as a progress bar, a worded status (the bar is never the only signal),
+   and a Cancel button. */
+.tb-busy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+    background: var(--bg-surface-alt);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+}
+
+.tb-busy-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.tb-busy-text {
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--fg-muted);
+}
+
 /* Compact answer lists built on the kit's readouts. */
 .tb-readouts .readout {
     grid-template-columns: minmax(72px, auto) minmax(0, 1fr) auto;
@@ -297,9 +326,8 @@
 
 .tb-tabs .chip-btn {
     justify-content: center;
-    min-height: 28px;
-    padding: var(--space-xs);
-    font-size: var(--font-xs);
+    min-height: 26px;
+    padding: 2px var(--space-xs);
     font-weight: var(--font-medium);
     line-height: var(--leading-tight);
     text-align: center;
