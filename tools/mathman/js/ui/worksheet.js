@@ -475,6 +475,8 @@
             }
         }
         S.btnLines = btnLines;
+        // Rows that kept their content keep their button: reset every Tab stop, then pick one.
+        DOM.$$('.ws-res[tabindex="0"]', el.resultsInner).forEach((b) => { b.tabIndex = -1; });
         S.roving = -1;
         setRoving(S.activeLine);
         renderMarks(lines);

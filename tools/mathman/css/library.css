@@ -390,6 +390,29 @@
     color: var(--fg-meta);
 }
 
+/* Units are many and short: one line each, symbol then name. */
+.lib-ref-row[data-type="units"] .lib-ref {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-sm);
+}
+
+.lib-ref-row[data-type="units"] .lib-ref-sig {
+    flex-shrink: 0;
+    min-width: 3.5em;
+}
+
+.lib-ref-row[data-type="units"] .lib-ref-desc {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lib-ref-list:has(.lib-ref-row[data-type="units"]) {
+    gap: 2px;
+}
+
 .lib-ref-add {
     width: 26px;
     height: 26px;
