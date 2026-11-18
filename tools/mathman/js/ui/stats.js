@@ -676,6 +676,7 @@
     function wire() {
         els.data.addEventListener('input', () => {
             current.source = '';
+            feedback('');
             persistText();
             schedule();
         });

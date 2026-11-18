@@ -421,7 +421,11 @@
         els.factorSend.addEventListener('click', sendFactor);
     }
 
-    /** "2^3 × 3 × 5" (plain) or "2³ × 3 × 5" (pretty); `ascii` swaps × for * when `star`. */
+    /**
+     * The factor product as text: pretty ("2³ × 3 × 5", grouped digits) by
+     * default; with plainText, "2^3 × 3 × 5" (keepTimes, for copying) or
+     * "2^3 * 3 * 5" (for the sheet).
+     */
     function factorText(f, plainText, keepTimes) {
         const parts = f.factors.map((x) => {
             const p = plainText ? x.prime : groupInt(x.prime);
@@ -520,7 +524,7 @@
         if (!f.factors.length && !f.remainder) line = `// ${lf.value} has no prime factors`;
         else if (!f.complete) line = `// ${lf.value} = ${factorText(f, true, true)} (the bracketed part is not factored yet)`;
         else line = `${factorText(f, true, false)} // prime factors of ${lf.value}`;
-        if (line.length > LINE_MAX) line = `${factorText(f, true, false)}`.slice(0, LINE_MAX);
+        if (line.length > LINE_MAX && f.complete) line = factorText(f, true, false);
         return sendLines([line], 'the factorization');
     }
 
