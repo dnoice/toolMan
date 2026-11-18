@@ -222,6 +222,16 @@
     const fmt = (n) => State.formatNumber(n);
     const fmtField = (n) => State.formatNumber(n, { thousands: 'none' });
 
+    /** Number text that may wrap only after a thousands separator (no mid-digit breaks). */
+    function breakable(text) {
+        const frag = document.createDocumentFragment();
+        String(text).split(/(?<=[,\u202F ])/).forEach((part, i) => {
+            if (i) frag.appendChild(document.createElement('wbr'));
+            frag.appendChild(document.createTextNode(part));
+        });
+        return frag;
+    }
+
     /* ── Pane state ────────────────────────────────────────── */
 
     function validPair(category, from, to) {
@@ -549,7 +559,6 @@
             });
             const btn = DOM.create('button', {
                 className: 'un-cell-btn',
-                text: valueText,
                 attrs: {
                     type: 'button',
                     'data-copy': copyText,
@@ -557,6 +566,7 @@
                     title: copyText ? `Copy ${copyText}` : 'Type a number to convert first'
                 }
             });
+            btn.appendChild(breakable(valueText));
             btn.disabled = !copyText;
             const tr = DOM.create('tr', {
                 attrs: { 'data-copy': copyText },
@@ -645,11 +655,13 @@
             notify(`This sheet has ${MAX_LINES.toLocaleString('en-US')} lines, the most mathMan works out. Start a new sheet to add more.`, 'warning', 4000);
             return false;
         }
+        const before = State.activeSheet().text;
         const ws = window.WorksheetUI;
         if (ws && typeof ws.appendLine === 'function') {
             try {
                 ws.appendLine(line);
-                return true;
+                // The worksheet explains a refusal (a full sheet) itself.
+                return State.activeSheet().text !== before;
             } catch (err) {
                 console.error('[UnitsUI] WorksheetUI.appendLine failed:', err);
             }

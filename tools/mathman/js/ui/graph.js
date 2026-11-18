@@ -1043,8 +1043,10 @@
         els.notes.hidden = !text;
     }
 
+    /** A window edge: five significant digits are plenty to say where you are. */
     function rangeText(lo, hi) {
-        return `${fmt(lo)} to ${fmt(hi)}`;
+        const short = (n) => State.formatNumber(n, { precision: Math.min(5, State.settings().precision || 5) });
+        return `${short(lo)} to ${short(hi)}`;
     }
 
     function summaryText() {
@@ -1229,18 +1231,25 @@
             notify(`This sheet is nearly at ${MAX_LINES.toLocaleString('en-US')} lines, the most mathMan works out. Start a new sheet to add more.`, 'warning', 4000);
             return [];
         }
-        lines.forEach(appendToSheet);
-        notify(lines.length === 1 ? `Added to “${State.activeSheet().name}”: ${lines[0]}` : `Added ${lines.length} lines to “${State.activeSheet().name}”`, 'success', 2400);
+        const added = [];
+        for (const line of lines) {
+            if (!appendToSheet(line)) break;
+            added.push(line);
+        }
+        if (!added.length) return [];
+        notify(added.length === 1 ? `Added to “${State.activeSheet().name}”: ${added[0]}` : `Added ${added.length} lines to “${State.activeSheet().name}”`, 'success', 2400);
         if (window.ToolApp) ToolApp.flash(els.sendTrace);
-        return lines;
+        return added;
     }
 
     function appendToSheet(line) {
+        const before = State.activeSheet().text;
         const ws = window.WorksheetUI;
         if (ws && typeof ws.appendLine === 'function') {
             try {
                 ws.appendLine(line);
-                return true;
+                // The worksheet explains a refusal (a full sheet) itself.
+                return State.activeSheet().text !== before;
             } catch (err) {
                 console.error('[GraphUI] WorksheetUI.appendLine failed:', err);
             }

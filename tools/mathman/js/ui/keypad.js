@@ -190,6 +190,7 @@
         return svg;
     }
 
+    const ICON_BACK = [['path', { d: 'M10 5a2 2 0 0 0-1.34.52l-6.33 5.74a1 1 0 0 0 0 1.48l6.33 5.74A2 2 0 0 0 10 19h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z' }], ['path', { d: 'm12 9 6 6' }], ['path', { d: 'm18 9-6 6' }]];
     const ICON_COPY = [['rect', { x: 9, y: 9, width: 13, height: 13, rx: 2 }], ['path', { d: 'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1' }]];
 
     function prefs() {
@@ -559,7 +560,10 @@
             className: `tool-action-btn kp-key${extraClass ? ` ${extraClass}` : ''}`,
             attrs: { type: 'button', 'data-key': def.id, 'data-kind': def.kind || 'unit', tabindex: '-1' }
         });
-        btn.appendChild(DOM.create('span', { className: 'kp-key-label', text: def.label, attrs: def.name ? { 'aria-hidden': 'true' } : {} }));
+        const label = DOM.create('span', { className: 'kp-key-label', attrs: def.name ? { 'aria-hidden': 'true' } : {} });
+        if (def.id === 'back') label.appendChild(icon(ICON_BACK, 18));
+        else label.textContent = def.label;
+        btn.appendChild(label);
         if (def.name) {
             btn.setAttribute('aria-label', def.name);
             btn.title = def.text && def.kind !== 'digit' && !def.action ? `${def.name} — types ${def.text.trim() || def.text}` : def.name;
