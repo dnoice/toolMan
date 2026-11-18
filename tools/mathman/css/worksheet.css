@@ -26,8 +26,9 @@
  *       the line numbers, the results, and the error underlines
  *     - Current-line band behind all three columns; current and error line
  *       numbers are tinted, and errors also carry a "⚠ Error" word
- *     - Result buttons in mono brand ink with a muted fraction suffix, a
- *       hover surface, a visible focus ring, and a copied state
+ *     - Result buttons in mono brand ink with a muted fraction suffix that
+ *       gives way first in a narrow column, a hover surface, a visible focus
+ *       ring, and a copied state
  *     - Wavy underline under the faulty part of an error line, drawn in a
  *       transparent mirror layer under the text
  *     - Error tooltip on hover and focus, and a brief highlight on a line a
@@ -313,13 +314,19 @@
 }
 
 .ws-val {
+    flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
+/* In a narrow column the fraction gives way first, so the value and its
+   unit stay readable (the full fraction is on the Result card). */
 .ws-frac {
-    flex-shrink: 0;
+    flex: 0 1000 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: var(--font-xs);
     font-weight: var(--font-normal);
     color: var(--fg-subtle);

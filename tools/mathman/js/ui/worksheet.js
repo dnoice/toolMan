@@ -27,8 +27,10 @@
  *       shortcut, Copy all, or a sheet switch reads the results
  *     - Results are real buttons: click, Enter, or Space copies the plain
  *       value with its unit; arrow keys move between them (one Tab stop)
- *     - Exact fractions as a muted suffix when the decimal is rounded or the
- *       fraction is a half, quarter, eighth, or sixteenth
+ *     - Short exact fractions (up to 9 characters, like 22/7) as a muted
+ *       suffix when the decimal is rounded or the fraction is a half,
+ *       quarter, eighth, or sixteenth; the value and its unit keep priority
+ *       when the column is narrow
  *     - Errors show a "⚠ Error" marker with the message on hover and focus,
  *       a wavy underline under the faulty part of the line, and a jump to it
  *     - Current-line band and gutter highlight; "Ln, Col" status under the
@@ -182,16 +184,18 @@
     }
 
     /**
-     * The exact fraction worth showing in the narrow results column: only
-     * when the decimal is rounded (a repeating decimal) or the fraction is a
-     * half, quarter, eighth, or sixteenth. The Result card always shows it.
+     * The exact fraction worth showing in the narrow results column: a short
+     * one (at most 9 characters, like 22/7) when the decimal is rounded (a
+     * repeating decimal) or the fraction is a half, quarter, eighth, or
+     * sixteenth. A long one such as 781250/12573 would crowd out the value
+     * and its unit, so it stays on the Result card.
      */
     function columnFraction(l) {
         const ex = l && l.exact ? String(l.exact) : '';
         if (!ex) return '';
         const frac = ex.split(' ')[0];
         const m = /^-?(\d+)\/(\d+)$/.exec(frac);
-        if (!m || frac.length > 15) return '';
+        if (!m || frac.length > 9) return '';
         let d = Number(m[2]);
         if (!Number.isSafeInteger(d) || d < 2) return '';
         if (d === 2 || d === 4 || d === 8 || d === 16) return frac;
@@ -1303,6 +1307,9 @@
         DOM.on(ta, 'drop', () => { S.pasteNext = true; });
         DOM.on(ta, 'scroll', syncScroll);
         ['keyup', 'mouseup', 'select', 'focus'].forEach((evt) => DOM.on(ta, evt, () => {
+            // A 'select' queued by setSelectionRange can arrive after focus has
+            // moved to a result button; it must not pull the Result card back.
+            if (document.activeElement !== ta) return;
             S.activeSource = 'caret';
             scheduleCaret();
         }));
