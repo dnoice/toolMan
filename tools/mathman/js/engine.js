@@ -123,6 +123,7 @@
     const dict = () => Object.create(null);
 
     const TOO_LARGE = 'That number is too large to show';
+    const TOO_SMALL = 'That number is too close to zero to show';
     const NO_REAL = 'No real result — the answer is not a real number';
     const BUDGET = 'This line takes too many steps to work out — try smaller numbers or fewer repeats';
     const AFFINE = 'Temperatures in °C or °F can only be converted, added in the same unit, or scaled by a plain number — convert to K first';
@@ -205,7 +206,11 @@
     /** Keep a reduced rational exact unless it outgrows the bit budget. */
     function guard(n, d) {
         if (n > -SAFE && n < SAFE && d < SAFE) return { n, d };
-        if (bitLen(n) > LIMITS.bits || bitLen(d) > LIMITS.bits) return ratToFloat(n, d);
+        if (bitLen(n) > LIMITS.bits || bitLen(d) > LIMITS.bits) {
+            const f = ratToFloat(n, d);
+            if (f === 0 && n !== 0n) throw new EngineError(TOO_SMALL);
+            return f;
+        }
         return { n, d };
     }
 
@@ -303,7 +308,11 @@
         }
         if (d === 1n && (n === 1n || n === -1n)) return { n: n === -1n && k % 2n === 1n ? -1n : 1n, d: 1n };
         const bits = Math.max(bitLen(n), bitLen(d));
-        if (k > 1000000n || bits * Number(k) > LIMITS.bits + 64) return Math.pow(ratToFloat(n, d), Number(k));
+        if (k > 1000000n || bits * Number(k) > LIMITS.bits + 64) {
+            const f = Math.pow(ratToFloat(n, d), Number(k));
+            if (f === 0) throw new EngineError(TOO_SMALL);
+            return f;
+        }
         return guard(n ** k, d ** k);
     }
 
@@ -690,6 +699,7 @@
         if (!Number.isFinite(exp) || Math.abs(scale) > 6000) {
             value = Number(`${intDigits || '0'}.${frac || '0'}e${exp}`);
             if (!Number.isFinite(value)) throw new EngineError(TOO_LARGE, s, j);
+            if (value === 0 && /[1-9]/.test(intDigits + frac)) throw new EngineError(TOO_SMALL, s, j);
         } else {
             const n = BigInt((intDigits + frac) || '0');
             value = scale >= 0 ? rat(n * 10n ** BigInt(scale), 1n) : rat(n, 10n ** BigInt(-scale));
@@ -1132,7 +1142,10 @@
 
     // A value is { k: 'n', v: rational|float, u: unit expression|null, fmt }
     // or { k: 'b', v: boolean }.
-    const qty = (v, u) => ({ k: 'n', v, u: u && u.length ? u : null, fmt: null });
+    function qty(v, u) {
+        if (v === Infinity || v === -Infinity) throw new EngineError(TOO_LARGE);
+        return { k: 'n', v, u: u && u.length ? u : null, fmt: null };
+    }
     const boolV = (b) => ({ k: 'b', v: !!b });
 
     let CUR_O = null;   // options of the line being worked out (for messages)
@@ -2043,7 +2056,7 @@
         const withUnit = (s) => (unit ? `${s} ${unit}` : s);
         const numeric = (y) => {
             const f = toF(y);
-            return Number.isFinite(f) ? f : null;
+            return Number.isFinite(f) && !(f === 0 && !isZero(y)) ? f : null;
         };
         if (V.fmt === 'hex' || V.fmt === 'bin' || V.fmt === 'oct') {
             const s = baseString(x, V.fmt);
