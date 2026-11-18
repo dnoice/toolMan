@@ -556,7 +556,7 @@
     font-family: var(--font-mono);
     font-size: var(--font-xs);
     text-align: right;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
     cursor: pointer;
     transition: color var(--transition-fast), border-color var(--transition-fast);
 }

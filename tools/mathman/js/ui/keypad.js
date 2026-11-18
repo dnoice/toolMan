@@ -619,7 +619,7 @@
             text: 'RAD',
             attrs: { type: 'button', 'aria-pressed': 'false', 'aria-label': 'Degrees mode (DEG / RAD)' }
         });
-        els.modeNote = DOM.create('span', { className: 'kp-mode-note', text: 'Keys type at the worksheet caret' });
+        els.modeNote = DOM.create('span', { className: 'kp-mode-note', text: 'Types at the worksheet caret' });
         root.appendChild(DOM.create('div', { className: 'kp-modes', children: [els.second, els.angle, els.modeNote] }));
 
         // Function keys, then the main pad

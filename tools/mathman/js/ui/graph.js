@@ -655,9 +655,9 @@
 
     function fitCanvas() {
         if (!els.frame) return false;
-        const rect = els.frame.getBoundingClientRect();
-        const w = Math.round(rect.width);
-        const h = Math.round(rect.height);
+        // The canvas fills the frame's padding box (inside its border).
+        const w = els.frame.clientWidth;
+        const h = els.frame.clientHeight;
         if (w < 2 || h < 2) return false;
         const dpr = Math.min(3, window.devicePixelRatio || 1);
         if (w === size.w && h === size.h && dpr === size.dpr) return true;
