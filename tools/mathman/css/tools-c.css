@@ -137,6 +137,18 @@
     min-width: 0;
 }
 
+/* A label and its chip group on one line; the chips wrap under it when narrow. */
+.tc-inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs) var(--space-sm);
+}
+
+.tc-inline > .mini-label {
+    flex-shrink: 0;
+}
+
 .tc-panel:focus-visible {
     outline: 2px solid var(--border-focus);
     outline-offset: 2px;

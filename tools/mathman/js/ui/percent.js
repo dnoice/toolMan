@@ -346,6 +346,14 @@
         return api;
     }
 
+    /** A visible label beside a chip group; the group is labelled by it. */
+    function labelledRow(id, text, group) {
+        const label = DOM.create('span', { className: 'mini-label', text, attrs: { id } });
+        group.setAttribute('aria-labelledby', id);
+        group.removeAttribute('aria-label');
+        return DOM.create('div', { className: 'tc-inline', children: [label, group] });
+    }
+
     /** The tab strip: chips with role="tab", arrow keys move and select. */
     function buildTabs(root) {
         const list = DOM.create('div', { className: 'chip-row tc-tabs', attrs: { role: 'tablist', 'aria-label': 'Percentage calculators' } });
@@ -423,7 +431,7 @@
         if (calc.dir) {
             u.dir = chipGroup('Direction of the change', DIRS, () => { update(calc.id); schedulePersist(); });
             u.dir.set(saved.dir);
-            panel.appendChild(u.dir.el);
+            panel.appendChild(labelledRow(`pc-${calc.id}-dir`, calc.id === 'reverse' ? 'The change was' : 'Direction', u.dir.el));
         }
 
         const ans = answerCard(calc.id, 'Answer');
@@ -464,7 +472,7 @@
         panel.appendChild(DOM.create('h5', { className: 'section-label tc-subhead', text: 'Scale to a new size' }));
         u.by = chipGroup('Scale by', SCALE_BY, () => { syncScaleLabel(u); update('ratio'); schedulePersist(); });
         u.by.set(saved.by);
-        panel.appendChild(u.by.el);
+        panel.appendChild(labelledRow('pc-ratio-by', 'Keep the shape for a', u.by.el));
         const fl = field('ratio', { key: 'target', label: 'New width', example: '1280' });
         fl.input.value = saved.target;
         u.inputs.target = fl.input;
@@ -624,11 +632,11 @@
             case 'ratio': {
                 const r = Finance.ratio(v.w, v.h);
                 const decimal = v.h === 0 ? null : v.w / v.h;
-                const decText = decimal === null ? '' : `${fmt(decimal, { precision: 4 })} : 1`;
+                const decText = decimal === null ? '' : `${fmt(decimal, { precision: 4 })}\u00A0:\u00A01`;
                 return {
                     label: 'Simplest ratio',
                     value: r,
-                    display: r.replace(':', ' : '),
+                    display: r.replace(':', '\u00A0:\u00A0'),
                     copy: r,
                     copyLabel: 'the ratio',
                     sentence: decimal === null

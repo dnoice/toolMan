@@ -689,7 +689,10 @@
         panel.appendChild(f.grid);
         f.timing = chipGroup('When deposits go in', TIMING, () => { recalc('savings'); schedulePersist(); });
         f.timing.set(saved.timing);
-        panel.appendChild(f.timing.el);
+        const timingLabel = DOM.create('span', { className: 'mini-label', text: 'Deposits go in at the', attrs: { id: 'fn-savings-timing' } });
+        f.timing.el.setAttribute('aria-labelledby', 'fn-savings-timing');
+        f.timing.el.removeAttribute('aria-label');
+        panel.appendChild(DOM.create('div', { className: 'tc-inline', children: [timingLabel, f.timing.el] }));
         Object.assign(f, { answer: answerCard('savings') });
         panel.appendChild(f.answer.card);
 
