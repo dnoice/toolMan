@@ -23,7 +23,8 @@
  *     - Monospace <textarea> (no wrapping, no spellcheck) with a line-number
  *       gutter and a results column that follow its scroll position exactly
  *     - Re-evaluates 120 ms after typing stops, at once on paste, on a new or
- *       removed line, and before any action that reads a result
+ *       removed line, when the editor loses focus, and before a Ctrl / Cmd
+ *       shortcut, Copy all, or a sheet switch reads the results
  *     - Results are real buttons: click, Enter, or Space copies the plain
  *       value with its unit; arrow keys move between them (one Tab stop)
  *     - Exact fractions as a muted suffix when the decimal is rounded or the
@@ -55,8 +56,10 @@
  * ✒ Examples:
  *     WorksheetUI.init()                    → builds the editor and the Result card
  *     WorksheetUI.insert('sqrt(')           → typed at the caret, selection replaced, editor focused
+ *     WorksheetUI.insert('7', { focus: false })   → typed at the caret without moving focus
  *     WorksheetUI.appendLine('15% of 80')   → new last line, evaluated; returns its LineResult (display '12')
- *     WorksheetUI.currentResult()           → the LineResult under the caret (pending typing is evaluated first)
+ *     WorksheetUI.currentResult()           → the LineResult under the caret (cheap; safe on every caret move)
+ *     WorksheetUI.currentResult({ fresh: true })  → the same, after evaluating typing still waiting on the debounce
  *     WorksheetUI.selectionSummary()        → { count: 3, sum: 1830, mean: 610, unit: '' } or null
  *     WorksheetUI.toggleComment()           → '// ' added to (or removed from) the selected lines
  *     WorksheetUI.goToLine(16)              → caret at the end of line 16, scrolled into view
@@ -333,7 +336,7 @@
 
     function placeBand() {
         const { lh, pt } = S.metrics;
-        const top = pt + S.caretLine * lh - el.ta.scrollTop;
+        const top = pt + S.activeLine * lh - el.ta.scrollTop;
         const visible = top > -lh && top < el.ws.clientHeight;
         el.band.hidden = !visible;
         if (visible) el.band.style.transform = `translateY(${top}px)`;
@@ -374,7 +377,7 @@
 
     let gutterCurrent = null;
     function markGutterCurrent() {
-        const d = el.lns[S.caretLine] || null;
+        const d = el.lns[S.activeLine] || null;
         if (gutterCurrent === d) return;
         if (gutterCurrent) delete gutterCurrent.dataset.current;
         if (d) d.dataset.current = 'true';
@@ -583,12 +586,12 @@
         const line = lineOf(text, off);
         S.caretLine = line;
         S.caretCol = off - lineStart(text, line) + 1;
-        markGutterCurrent();
-        placeBand();
         if (S.activeSource === 'caret' && S.activeLine !== line) {
             S.activeLine = line;
             setRoving(line);
         }
+        markGutterCurrent();
+        placeBand();
         updateFoot();
         renderCard();
     }
@@ -830,7 +833,6 @@
             facts.appendChild(row);
         };
         if (l.exact) fact('Exact', l.exact, true);
-        if (l.unit) fact('Unit', l.unit);
         const plain = String(l.plain || '');
         // Only when it says more than the display (all digits of a big number), not just no separators.
         if (plain && plain !== display.replace(/[, ]/g, '')) {
@@ -1053,7 +1055,12 @@
         }
     }
 
-    function insert(text) {
+    /**
+     * Type text at the caret, replacing any selection, then focus the
+     * editor. opts.focus = false leaves focus where it is (no phone
+     * keyboard, no drawer change); the browser's undo history then restarts.
+     */
+    function insert(text, opts = {}) {
         if (!el.ta) return false;
         const s = cleanInput(text);
         if (!s) return false;
@@ -1064,9 +1071,14 @@
             notify(`A sheet holds up to ${MAX_CHARS.toLocaleString('en-US')} characters, so that text was not added. Start a new sheet for it.`, 'warning', 4500);
             return false;
         }
-        closeDrawer();
         S.activeSource = 'caret';
-        replaceRange(start, end, s);
+        if (opts && opts.focus === false) {
+            ta.setRangeText(s, start, end, 'end');
+            onInput();
+        } else {
+            closeDrawer();
+            replaceRange(start, end, s);
+        }
         flush();
         ensureLineVisible(lineOf(ta.value, ta.selectionEnd));
         updateCaret();
@@ -1121,9 +1133,21 @@
         scheduleCaret();
     }
 
-    function currentResult() {
-        flush();
-        return activeLineResult();
+    /** The line the Result card follows: the caret's (worked out now) or a focused result's. */
+    function currentLineIndex() {
+        if (S.activeSource === 'caret' && el.ta) return lineOf(el.ta.value, caretOffset());
+        return S.activeLine;
+    }
+
+    /**
+     * The LineResult under the caret, or null. Cheap enough to call on every
+     * caret move: typing still waiting on the debounce is not evaluated
+     * unless opts.fresh is true (shortcuts flush it before they run).
+     */
+    function currentResult(opts = {}) {
+        if (opts && opts.fresh) flush();
+        const lines = S.result ? S.result.lines : [];
+        return lines[currentLineIndex()] || null;
     }
 
     /** Move the caret to the end of 1-based line `n` and scroll it into view. */
@@ -1307,6 +1331,8 @@
             S.activeSource = 'result';
             S.activeLine = i;
             setRoving(i);
+            markGutterCurrent();
+            placeBand();
             renderCard();
             if (b.classList.contains('ws-err')) showTip(b);
         });
@@ -1337,6 +1363,13 @@
             renderMarks(S.result ? S.result.lines : []);
             syncScroll();
         }, 150));
+
+        // A Ctrl / Cmd shortcut (copy result, add to History, comment…) reads
+        // results: evaluate waiting typing first. Capture phase runs before
+        // ToolApp's own keydown listener.
+        window.addEventListener('keydown', (e) => {
+            if (S.pending && (e.ctrlKey || e.metaKey) && e.key !== 'Control' && e.key !== 'Meta') commit();
+        }, true);
 
         // Never lose typing that is still waiting on the debounce.
         window.addEventListener('pagehide', () => commit({ evaluate: false }));
@@ -1420,7 +1453,7 @@
         toggleComment,
         goToLine,
         flush,
-        addToHistory: () => addHistory(currentResult()),
+        addToHistory: () => addHistory(currentResult({ fresh: true })),
         /** Pure helpers, exposed for tests. */
         _lineOf: lineOf,
         _columnFraction: columnFraction

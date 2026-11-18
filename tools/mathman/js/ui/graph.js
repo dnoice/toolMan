@@ -107,9 +107,13 @@
     let needCompile = true;
     let sheetSig = '';
     let sheetText = '';
+    let sheetNames = new Set();
     let size = { w: 0, h: 0, dpr: 1 };
     let colors = null;
-    let trace = null;          // { x, source: 'pointer' | 'key' }
+    let trace = null;          // { x, source: 'pointer' | 'key' | 'pin' }
+    let pinned = null;         // the x a click or the keyboard kept (hover only previews)
+    let themeGen = 0;
+    const plotCache = { key: '', canvas: null, notes: { coarse: [], cut: [], drawn: 0 } };
     let frame = 0;
     let stale = false;
     let lastNotes = { coarse: [], cut: [] };
@@ -241,7 +245,29 @@
             fns.map((f) => [f.name, f.params, f.body]),
             vars.map((v) => [v.name, v.display])
         ]);
-        return { sig, defines: fns.length + vars.length > 0, functions: fns };
+        const names = new Set();
+        let last = -1;
+        fns.concat(vars).forEach((d) => {
+            if (d && typeof d.name === 'string') names.add(d.name);
+            const at = Number.isInteger(d && d.index) ? d.index : (Number.isInteger(d && d.line) ? d.line - 1 : -1);
+            if (at > last) last = at;
+        });
+        names.delete('x');
+        return { sig, names, last, functions: fns };
+    }
+
+    /** Does the expression name anything the sheet defines? */
+    function usesSheet(expr, names) {
+        if (!names.size) return false;
+        const ids = expr.match(/[\p{L}_][\p{L}\p{N}_]*/gu) || [];
+        return ids.some((id) => names.has(id));
+    }
+
+    /** The sheet up to its last definition: later lines cannot change what it defines. */
+    function definitionText(last) {
+        if (last < 0) return '';
+        const lines = State.activeSheet().text.split('\n');
+        return lines.slice(0, last + 1).join('\n');
     }
 
     function compileAll() {
@@ -253,17 +279,19 @@
         const sheet = readSheet();
         if (sheet.sig !== sheetSig) {
             sheetSig = sheet.sig;
-            sheetText = sheet.defines ? State.activeSheet().text : '';
+            sheetNames = sheet.names;
+            sheetText = definitionText(sheet.last);
         }
         const angle = State.settings().angle === 'deg' ? 'deg' : 'rad';
         compiled = model.series.map((s, i) => {
-            const key = `${s.expr}\u0000${angle}\u0000${sheetSig}`;
-            if (compiled[i] && compiled[i].key === key) return compiled[i];
             const expr = s.expr.trim();
+            const withSheet = Boolean(sheetText) && usesSheet(expr, sheetNames);
+            const key = `${s.expr}\u0000${angle}\u0000${withSheet ? sheetSig : ''}`;
+            if (compiled[i] && compiled[i].key === key) return compiled[i];
             if (!expr) return { key, fn: null, error: null, empty: true };
             let r;
             try {
-                r = MathEngine.compile(expr, { variable: 'x', angle, sheet: sheetText || undefined });
+                r = MathEngine.compile(expr, { variable: 'x', angle, sheet: withSheet ? sheetText : undefined });
             } catch (err) {
                 r = { fn: null, error: 'That expression could not be read.' };
             }
@@ -610,12 +638,13 @@
             notes.drawn += 1;
             paintSeries(ctx, i, w, h, v, c, notes);
         });
-        if (!model.series.some((s, i) => compiled[i] && compiled[i].fn)) {
+        if (!notes.drawn) {
+            const any = model.series.some((s, i) => compiled[i] && compiled[i].fn);
             ctx.fillStyle = c.label;
             ctx.font = `12px ${c.font}`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('Type an expression in x above, like sin(x)', w / 2, h / 2);
+            ctx.fillText(any ? 'Every graph is hidden — click a numbered swatch' : 'Type an expression in x above, like sin(x)', w / 2, h / 2);
         }
         if (withTrace) paintTrace(ctx, w, h, v, c);
         ctx.restore();
@@ -657,12 +686,31 @@
         if (!colors) readColors();
         const ctx = els.canvas.getContext('2d');
         if (!ctx) return;
+        // The plot itself is cached; moving the trace only repaints the overlay.
+        const key = JSON.stringify([model.view, size, themeGen, compiled.map((c) => c && c.key), model.series.map((s) => s.visible)]);
+        if (plotCache.key !== key || !plotCache.canvas) {
+            if (!plotCache.canvas) plotCache.canvas = document.createElement('canvas');
+            const pc = plotCache.canvas;
+            if (pc.width !== els.canvas.width || pc.height !== els.canvas.height) {
+                pc.width = els.canvas.width;
+                pc.height = els.canvas.height;
+            }
+            const pctx = pc.getContext('2d');
+            if (!pctx) return;
+            pctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
+            plotCache.notes = paint(pctx, size.w, size.h, model.view, colors, { withTrace: false });
+            plotCache.key = key;
+        }
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
+        ctx.drawImage(plotCache.canvas, 0, 0);
         ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
-        lastNotes = paint(ctx, size.w, size.h, model.view, colors);
+        paintTrace(ctx, size.w, size.h, model.view, colors);
+        lastNotes = plotCache.notes;
         renderReadout();
         renderNotes();
         renderWindowFields();
-        renderSummary();
+        announceSoon();
     }
 
     /* ── Scheduling: draw once per frame, only while open ──── */
@@ -953,7 +1001,7 @@
         if (!trace) {
             box.appendChild(DOM.create('p', {
                 className: 'gr-readout-empty',
-                text: 'Point at the graph, tap it, or focus it and press ← or → to read values.'
+                text: 'Point at the graph to read values; click or tap to keep a point. With the graph focused, ← and → step along x.'
             }));
             els.traceActions.hidden = true;
             return;
@@ -1002,14 +1050,6 @@
         return `x ${rangeText(v.xMin, v.xMax)} · y ${rangeText(v.yMin, v.yMax)} · ${drawn} ${drawn === 1 ? 'graph' : 'graphs'}`;
     }
 
-    function renderSummary() {
-        const text = summaryText();
-        if (els.summary.dataset.full !== text) {
-            els.summary.dataset.full = text;
-            els.summary.title = text;
-        }
-    }
-
     /** Update the live summary a moment after things settle (not on every drag frame). */
     function announceSoon() {
         clearTimeout(liveTimer);
@@ -1021,13 +1061,14 @@
                 text = `x ${fmt(trace.x)}${vals.length ? `: ${vals.join(', ')}` : ''}. ${text}`;
             }
             if (els.summary.textContent !== text) els.summary.textContent = text;
+            els.summary.title = text;
         }, 350);
     }
 
     function renderWindowFields() {
         const v = model.view;
         els.windowBtn.setAttribute('aria-expanded', String(model.windowOpen));
-        els.windowBtn.setAttribute('aria-pressed', String(model.windowOpen));
+        els.windowBtn.dataset.active = String(model.windowOpen);
         els.window.hidden = !model.windowOpen;
         if (!v || !model.windowOpen) return;
         ['xMin', 'xMax', 'yMin', 'yMax'].forEach((k) => {
@@ -1115,6 +1156,7 @@
     function resetView() {
         model.view = null;
         trace = null;
+        pinned = null;
         persist();
         schedule();
         announceSoon();
@@ -1127,14 +1169,22 @@
         return true;
     }
 
+    /**
+     * Set the trace. A hover ('pointer') only previews; a click ('pin') or
+     * the keyboard ('key') keeps the point, and the preview falls back to it.
+     */
     function setTrace(x, source) {
         if (!isNum(x)) {
-            trace = null;
+            if (source === 'pointer' && pinned !== null) trace = { x: pinned, source: 'pin' };
+            else {
+                trace = null;
+                if (source !== 'pointer') pinned = null;
+            }
         } else {
             trace = { x, source };
+            if (source !== 'pointer') pinned = x;
         }
         schedule();
-        if (source === 'key') announceSoon();
     }
 
     /** Move the keyboard trace one step (or `steps`) and keep it in view. */
@@ -1264,8 +1314,13 @@
         else if ([v.xMin, v.xMax, v.yMin, v.yMax].some((n) => Math.abs(n) > COORD_MAX)) error = `Keep every value between −${fmt(COORD_MAX)} and ${fmt(COORD_MAX)}.`;
         else if (v.xMax - v.xMin < SPAN_MIN || v.yMax - v.yMin < SPAN_MIN) error = 'That window is too narrow to draw. Widen the range.';
         els.winError.textContent = error;
+        let flagged = [];
+        if (bad.length) flagged = bad;
+        else if (error.startsWith('“x')) flagged = ['xMin', 'xMax'];
+        else if (error.startsWith('“y')) flagged = ['yMin', 'yMax'];
+        else if (error) flagged = ['xMin', 'xMax', 'yMin', 'yMax'];
         ['xMin', 'xMax', 'yMin', 'yMax'].forEach((k) => {
-            if (error && (!isNum(v[k]) || /x/.test(k) === /x from|x to/.test(error))) els[`win_${k}`].setAttribute('aria-invalid', 'true');
+            if (flagged.includes(k)) els[`win_${k}`].setAttribute('aria-invalid', 'true');
             else els[`win_${k}`].removeAttribute('aria-invalid');
         });
         if (error) return false;
@@ -1281,10 +1336,10 @@
         return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     }
 
-    function pointerTrace(p) {
+    function pointerTrace(p, source = 'pointer') {
         const v = ensureView();
         const step = niceStep(v.xMax - v.xMin, size.w);
-        setTrace(snap(fromPx(v, p.x), step), 'pointer');
+        setTrace(snap(fromPx(v, p.x), step), source);
     }
 
     function onPointerDown(e) {
@@ -1331,7 +1386,7 @@
         if (!pointers.has(e.pointerId)) return;
         const p = localPoint(e);
         pointers.delete(e.pointerId);
-        if (gesture && gesture.type === 'pan' && gesture.moved <= 3 && e.type === 'pointerup') pointerTrace(p);
+        if (gesture && gesture.type === 'pan' && gesture.moved <= 3 && e.type === 'pointerup') pointerTrace(p, 'pin');
         if (pointers.size === 1) {
             const [only] = [...pointers.values()];
             gesture = { type: 'pan', last: only, moved: 10, start: only };
@@ -1362,7 +1417,7 @@
         else if (k === '-' || k === '_') zoomCentre(ZOOM_STEP);
         else if (k === '0') resetView();
         else if (k === 'Home') setTrace(v.xMin <= 0 && v.xMax >= 0 ? 0 : snap((v.xMin + v.xMax) / 2, niceStep(v.xMax - v.xMin, 80)), 'key');
-        else if (k === 'Escape' && trace) setTrace(NaN, 'key');
+        else if (k === 'Escape' && (trace || pinned !== null)) setTrace(NaN, 'key');
         else handled = false;
         if (handled) {
             e.preventDefault();
@@ -1435,21 +1490,18 @@
             applyWindow();
         });
         DOM.on(els.sendTrace, 'click', sendTrace);
-        DOM.on(els.clearTrace, 'click', () => setTrace(NaN, 'pointer'));
+        DOM.on(els.clearTrace, 'click', () => setTrace(NaN, 'pin'));
 
         document.addEventListener('toolman:theme', () => {
             readColors();
+            themeGen += 1;
             schedule();
         });
 
         State.on('results', () => {
             const sig = readSheet().sig;
-            if (sig !== sheetSig) {
-                needCompile = true;
-                schedule();
-            } else {
-                renderChips();
-            }
+            if (sig !== sheetSig) compileSoon();
+            else renderChips();
         });
         State.on('active', () => {
             needCompile = true;
@@ -1463,6 +1515,7 @@
             model = loadModel();
             compiled = [];
             trace = null;
+            pinned = null;
             needCompile = true;
             renderRows();
             schedule();

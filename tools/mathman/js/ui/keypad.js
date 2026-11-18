@@ -158,6 +158,9 @@
     const els = { keys: Object.create(null) };
     let second = false;
     let lastPointer = 'mouse';
+    // Quiet input edits the worksheet without focusing it: no phone keyboard
+    // pops up and the Tools drawer stays open (touch, keyboard, phones).
+    let quiet = false;
     let frame = 0;
     let stale = false;
     let speak = false;
@@ -206,8 +209,18 @@
         return mount ? DOM.$('textarea', mount) : null;
     }
 
-    /** Replace [start, end) in the textarea, keeping the browser's undo history when it can. */
+    const isPhone = () => Boolean(window.Workbench && typeof Workbench.isMobile === 'function' && Workbench.isMobile());
+
+    /**
+     * Replace [start, end) in the textarea. Normal input focuses it and keeps
+     * the browser's undo history; quiet input leaves focus where it is.
+     */
     function replaceRange(ta, start, end, text) {
+        if (quiet) {
+            ta.setRangeText(text, start, end, 'end');
+            ta.dispatchEvent(new Event('input', { bubbles: true }));
+            return;
+        }
         ta.focus();
         ta.setSelectionRange(start, end);
         let done = false;
@@ -232,8 +245,7 @@
         const ws = window.WorksheetUI;
         if (ws && typeof ws.insert === 'function') {
             try {
-                ws.insert(text);
-                return true;
+                return ws.insert(text, quiet ? { focus: false } : undefined) !== false;
             } catch (err) {
                 console.error('[KeypadUI] WorksheetUI.insert failed:', err);
             }
@@ -351,8 +363,9 @@
         if (end === -1) end = v.length;
         if (start === end) return false;
         const lineNo = v.slice(0, start).split('\n').length;
+        const undoable = !quiet;
         replaceRange(ta, start, end, '');
-        notify(`Cleared line ${lineNo}. Press Ctrl+Z in the worksheet to bring it back.`, 'info', 2600);
+        notify(undoable ? `Cleared line ${lineNo}. Press Ctrl+Z in the worksheet to bring it back.` : `Cleared line ${lineNo}.`, 'info', 2600);
         return true;
     }
 
@@ -378,8 +391,22 @@
         return insertText('\n');
     }
 
-    /** Run a key by id ('7', 'add', 'sqrt', 'equals', 'u-km', …). Returns true when it did something. */
-    function press(id) {
+    /**
+     * Run a key by id ('7', 'add', 'sqrt', 'equals', 'u-km', …). Returns
+     * true when it did something. opts.quiet keeps focus off the worksheet
+     * (the default on phones).
+     */
+    function press(id, opts = {}) {
+        const was = quiet;
+        quiet = opts.quiet === undefined ? isPhone() : Boolean(opts.quiet);
+        try {
+            return runKey(id);
+        } finally {
+            quiet = was;
+        }
+    }
+
+    function runKey(id) {
         const base = MAIN_KEYS.find((k) => k.id === id)
             || SCI_KEYS.find((k) => k.id === id || (k.alt && k.alt.id === id))
             || UNIT_KEYS.find((k) => k.id === id);
@@ -711,10 +738,11 @@
         }
         // Resolve the visible meaning of a function key (2nd may be on).
         const base = SCI_KEYS.find((k) => k.id === id);
-        press(base ? activeDef(base).id : id);
         // Keyboard and touch keep focus on the keypad (no on-screen keyboard
         // pops up); a mouse click leaves the caret in the worksheet.
-        if (byKeyboard || lastPointer !== 'mouse') btn.focus({ preventScroll: true });
+        const keep = byKeyboard || lastPointer !== 'mouse' || isPhone();
+        press(base ? activeDef(base).id : id, { quiet: keep });
+        if (keep) btn.focus({ preventScroll: true });
     }
 
     function onRootKeydown(e) {
@@ -731,7 +759,7 @@
         e.preventDefault();
         const target = els.keys[id];
         if (target && window.ToolApp) ToolApp.flash(target);
-        press(id);
+        press(id, { quiet: true });
         btn.focus({ preventScroll: true });
     }
 

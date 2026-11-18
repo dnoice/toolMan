@@ -425,6 +425,14 @@
     display: none !important;
 }
 
+/* Stacked under the worksheet, the card keeps one height for every kind of
+   line, so moving the caret never makes the editor above it jump. */
+@container mm-stage (max-width: 979px) {
+    #mount-result {
+        min-height: 172px;
+    }
+}
+
 .rc {
     display: flex;
     flex-direction: column;
