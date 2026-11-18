@@ -1,17 +1,21 @@
 <!--
 ✒ Metadata
-    - Title: ReadMe (toolMan Edition - v1.3)
+    - Title: ReadMe (toolMan Edition - v1.4)
     - File Name: README.md
     - Relative Path: README.md
     - Artifact Type: docs
-    - Version: 1.3.0
-    - Date: 11/17/2026
-    - Update: Tuesday, November 17, 2026
+    - Version: 1.4.0
+    - Date: 11/18/2026
+    - Update: Wednesday, November 18, 2026
     - Author: Dennis 'dendogg' Smaltz
     - A.I. Acknowledgement: Anthropic - Claude
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 1.4.0 (11/18/2026) [dendogg + Anthropic - Claude] — Records the BSD
+      3-Clause License Dennis added: a License section (with a contents entry)
+      replaces the all-rights-reserved note, and the project tree lists
+      LICENSE.
     - 1.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — colorMan is live:
       ecosystem row, a full colorMan section (workbench, library, tools,
       shortcuts), its storage key, and its add-only backup import; svgMan
@@ -73,6 +77,7 @@ works — from a static host or straight off your disk.
 - [Browser support](#browser-support)
 - [Roadmap](#roadmap)
 - [Credits](#credits)
+- [License](#license)
 
 ## Highlights
 
@@ -370,6 +375,7 @@ toolMan/
 ├── .github/                # CI workflow, issue + PR templates, Dependabot
 ├── CHANGELOG.md            # Older per-file changelog entries
 ├── CONTRIBUTING.md         # How to work on toolMan
+├── LICENSE                 # BSD 3-Clause License
 └── SECURITY.md             # Security model + how to report a vulnerability
 ```
 
@@ -440,6 +446,11 @@ above.
 ## Credits
 
 Crafted by Dennis 'dendogg' Smaltz, with engineering assistance from Anthropic's
-Claude (Opus 4.8). toolMan is a personal project; in the absence of a bundled
-`LICENSE` file, treat it as all rights reserved unless the repository states
-otherwise.
+Claude (Opus 4.8).
+
+## License
+
+toolMan is released under the [BSD 3-Clause License](LICENSE). You may use,
+modify, and redistribute it, in source or packaged form, as long as the
+copyright notice and license text come along and the author's name isn't used
+to endorse what you build.
