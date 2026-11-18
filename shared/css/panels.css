@@ -5,14 +5,16 @@
  *     - File Name: panels.css
  *     - Relative Path: shared/css/panels.css
  *     - Artifact Type: stylesheet
- *     - Version: 2.6.0
- *     - Date: 11/17/2026
- *     - Update: Tuesday, November 17, 2026
+ *     - Version: 2.6.1
+ *     - Date: 11/18/2026
+ *     - Update: Wednesday, November 18, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.6.1 (11/18/2026) [dendogg + Anthropic - Claude] — Panel headers use
+ *       --shell-gradient, the new name for --header-gradient.
  *     - 2.6.0 (11/17/2026) [dendogg + Anthropic - Claude] — Phone drawers
  *       scroll as one column: below 769px the open rail pane keeps its
  *       natural height (flex 1 0 auto, no inner scroll) instead of squeezing
@@ -22,11 +24,6 @@
  *       section gaps, and accordion header/body padding now read the density
  *       tokens in tokens.css 2.3.0, tightening the containers a tad on
  *       Dennis's direction.
- *     - 2.4.2 (2026-07-23) [Anthropic - Claude Opus 4.8] — Refined the header
- *       sheen sweep (owner feedback): a single soft opacity peak at mid-cross
- *       instead of a bright hold, on a slower 900ms ease-out glide (was
- *       650ms), so the reflection glides rather than flashes. Pairs with the
- *       lowered reflection-gradient alpha in tokens.css 2.1.1.
  *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
@@ -64,7 +61,7 @@
  *
  * ✒ Examples:
  *     A panel header renders its title in header-gold over the
- *     header-gradient navy; hovering sweeps the reflection-gradient sheen
+ *     shell-gradient navy; hovering sweeps the reflection-gradient sheen
  *     diagonally across it.
  *
  *     Collapsing a tool section sets its data-collapsed attribute, hiding
@@ -136,7 +133,7 @@
     padding: 0 var(--space-lg);
 
     /* House treatment: navy gradient, gold title */
-    background: var(--header-gradient);
+    background: var(--shell-gradient);
     border-bottom: var(--border-width) solid var(--border-subtle);
 
     position: relative;
