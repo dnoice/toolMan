@@ -26,7 +26,9 @@
  *     - Shortcuts: Ctrl+Shift+C copy the current line's result, Ctrl+/
  *       toggle // notes, Ctrl+Enter add the result to History, Ctrl+Alt+N
  *       new sheet, Ctrl+Alt+D degrees / radians (Alt combinations also match
- *       by physical key, so macOS Option characters still work)
+ *       by physical key, so macOS Option characters still work); the three
+ *       line shortcuts work from the worksheet or with no field focused, and
+ *       stay out of other panes' fields (a Graph expression, a Units value)
  *     - Every action asks WorksheetUI first (currentResult, selectionSummary,
  *       focus, toggleComment) and falls back to the worksheet's textarea and
  *       State.result() when the module or method is missing
@@ -260,6 +262,18 @@
         }
     }
 
+    /**
+     * True while focus is in a field that is not the worksheet (a Units
+     * value, a Graph expression, the sheet name). The worksheet shortcuts
+     * act on the worksheet's current line, so they stay out of those fields.
+     */
+    function inOtherField() {
+        const active = document.activeElement;
+        const mount = DOM.id('mount-worksheet');
+        const inField = Boolean(active) && (/^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName) || active.isContentEditable);
+        return inField && !(mount && mount.contains(active));
+    }
+
     /* ── Actions ───────────────────────────────────────────── */
 
     /** Why a line has no copyable result, or '' when it has one. */
@@ -308,10 +322,7 @@
 
         /** Ctrl+/: only for the worksheet (or when no field has focus), never another tool's field. */
         toggleComment() {
-            const active = document.activeElement;
-            const mount = DOM.id('mount-worksheet');
-            const inField = Boolean(active) && (/^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName) || active.isContentEditable);
-            if (inField && !(mount && mount.contains(active))) return;
+            if (inOtherField()) return;
             if (invoke('WorksheetUI', 'toggleComment')) return;
             fallbackToggleComment();
         },
@@ -823,9 +834,9 @@
             right: { id: 'panel-tools', name: 'Tools' }
         },
         shortcuts: [
-            { key: 'c', mod: true, shift: true, allowInFields: true, run: () => actions.copyResult() },
+            { key: 'c', mod: true, shift: true, allowInFields: true, run: () => { if (!inOtherField()) actions.copyResult(); } },
             { key: '/', mod: true, allowInFields: true, run: () => actions.toggleComment() },
-            { key: 'Enter', mod: true, allowInFields: true, run: () => actions.addToHistory() },
+            { key: 'Enter', mod: true, allowInFields: true, run: () => { if (!inOtherField()) actions.addToHistory(); } },
             { key: 'n', mod: true, alt: true, allowInFields: true, run: () => actions.newSheet() },
             { key: 'd', mod: true, alt: true, allowInFields: true, run: () => actions.toggleAngle() }
         ],

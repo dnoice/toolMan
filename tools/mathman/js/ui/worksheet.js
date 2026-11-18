@@ -34,8 +34,10 @@
  *     - Current-line band and gutter highlight; "Ln, Col" status under the
  *       editor; clicking a line number selects that line
  *     - Result card: the line's value large, its label and kind, the exact
- *       fraction, copy buttons (value, with unit, fraction), Add to History,
- *       error explanations, and plain notes for headings, notes, and blanks
+ *       fraction (unless the decimal already is the exact value written out,
+ *       so a typed 1.414213562 never shows 707106781/500000000), copy buttons
+ *       (value, with unit, fraction), Add to History, error explanations,
+ *       and plain notes for headings, notes, and blanks
  *     - Selection summary for several selected lines: count, sum, and mean,
  *       converting compatible units to the first line's unit, or a clear
  *       note when the units cannot be added
@@ -51,7 +53,8 @@
  *     them current from State events. Other panes send text to the sheet
  *     with WorksheetUI.insert() (at the caret) or WorksheetUI.appendLine()
  *     (a new last line). app.js owns the keyboard shortcuts and calls
- *     currentResult(), selectionSummary(), focus(), and toggleComment().
+ *     currentResult(), selectionSummary(), focus(), and toggleComment();
+ *     the Statistics pane reads the selected lines through selectedLines().
  *
  * ✒ Examples:
  *     WorksheetUI.init()                    → builds the editor and the Result card
@@ -61,6 +64,7 @@
  *     WorksheetUI.currentResult()           → the LineResult under the caret (cheap; safe on every caret move)
  *     WorksheetUI.currentResult({ fresh: true })  → the same, after evaluating typing still waiting on the debounce
  *     WorksheetUI.selectionSummary()        → { count: 3, sum: 1830, mean: 610, unit: '' } or null
+ *     WorksheetUI.selectedLines()           → { first: 5, last: 7, lines: [LineResult, …] } or null
  *     WorksheetUI.toggleComment()           → '// ' added to (or removed from) the selected lines
  *     WorksheetUI.goToLine(16)              → caret at the end of line 16, scrolled into view
  *     WorksheetUI.focus()                   → focuses the editor (closing a phone drawer first)
@@ -194,6 +198,30 @@
         while (d % 2 === 0) d /= 2;
         while (d % 5 === 0) d /= 5;
         return d === 1 ? '' : frac;
+    }
+
+    /**
+     * The exact fraction worth showing on the Result card: always when the
+     * decimal shown is rounded or repeating, and for a short fraction such
+     * as 3/10; never when the decimal already is the exact value written
+     * out (a typed 1.414213562 is not shown as 707106781/500000000).
+     */
+    function cardFraction(l) {
+        const ex = l && l.exact ? String(l.exact) : '';
+        if (!ex) return '';
+        const frac = ex.split(' ')[0];
+        const m = /^(-?)(\d+)\/(\d+)$/.exec(frac);
+        if (!m || frac.length <= 9 || frac.length > 400) return ex;
+        let d = BigInt(m[3]);
+        let twos = 0;
+        let fives = 0;
+        while (d % 2n === 0n) { d /= 2n; twos++; }
+        while (d % 5n === 0n) { d /= 5n; fives++; }
+        if (d !== 1n) return ex;
+        const k = Math.max(twos, fives);
+        const digits = (BigInt(m[2]) * 10n ** BigInt(k) / BigInt(m[3])).toString().padStart(k + 1, '0');
+        const decimal = `${m[1]}${k ? `${digits.slice(0, -k)}.${digits.slice(-k)}` : digits}`;
+        return valueOnly(l).replace(/[,\s]/g, '') === decimal ? '' : ex;
     }
 
     /** "area(r)" from a function definition line. */
@@ -835,7 +863,8 @@
             );
             facts.appendChild(row);
         };
-        if (l.exact) fact('Exact', l.exact, true);
+        const exact = cardFraction(l);
+        if (exact) fact('Exact', exact, true);
         const plain = String(l.plain || '');
         // Only when it says more than the display (all digits of a big number), not just no separators.
         if (plain && plain !== display.replace(/[, ]/g, '')) {
@@ -1214,6 +1243,18 @@
         return { count, sum, mean: sum / count, unit, units, lines: range.last - range.first + 1, converted };
     }
 
+    /**
+     * The lines a selection touches, evaluated first: { first, last, lines }
+     * with 0-based line numbers and their LineResults (every kind, in
+     * order), or null when nothing is selected. A one-line selection counts.
+     */
+    function selectedLines() {
+        flush();
+        const range = selectedLineRange();
+        if (!range || !S.result) return null;
+        return { first: range.first, last: range.last, lines: S.result.lines.slice(range.first, range.last + 1) };
+    }
+
     /** Ctrl+/: add or remove '// ' at the start of every touched line. */
     function toggleComment() {
         if (!el.ta) return false;
@@ -1453,12 +1494,14 @@
         focus,
         currentResult,
         selectionSummary,
+        selectedLines,
         toggleComment,
         goToLine,
         flush,
         addToHistory: () => addHistory(currentResult({ fresh: true })),
         /** Pure helpers, exposed for tests. */
         _lineOf: lineOf,
-        _columnFraction: columnFraction
+        _columnFraction: columnFraction,
+        _cardFraction: cardFraction
     };
 })();

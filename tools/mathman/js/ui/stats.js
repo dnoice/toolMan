@@ -28,8 +28,8 @@
  *     - Column picker that appears when the paste looks like a table with
  *       several columns (headers are used as the names)
  *     - "Use selected lines" takes the numeric results of the worksheet
- *       lines under the selection, converting compatible units to the
- *       first line's unit
+ *       lines under the selection (through WorksheetUI.selectedLines()),
+ *       converting compatible units to the first line's unit
  *     - Readouts with copy buttons: count, sum, mean, median, modes, min,
  *       max, range, sample and population variance and standard deviation,
  *       Q1, Q3, IQR, and outliers; each label explains itself on hover
@@ -445,9 +445,15 @@
     }
 
     /** Values of the worksheet lines under the selection, converted to the first unit. */
-    function readSelection() {
-        if (window.WorksheetUI && typeof WorksheetUI.flush === 'function') {
-            try { WorksheetUI.flush(); } catch (_err) { /* the cached result still works */ }
+    const NO_SELECTION = 'Select the lines you want in the worksheet first (drag across them, or Shift+click), then press Use selected lines.';
+
+    /** The selected worksheet lines: WorksheetUI.selectedLines(), or the textarea when that is missing. */
+    function selectedWorksheetLines() {
+        if (window.WorksheetUI && typeof WorksheetUI.selectedLines === 'function') {
+            try {
+                const sel = WorksheetUI.selectedLines();
+                return sel ? sel : { error: NO_SELECTION };
+            } catch (_err) { /* fall through to the textarea */ }
         }
         const ta = document.querySelector('#mount-worksheet textarea');
         const res = window.State ? State.result() : null;
@@ -455,9 +461,7 @@
         const text = ta.value;
         const start = ta.selectionStart;
         let end = ta.selectionEnd;
-        if (start === end) {
-            return { error: 'Select the lines you want in the worksheet first (drag across them, or Shift+click), then press Use selected lines.' };
-        }
+        if (start === end) return { error: NO_SELECTION };
         if (end > start && text[end - 1] === '\n') end--;
         const lineAt = (offset) => {
             let n = 0;
@@ -466,7 +470,14 @@
         };
         const first = lineAt(start);
         const last = lineAt(end);
-        const picked = res.lines.slice(first, last + 1)
+        return { first, last, lines: res.lines.slice(first, last + 1) };
+    }
+
+    function readSelection() {
+        const sel = selectedWorksheetLines();
+        if (sel.error) return sel;
+        const { first, last } = sel;
+        const picked = sel.lines
             .filter((l) => (l.kind === 'value' || l.kind === 'assignment') && typeof l.numeric === 'number' && Number.isFinite(l.numeric));
         if (!picked.length) {
             return { error: `The selected ${first === last ? 'line has' : 'lines have'} no numeric results. Select lines that show a number.` };
