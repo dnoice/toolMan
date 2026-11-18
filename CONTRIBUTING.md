@@ -1,17 +1,20 @@
 <!--
 ✒ Metadata
-    - Title: ContributingGuide (toolMan Edition - v1.2)
+    - Title: ContributingGuide (toolMan Edition - v1.3)
     - File Name: CONTRIBUTING.md
     - Relative Path: CONTRIBUTING.md
     - Artifact Type: docs
-    - Version: 1.2.0
-    - Date: 11/17/2026
-    - Update: Tuesday, November 17, 2026
+    - Version: 1.3.0
+    - Date: 11/18/2026
+    - Update: Wednesday, November 18, 2026
     - Author: Dennis 'dendogg' Smaltz
     - A.I. Acknowledgement: Anthropic - Claude
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 1.3.0 (11/18/2026) [dendogg + Anthropic - Claude] — Licensing section
+      reflects the BSD 3-Clause License: contributions are licensed under the
+      same terms.
     - 1.2.0 (11/17/2026) [dendogg + Anthropic - Claude] — Registering a tool
       documents the optional data descriptor (holds, summarize) behind the
       hub's data badge and reset wording.
@@ -459,7 +462,6 @@ this up once: Settings → Pages → Source: **GitHub Actions**.
 
 ## Licensing
 
-toolMan does not currently carry an open-source license, and all rights are
-reserved by its author (see the README's Credits). By opening a pull request,
-you confirm the work is yours to contribute and agree it may be incorporated
-into toolMan under the terms the project uses.
+toolMan is released under the [BSD 3-Clause License](LICENSE). By opening a
+pull request, you confirm the work is yours to contribute and agree that it is
+licensed under the same terms.

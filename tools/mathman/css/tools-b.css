@@ -1,0 +1,676 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: ToolsBStyles (mathMan Edition - v1.0)
+ *     - File Name: tools-b.css
+ *     - Relative Path: tools/mathman/css/tools-b.css
+ *     - Artifact Type: stylesheet
+ *     - Version: 1.0.0
+ *     - Date: 11/18/2026
+ *     - Update: Wednesday, November 18, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Styles for three Tools-rail panes: Statistics, Solver, and Number
+ *     Theory. Readouts, chips, buttons, steppers, badges, tables, and
+ *     feedback strips come from the shared workbench kit; this file adds
+ *     only the layout those panes need beyond it, a step tighter than the
+ *     shared defaults so a narrow rail shows as much as possible.
+ *
+ * ✒ Key Features:
+ *     - .tb-* pane kit: compact column rhythm, inline and stacked fields,
+ *       34px inputs, wrapping action rows, dashed group dividers, meta
+ *       lines, compact empty states, and a visually hidden .tb-sr class;
+ *       [hidden] always wins inside these panes
+ *     - Compact readout lists for answers, with lower-case variable names
+ *       (x₁, y) and muted notes beside a value
+ *     - Chip-row tabs (role="tab") that fill gold when selected
+ *     - Statistics: data box, histogram frame whose bars, baseline, and
+ *       empty bins read theme tokens (so Light and Dark need no redraw),
+ *       axis labels, and a collapsible bin-count table
+ *     - Solver: coefficient fields that wrap to the rail width, an equation
+ *       preview strip, and a fixed-layout coefficient grid whose constants
+ *       column is set apart
+ *     - Number Theory: prime verdict with a worded badge, the factor product
+ *       on the house card with the gold left rule and superscript
+ *       exponents, and a label / field / copy grid for the base converter
+ *     - Visible focus rings on every control, including the bin table's
+ *       disclosure and the grid cells
+ *     - Touch screens get 40px icon buttons, steppers, and tabs; phone
+ *       widths stack the base converter labels above their fields
+ *
+ * ✒ Usage Instructions:
+ *     Load after mathman.css, worksheet.css, library.css, and tools-a.css,
+ *     before tools-c.css, as index.html already does. js/ui/stats.js,
+ *     solver.js, and numtheory.js write the matching markup into
+ *     #mount-stats, #mount-solver, and #mount-numtheory.
+ *
+ * ✒ Examples:
+ *     <div class="tb-pane st"> … </div>                           → compact pane column
+ *     <div class="chip-row tb-tabs" role="tablist"> chip-btn tabs → gold selected tab
+ *     <svg class="st-hist-svg"><rect class="st-hist-bar"> …       → brand-coloured bars
+ *     <table class="sv-matrix"> … <td class="sv-const">           → coefficient grid
+ *     <div class="nt-expr-row"><p class="nt-expr">2<sup>3</sup> × 3 × 5</p> …
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/tokens.css, panels.css, workbench.css;
+ *       css/mathman.css (.mm-mount, .tool-count)
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: no literal theme colours — every colour is a token, and
+ *       the histogram SVG is styled here rather than painted from script
+ * ----------------------------------------------------------------------------
+ */
+
+/* ═══════════════════════════════════════════════════════════
+   PANE KIT — shared by Statistics, Solver, and Number Theory
+   ═══════════════════════════════════════════════════════════ */
+
+.tb-pane {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+/* Shared classes set display values that beat the [hidden] attribute. */
+.tb-pane [hidden] {
+    display: none !important;
+}
+
+.tb-pane .mini-label {
+    margin-bottom: 0;
+}
+
+.tb-pane .section-label {
+    margin: var(--space-xs) 0 0;
+}
+
+.tb-pane .chip-row {
+    margin-bottom: 0;
+}
+
+.tb-pane .pane-hint {
+    margin: 0;
+    line-height: var(--leading-normal);
+}
+
+.tb-pane .tool-feedback {
+    margin-top: 0;
+}
+
+.tb-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.tb-field--inline {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.tb-field--inline > .mini-label {
+    flex-shrink: 0;
+}
+
+.tb-field--inline > .tb-select {
+    flex: 0 1 68%;
+    min-width: 0;
+}
+
+.tb-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+.tb-head .tool-count {
+    margin-right: 0;
+}
+
+.tb-input,
+.tb-select {
+    height: 34px;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-sm);
+}
+
+.tb-select {
+    width: auto;
+    min-width: 0;
+    padding-right: var(--space-lg);
+}
+
+.tb-inline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.tb-inline > .text-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.tb-inline > .btn {
+    flex-shrink: 0;
+}
+
+.tb-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.tb-pane .btn {
+    gap: var(--space-xs);
+}
+
+.tb-pane .btn svg {
+    flex-shrink: 0;
+}
+
+.tb-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 0;
+    padding-top: var(--space-sm);
+    border-top: var(--border-width) dashed var(--border-muted);
+}
+
+.tb-group:first-child {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.tb-meta {
+    margin: 0;
+    font-size: var(--font-xs);
+    color: var(--fg-muted);
+    line-height: var(--leading-normal);
+    overflow-wrap: anywhere;
+}
+
+.tb-meta:empty,
+.tb-error:empty {
+    display: none;
+}
+
+.tb-error {
+    margin: 0;
+}
+
+.tb-empty {
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    background: var(--bg-surface-alt);
+    border: var(--border-width) dashed var(--border-default);
+    border-radius: var(--radius-md);
+}
+
+.tb-empty .empty-title {
+    margin: 0;
+    font-size: var(--font-sm);
+}
+
+.tb-empty .empty-text {
+    margin: 0;
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+}
+
+/* Visually hidden, still read by screen readers. */
+.tb-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Compact answer lists built on the kit's readouts. */
+.tb-readouts .readout {
+    grid-template-columns: minmax(72px, auto) minmax(0, 1fr) auto;
+    gap: var(--space-sm);
+    min-height: 34px;
+    padding: 2px 2px 2px var(--space-sm);
+}
+
+.tb-readouts .readout-value {
+    font-size: var(--font-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+.tb-results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+.tb-details summary {
+    width: fit-content;
+    padding: 2px var(--space-xs);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-xs);
+    font-weight: var(--font-medium);
+    color: var(--fg-muted);
+    cursor: pointer;
+}
+
+.tb-details summary:hover {
+    color: var(--color-brand);
+}
+
+.tb-details summary:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--bg-active);
+}
+
+.tb-details[open] summary {
+    margin-bottom: var(--space-xs);
+}
+
+.tb-table {
+    max-height: 220px;
+}
+
+/* Mode tabs: kit chips with role="tab", sharing the row evenly. */
+.tb-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tb-tabs .chip-btn {
+    justify-content: center;
+    min-height: 28px;
+    padding: var(--space-xs);
+    font-size: var(--font-xs);
+    font-weight: var(--font-medium);
+    line-height: var(--leading-tight);
+    text-align: center;
+    white-space: normal;
+}
+
+.tb-tabs .chip-btn[aria-selected="true"] {
+    background: var(--color-brand);
+    border-color: var(--color-brand);
+    color: var(--fg-on-emphasis);
+}
+
+.tb-tabs .chip-btn:focus-visible {
+    box-shadow: 0 0 0 3px var(--bg-active), 0 0 0 1px var(--border-focus);
+}
+
+.tb-stepper .stepper-value {
+    min-width: 96px;
+    font-size: var(--font-xs);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STATISTICS — data box, histogram
+   ═══════════════════════════════════════════════════════════ */
+
+.st-data {
+    min-height: 96px;
+    max-height: 260px;
+    padding: var(--space-sm);
+    font-size: var(--font-xs);
+}
+
+.st-bins {
+    height: 30px;
+    font-size: var(--font-xs);
+}
+
+.st-hist {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin: 0;
+    padding: var(--space-sm) var(--space-sm) var(--space-xs);
+    background: var(--card-gradient);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+    box-shadow: var(--card-shadow);
+}
+
+.st-hist-svg {
+    display: block;
+    width: 100%;
+    height: 96px;
+    overflow: visible;
+}
+
+.st-hist-bar {
+    fill: var(--color-brand);
+    opacity: 0.85;
+    transition: opacity var(--transition-fast);
+}
+
+.st-hist-bar:hover {
+    opacity: 1;
+}
+
+.st-hist-bar--empty {
+    fill: var(--border-muted);
+}
+
+.st-hist-base {
+    stroke: var(--border-default);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.st-hist-axis {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-sm);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--fg-subtle);
+}
+
+.st-hist-note {
+    font-family: var(--font-sans);
+    text-align: center;
+    color: var(--fg-muted);
+}
+
+.st-hist-edge {
+    overflow-wrap: anywhere;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SOLVER — coefficients, previews, the linear-system grid
+   ═══════════════════════════════════════════════════════════ */
+
+.sv-panel {
+    gap: var(--space-sm);
+}
+
+.sv-coeffs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    gap: var(--space-xs);
+}
+
+.sv-coeff-field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.sv-coeff-field .mini-label {
+    text-transform: none;
+    font-family: var(--font-mono);
+    letter-spacing: 0;
+}
+
+.sv-coeff {
+    min-width: 0;
+    text-align: right;
+}
+
+.sv-preview {
+    margin: 0;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-surface-alt);
+    border-left: var(--border-width-thick) solid var(--color-identity-gold);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+    color: var(--fg-body);
+    overflow-wrap: anywhere;
+}
+
+.sv-preview--lines {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sv-preview:empty {
+    display: none;
+}
+
+.sv-matrix-wrap {
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.sv-matrix {
+    width: 100%;
+    min-width: 0;
+    border-collapse: separate;
+    border-spacing: 3px;
+    table-layout: fixed;
+}
+
+.sv-matrix th {
+    padding: 0 0 2px;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: var(--font-semibold);
+    color: var(--fg-subtle);
+    text-align: center;
+}
+
+.sv-matrix thead th:first-child,
+.sv-matrix tbody th {
+    width: 18px;
+    color: var(--fg-subtle);
+}
+
+.sv-matrix td {
+    padding: 0;
+}
+
+.sv-cell {
+    height: 32px;
+    min-width: 0;
+    padding: 2px var(--space-xs);
+    font-size: var(--font-xs);
+    text-align: center;
+}
+
+.sv-const .sv-cell {
+    background: var(--bg-surface-alt);
+    border-left: var(--border-width-thick) solid var(--color-identity-gold);
+}
+
+.sv-name {
+    text-transform: none;
+    letter-spacing: 0;
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    color: var(--fg-muted);
+}
+
+.sv-note {
+    font-family: var(--font-sans);
+    font-size: var(--font-xs);
+    color: var(--fg-subtle);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUMBER THEORY — verdict, factor card, base converter
+   ═══════════════════════════════════════════════════════════ */
+
+.nt-verdict {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+.nt-verdict:empty {
+    display: none;
+}
+
+.nt-verdict .badge {
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.nt-reason {
+    flex: 1 1 160px;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--font-sm);
+    line-height: var(--leading-normal);
+    color: var(--fg-body);
+    overflow-wrap: anywhere;
+}
+
+.nt-factor-out {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.nt-expr-row {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-xs) var(--space-sm) var(--space-md);
+    background: var(--card-gradient);
+    border: var(--border-width) solid var(--border-muted);
+    border-left: var(--border-width-thick) solid var(--color-identity-gold);
+    border-radius: var(--radius-md);
+    box-shadow: var(--card-shadow);
+}
+
+.nt-expr {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--fg-default);
+    overflow-wrap: anywhere;
+}
+
+.nt-n {
+    display: block;
+    color: var(--fg-muted);
+}
+
+.nt-note {
+    font-family: var(--font-sans);
+    font-size: var(--font-xs);
+    font-style: italic;
+    color: var(--fg-subtle);
+}
+
+.nt-p sup {
+    margin-left: 1px;
+    font-size: 0.72em;
+    color: var(--color-brand);
+}
+
+.nt-rest {
+    font-style: italic;
+    color: var(--color-warning);
+}
+
+.nt-bases {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.nt-base-row {
+    display: grid;
+    grid-template-columns: minmax(86px, 32%) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.nt-base-row > .mini-label {
+    overflow-wrap: anywhere;
+}
+
+.nt-base-select {
+    height: 34px;
+    padding: 0 var(--space-xs);
+    font-size: var(--font-xs);
+}
+
+.nt-base-input {
+    min-width: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOUCH + PHONE
+   ═══════════════════════════════════════════════════════════ */
+
+@media (pointer: coarse) {
+    .tb-pane .icon-action {
+        width: 40px;
+        height: 40px;
+    }
+
+    .tb-pane .stepper-btn {
+        width: 40px;
+        min-height: 40px;
+    }
+
+    .tb-tabs .chip-btn {
+        min-height: 36px;
+    }
+
+    .tb-input,
+    .tb-select,
+    .nt-base-select {
+        height: 40px;
+    }
+
+    .sv-cell {
+        height: 38px;
+    }
+}
+
+@media (max-width: 420px) {
+    .nt-base-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .nt-base-row > .mini-label,
+    .nt-base-row > .nt-base-select {
+        grid-column: 1 / -1;
+    }
+
+    .nt-base-row > .nt-base-select {
+        justify-self: start;
+    }
+
+    .sv-matrix {
+        border-spacing: 2px;
+    }
+
+    .sv-cell {
+        padding: 2px;
+    }
+}

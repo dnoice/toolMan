@@ -1,0 +1,637 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: WorksheetStyles (mathMan Edition - v1.0)
+ *     - File Name: worksheet.css
+ *     - Relative Path: tools/mathman/css/worksheet.css
+ *     - Artifact Type: stylesheet
+ *     - Version: 1.0.0
+ *     - Date: 11/18/2026
+ *     - Update: Wednesday, November 18, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     Styles for mathMan's worksheet editor and the Result card. The editor
+ *     is a plain text area flanked by a line-number gutter and a results
+ *     column; all three share one fixed line height so every answer sits
+ *     level with its line. The Result card reuses the kit's readouts, stat
+ *     blocks, badges, and buttons and adds only the large value and notes.
+ *
+ * ✒ Key Features:
+ *     - Three-column editor (gutter · text · results) on the input surface,
+ *       with the code-area focus ring around the whole block
+ *     - One fixed line height (24px, 26px on phones) shared by the text,
+ *       the line numbers, the results, and the error underlines
+ *     - Current-line band behind all three columns; current and error line
+ *       numbers are tinted, and errors also carry a "⚠ Error" word
+ *     - Result buttons in mono brand ink with a muted fraction suffix, a
+ *       hover surface, a visible focus ring, and a copied state
+ *     - Wavy underline under the faulty part of an error line, drawn in a
+ *       transparent mirror layer under the text
+ *     - Error tooltip on hover and focus, and a brief highlight on a line a
+ *       tool just added
+ *     - "Ln, Col" status and a hint line under the editor
+ *     - Result card: line number, kind badge, label chip, the value large,
+ *       readout facts, copy buttons, error excerpt with the problem marked,
+ *       and the selection summary in stat blocks
+ *     - Phones: 16px text (no zoom on focus), a narrower results column
+ *       with ellipsis, and the hint hidden
+ *
+ * ✒ Usage Instructions:
+ *     Load after css/mathman.css and before css/library.css:
+ *         <link rel="stylesheet" href="css/worksheet.css">
+ *     js/ui/worksheet.js writes the matching markup into #mount-worksheet
+ *     and #mount-result. The line height lives in three rules here (.ws-input,
+ *     .ws-ln / .ws-row, .ws-mark) and the script reads it back from the
+ *     text area, so change them together.
+ *
+ * ✒ Examples:
+ *     <div class="ws"> .ws-band · .ws-gutter · .ws-editor (textarea) · .ws-results </div>
+ *     <button class="ws-res"><span class="ws-val">0.3333333333</span><span class="ws-frac">1/3</span></button>
+ *     <button class="ws-res ws-err" data-message="…">⚠ Error</button>
+ *     <output class="rc-value">5.3 km</output>
+ *     <code class="rc-source">foo + 1 with <mark class="rc-mark">foo</mark></code>
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/tokens.css, panels.css, workbench.css;
+ *       css/mathman.css (#mount-worksheet is a flex column)
+ *     - Compatible platforms: all evergreen browsers
+ *     - Limitations: alignment assumes wrap="off" and a monospace font; the
+ *       only literal color is the faint inset shadow the kit's code area
+ *       also uses
+ * ----------------------------------------------------------------------------
+ */
+
+/* ═══════════════════════════════════════════════════════════
+   EDITOR FRAME — gutter · text · results
+   ═══════════════════════════════════════════════════════════ */
+
+.ws-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    gap: var(--space-xs);
+    min-height: 0;
+}
+
+.ws {
+    position: relative;
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(140px, 34%);
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 240px;
+    background: var(--bg-input);
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.ws:focus-within {
+    border-color: var(--border-focus);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04), 0 0 0 3px var(--bg-active), var(--glow-brand);
+}
+
+/* The current line, drawn once behind all three columns. */
+.ws-band {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 24px;
+    background: var(--bg-hover);
+    border-top: var(--border-width) solid transparent;
+    border-bottom: var(--border-width) solid transparent;
+    pointer-events: none;
+    z-index: 0;
+    will-change: transform;
+}
+
+.ws:focus-within .ws-band {
+    background: var(--bg-active);
+}
+
+/* ── Gutter ── */
+
+.ws-gutter {
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    min-width: 40px;
+    border-right: var(--border-width) solid var(--border-subtle);
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.ws[data-digits="4"] .ws-gutter {
+    min-width: 48px;
+}
+
+.ws-gutter-inner {
+    padding: 8px 0;
+    will-change: transform;
+}
+
+.ws-ln {
+    height: 24px;
+    padding: 0 var(--space-sm) 0 var(--space-md);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 24px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: var(--fg-subtle);
+    transition: color var(--transition-fast);
+}
+
+.ws-ln:hover {
+    color: var(--fg-default);
+}
+
+.ws-ln[data-error="true"] {
+    color: var(--color-danger);
+}
+
+.ws-ln[data-current="true"] {
+    color: var(--color-brand);
+    font-weight: var(--font-semibold);
+}
+
+/* ── Text ── */
+
+.ws-editor {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.ws-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 8px var(--space-md);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--fg-body);
+    caret-color: var(--color-brand);
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    line-height: 24px;
+    letter-spacing: normal;
+    white-space: pre;
+    overflow: auto;
+    overflow-wrap: normal;
+    resize: none;
+    tab-size: 4;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.ws-input:focus,
+.ws-input:focus-visible {
+    outline: none;
+}
+
+.ws-input::placeholder {
+    color: var(--fg-subtle);
+    font-style: italic;
+}
+
+/* Error underlines: a transparent copy of each failing line under the text. */
+.ws-marks {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.ws-marks-inner {
+    position: relative;
+    will-change: transform;
+}
+
+.ws-mark {
+    position: absolute;
+    left: var(--space-md);
+    height: 24px;
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    line-height: 24px;
+    letter-spacing: normal;
+    white-space: pre;
+    tab-size: 4;
+    color: transparent;
+}
+
+.ws-mark-hit {
+    background: var(--wash-danger);
+    border-radius: 2px;
+    text-decoration: underline wavy var(--color-danger);
+    text-decoration-thickness: 1.5px;
+    text-decoration-skip-ink: none;
+    text-underline-offset: 4px;
+}
+
+/* ── Results ── */
+
+.ws-results {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    overflow: hidden;
+    border-left: var(--border-width) solid var(--border-subtle);
+}
+
+.ws-results-inner {
+    padding: 8px 0;
+    will-change: transform;
+}
+
+.ws-row {
+    display: flex;
+    align-items: center;
+    height: 24px;
+    min-width: 0;
+    padding: 0 var(--space-sm);
+}
+
+.ws-row--new {
+    animation: wsRowNew 1.2s ease;
+}
+
+@keyframes wsRowNew {
+    0%   { background: var(--bg-active); box-shadow: inset 3px 0 0 var(--color-brand); }
+    100% { background: transparent; box-shadow: inset 3px 0 0 transparent; }
+}
+
+.ws-res {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    max-width: 100%;
+    min-width: 0;
+    height: 22px;
+    padding: 0 6px;
+    background: transparent;
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--color-brand);
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    font-weight: var(--font-semibold);
+    line-height: 20px;
+    white-space: nowrap;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast),
+                color var(--transition-fast);
+}
+
+.ws-res:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-default);
+}
+
+.ws-res:focus-visible {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 2px var(--bg-active);
+}
+
+.ws-res[data-copied="true"] {
+    color: var(--color-success);
+    border-color: var(--color-success);
+}
+
+.ws-val {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ws-frac {
+    flex-shrink: 0;
+    font-size: var(--font-xs);
+    font-weight: var(--font-normal);
+    color: var(--fg-subtle);
+}
+
+.ws-err {
+    gap: var(--space-xs);
+    background: var(--wash-danger);
+    border-color: transparent;
+    color: var(--color-danger);
+    font-family: var(--font-sans);
+    font-size: var(--font-xs);
+}
+
+.ws-err:hover {
+    background: var(--wash-danger);
+    border-color: var(--color-danger);
+}
+
+.ws-err-glyph {
+    font-size: var(--font-sm);
+}
+
+.ws-fn {
+    min-width: 0;
+    padding: 0 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    font-style: italic;
+    color: var(--fg-muted);
+}
+
+/* ── Error tooltip, status line, screen-reader text ── */
+
+.ws-tip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 5;
+    max-width: min(320px, 100%);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg-elevated);
+    border: var(--border-width) solid var(--color-danger);
+    border-left-width: var(--border-width-thick);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    color: var(--fg-default);
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+    overflow-wrap: anywhere;
+    pointer-events: none;
+}
+
+.ws-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    min-height: 18px;
+    padding: 0 var(--space-xs);
+    font-size: 0.6875rem;
+    color: var(--fg-subtle);
+}
+
+.ws-pos {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+.ws-hint {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ws-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.ws-copy-all {
+    gap: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESULT CARD
+   ═══════════════════════════════════════════════════════════ */
+
+#mount-result [hidden] {
+    display: none !important;
+}
+
+/* Stacked under the worksheet, the card keeps one height for every kind of
+   line, so moving the caret never makes the editor above it jump. */
+@container mm-stage (max-width: 979px) {
+    #mount-result {
+        min-height: 172px;
+    }
+}
+
+.rc {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+.rc-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-xs) var(--space-sm);
+    min-width: 0;
+}
+
+.rc-line {
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-meta);
+}
+
+.rc-label {
+    max-width: 100%;
+    padding: 2px var(--space-sm);
+    background: var(--bg-tag);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-full);
+    color: var(--fg-default);
+    font-size: 0.6875rem;
+    font-weight: var(--font-semibold);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rc-value {
+    display: block;
+    color: var(--color-brand);
+    font-family: var(--font-mono);
+    font-size: var(--font-2xl);
+    font-weight: var(--font-semibold);
+    font-variant-numeric: tabular-nums;
+    line-height: var(--leading-tight);
+    overflow-wrap: anywhere;
+}
+
+.rc-facts .readout {
+    grid-template-columns: minmax(56px, auto) minmax(0, 1fr);
+    min-height: 32px;
+}
+
+.rc-facts .readout-value {
+    font-size: var(--font-xs);
+}
+
+.rc-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.rc-actions .btn {
+    gap: 6px;
+}
+
+.rc-actions .btn[data-copied="true"] {
+    color: var(--color-success);
+    border-color: var(--color-success);
+}
+
+.rc-source {
+    display: block;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-surface-alt);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-sm);
+    color: var(--fg-body);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    line-height: var(--leading-normal);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.rc-mark {
+    padding: 0 1px;
+    background: var(--wash-danger);
+    border-radius: 2px;
+    color: var(--color-danger);
+    text-decoration: underline wavy var(--color-danger);
+    text-underline-offset: 3px;
+}
+
+.rc-error {
+    margin-top: 0;
+}
+
+.rc-text,
+.rc-note {
+    font-size: var(--font-xs);
+    color: var(--fg-muted);
+    line-height: var(--leading-normal);
+}
+
+.rc-empty {
+    gap: var(--space-xs);
+    padding: var(--space-md) var(--space-sm);
+}
+
+.rc-empty .empty-title {
+    font-size: var(--font-sm);
+}
+
+.rc-empty .empty-text {
+    font-size: var(--font-xs);
+}
+
+.rc-sel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: var(--border-width) solid var(--border-subtle);
+}
+
+.rc-sel .section-label {
+    margin: 0;
+}
+
+.rc-sel .tool-feedback {
+    margin-top: 0;
+}
+
+.rc-stats .stat-value {
+    font-size: var(--font-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PHONES
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .ws {
+        grid-template-columns: auto minmax(0, 1fr) minmax(76px, 34%);
+        min-height: 220px;
+    }
+
+    .ws-gutter {
+        min-width: 32px;
+    }
+
+    .ws-ln {
+        padding: 0 6px 0 var(--space-sm);
+    }
+
+    /* 16px text keeps phones from zooming in when the editor gets focus. */
+    .ws-input,
+    .ws-mark {
+        font-size: var(--font-base);
+        line-height: 26px;
+    }
+
+    .ws-input {
+        padding-inline: var(--space-sm);
+    }
+
+    .ws-mark {
+        left: var(--space-sm);
+        height: 26px;
+    }
+
+    .ws-band,
+    .ws-ln,
+    .ws-row {
+        height: 26px;
+        line-height: 26px;
+    }
+
+    .ws-row {
+        padding: 0 var(--space-xs);
+    }
+
+    .ws-res {
+        height: 24px;
+        padding: 0 var(--space-xs);
+        font-size: var(--font-xs);
+        line-height: 22px;
+    }
+
+    .ws-frac {
+        display: none;
+    }
+
+    .ws-hint {
+        display: none;
+    }
+
+    .rc-value {
+        font-size: var(--font-xl);
+    }
+}

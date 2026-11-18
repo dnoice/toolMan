@@ -1,0 +1,696 @@
+<!--
+✒ Metadata
+    - Title: MathManApp (mathMan Edition - v1.0)
+    - File Name: index.html
+    - Relative Path: tools/mathman/index.html
+    - Artifact Type: markup
+    - Version: 1.0.0
+    - Date: 11/18/2026
+    - Update: Wednesday, November 18, 2026
+    - Author: Dennis 'dendogg' Smaltz
+    - A.I. Acknowledgement: Anthropic - Claude
+    - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+
+✒ Description:
+    mathMan's application page: the three-panel calculator workspace in the
+    toolMan house style. The left rail keeps sheets, variables, the function
+    and unit reference, and result history; the center holds the active
+    worksheet and its result; the right rail holds the math tools. Each pane
+    module builds its own content inside the mounts declared here.
+
+✒ Key Features:
+    - Library rail: Sheets, Variables, Reference, History, with live counts
+      in the section headers and a sheet / variable count in the footer
+    - Workbench toolbar: editable sheet name, new sheet, copy the current
+      result, a DEG / RAD angle toggle, and the save pill
+    - Stage cards for the Worksheet and the Result, plus stat pills for
+      lines, values, errors, and the current selection
+    - Tools rail: Keypad, Units, Graph, Statistics, Solver, Number Theory,
+      Percentages, Finance
+    - Collapsible, reorderable accordion rails and phone drawers
+    - Settings: theme (Light, Dark, or System, which follows the device),
+      angle unit, significant digits, notation, thousands separator, exact
+      fractions, implicit multiplication, currency, history size, a backup
+      import that only adds, a storage meter, and a guarded reset
+    - Help: the full worksheet syntax (precedence, implicit multiplication,
+      percentages, units, variables, labels, line references, bases, limits)
+      and every keyboard shortcut
+    - Loader with the calculator mark and the "Numbers, tamed" tagline
+
+✒ Usage Instructions:
+    Launch from the hub (../../index.html) or open this file directly; no
+    build step and no network. The ecosystem kernel
+    (../../shared/js/toolman.js) must stay first in <head> so the saved
+    theme applies before first paint; tool scripts load at the end of
+    <body> in the order the mathMan contract fixes.
+
+✒ Other Important Information:
+    - Dependencies: ../../shared/css/*, ../../shared/js/*, ./css/*, ./js/*
+    - Compatible platforms: all evergreen browsers; file:// or any static
+      host
+    - Limitations: everything is computed in this browser; very large exact
+      results fall back to floating point, and the worksheet caps a sheet at
+      2,000 lines
+---------
+-->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="mathMan - Numbers, tamed. A worksheet calculator with exact fractions, units, variables, graphs, statistics, solvers, number theory, percentages, and finance. Part of the toolMan ecosystem.">
+    <meta name="author" content="Dennis 'dnoice' Smaltz">
+    <title>mathMan – Numbers, tamed</title>
+
+    <!-- Favicon: the mathMan calculator mark -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C9A84C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='2' width='16' height='20' rx='2.5'/%3E%3Cline x1='8' y1='6.5' x2='16' y2='6.5'/%3E%3Cpath d='M7.5 15c1.13-3 3.38-3 4.5 0s3.38 3 4.5 0'/%3E%3C/svg%3E">
+
+    <!-- Ecosystem kernel FIRST: applies saved theme before first paint -->
+    <script src="../../shared/js/toolman.js"></script>
+
+    <!-- Shared styles (order matters) -->
+    <link rel="stylesheet" href="../../shared/css/reset.css">
+    <link rel="stylesheet" href="../../shared/css/tokens.css">
+    <link rel="stylesheet" href="../../shared/css/shell.css">
+    <link rel="stylesheet" href="../../shared/css/panels.css">
+    <link rel="stylesheet" href="../../shared/css/workbench.css">
+
+    <!-- Tool styles -->
+    <link rel="stylesheet" href="css/mathman.css">
+    <link rel="stylesheet" href="css/worksheet.css">
+    <link rel="stylesheet" href="css/library.css">
+    <link rel="stylesheet" href="css/tools-a.css">
+    <link rel="stylesheet" href="css/tools-b.css">
+    <link rel="stylesheet" href="css/tools-c.css">
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- LOADING SCREEN -->
+    <!-- ============================================ -->
+    <div id="loader-screen" class="loader-screen" role="status" aria-live="polite">
+        <div class="loader-card">
+            <div class="loader-logo" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2.5"></rect><line x1="8" y1="6.5" x2="16" y2="6.5"></line><path d="M7.5 15c1.13-3 3.38-3 4.5 0s3.38 3 4.5 0"></path></svg>
+            </div>
+            <h1 class="loader-title">math<span class="logo-accent">Man</span></h1>
+            <p class="loader-tagline">Numbers, tamed</p>
+            <div class="loader-bar"><div class="loader-progress" id="loader-progress"></div></div>
+            <p class="loader-status" id="loader-status">Loading…</p>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MAIN APPLICATION -->
+    <!-- ============================================ -->
+    <div class="app" id="app" style="opacity: 0;">
+
+        <header class="app-header" role="banner">
+            <div class="header-left">
+                <a class="hub-link" href="../../index.html" title="Back to the toolMan hub" aria-label="Back to the toolMan hub">
+                    <span class="hub-link-arrow" aria-hidden="true">←</span>
+                    <span class="hub-link-label">Hub</span>
+                </a>
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2.5"></rect><line x1="8" y1="6.5" x2="16" y2="6.5"></line><path d="M7.5 15c1.13-3 3.38-3 4.5 0s3.38 3 4.5 0"></path></svg>
+                <span class="logo-text" title="mathMan · Numbers, tamed">math<span class="logo-accent">Man</span></span>
+            </div>
+
+            <div class="header-right">
+                <button class="icon-btn mobile-only" id="btn-mobile-left" title="Library panel" aria-label="Toggle the Library panel" aria-controls="panel-library" aria-expanded="false">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+                </button>
+                <button class="icon-btn mobile-only" id="btn-mobile-right" title="Tools panel" aria-label="Toggle the Tools panel" aria-controls="panel-tools" aria-expanded="false">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                </button>
+                <button class="icon-btn" id="btn-settings" title="Settings (Ctrl+,)" aria-label="Open settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+                <button class="icon-btn" id="btn-theme" title="Switch between light and dark theme" aria-label="Switch between light and dark theme">
+                    <svg class="theme-icon theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    <svg class="theme-icon theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+                </button>
+                <button class="icon-btn" id="btn-help" title="Help (?)" aria-label="Open help">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="app-main">
+
+            <!-- ======================================== -->
+            <!-- LEFT RAIL — LIBRARY -->
+            <!-- ======================================== -->
+            <section class="panel panel-left" id="panel-library" data-panel="library" aria-label="Library">
+                <header class="panel-header" data-collapsible="true">
+                    <h2 class="panel-title">Library</h2>
+                    <button class="collapse-btn" aria-label="Collapse the Library panel" aria-expanded="true">
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                </header>
+                <div class="panel-content">
+
+                    <div class="tool-section" data-section="sheets">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="true" aria-controls="body-sheets">
+                            <h4 class="tool-title">Sheets</h4>
+                            <span class="tool-count" id="count-sheets" title="Sheets in this browser">1</span>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-sheets">
+                            <div class="mm-mount" id="mount-sheets" data-empty="The sheet list did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="variables">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-variables">
+                            <h4 class="tool-title">Variables</h4>
+                            <span class="tool-count" id="count-variables" title="Variables and functions on this sheet">0</span>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-variables">
+                            <div class="mm-mount" id="mount-variables" data-empty="The variable list did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="reference">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-reference">
+                            <h4 class="tool-title">Reference</h4>
+                            <span class="tool-count" id="count-reference" title="Functions you can use in a sheet" hidden>0</span>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-reference">
+                            <div class="mm-mount" id="mount-reference" data-empty="The function and unit reference did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="history">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-history">
+                            <h4 class="tool-title">History</h4>
+                            <span class="tool-count" id="count-history" title="Results saved to History">0</span>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-history">
+                            <div class="mm-mount" id="mount-history" data-empty="History did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                </div>
+                <footer class="panel-footer">
+                    <span class="footer-left">Library</span>
+                    <span class="footer-right" id="library-stats">Sheets: 1 | Variables: 0</span>
+                </footer>
+            </section>
+
+            <!-- ======================================== -->
+            <!-- CENTER — WORKBENCH -->
+            <!-- ======================================== -->
+            <section class="panel panel-center" id="panel-stage" data-panel="stage" aria-label="Workbench">
+                <header class="panel-header">
+                    <h2 class="panel-title">Workbench</h2>
+                </header>
+                <div class="panel-content">
+                    <div class="stage-toolbar">
+                        <div class="toolbar-lead">
+                            <input type="text" id="sheet-title" class="doc-title" value="Welcome" maxlength="80" spellcheck="false" autocomplete="off" aria-label="Sheet name" aria-describedby="sheet-title-error" title="Sheet name — type a new name and press Enter to keep it">
+                            <span id="sheet-title-error" class="error-text" role="status" aria-live="polite"></span>
+                        </div>
+                        <div class="toolbar-controls">
+                            <button type="button" class="control-btn" id="btn-new-sheet" title="New sheet (Ctrl+Alt+N)" aria-label="New sheet">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="12" x2="12" y2="18"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                            </button>
+                            <button type="button" class="control-btn" id="btn-copy-result" title="Copy the current line's result (Ctrl+Shift+C)" aria-label="Copy the current line's result">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                            <span class="control-divider" aria-hidden="true"></span>
+                            <button type="button" class="control-btn angle-btn" id="btn-angle" title="Angles in radians — click for degrees (Ctrl+Alt+D)" aria-label="Degrees mode (DEG / RAD)" aria-pressed="false">RAD</button>
+                            <div class="status-indicator" id="save-status" data-status="saved"><span class="status-dot"></span><span class="status-label">Saved</span></div>
+                        </div>
+                    </div>
+
+                    <div class="stage" id="stage-main">
+                        <section class="stage-card" id="card-worksheet" aria-labelledby="title-worksheet">
+                            <header class="stage-card-head">
+                                <h3 class="stage-card-title" id="title-worksheet">Worksheet</h3>
+                                <div class="stage-card-actions" id="actions-worksheet"></div>
+                            </header>
+                            <div class="mm-mount" id="mount-worksheet" data-empty="The worksheet did not load. Reload the page to try again."></div>
+                        </section>
+
+                        <section class="stage-card" id="card-result" aria-labelledby="title-result">
+                            <header class="stage-card-head">
+                                <h3 class="stage-card-title" id="title-result">Result</h3>
+                                <div class="stage-card-actions" id="actions-result"></div>
+                            </header>
+                            <div class="mm-mount" id="mount-result" data-empty="The result view did not load. Reload the page to try again."></div>
+                        </section>
+                    </div>
+
+                    <div class="stage-stats" id="stage-stats" aria-label="Sheet summary">
+                        <span class="stat-pill" id="stat-lines" title="Lines in this sheet">Lines: 0</span>
+                        <span class="stat-pill" id="stat-values" title="Lines that have a value">Values: 0</span>
+                        <span class="stat-pill" id="stat-errors" title="No lines have errors" data-errors="0">Errors: 0</span>
+                        <span class="stat-pill stat-selection" id="stat-selection" title="Select several lines in the worksheet to see their sum and mean">No selection</span>
+                    </div>
+                </div>
+                <footer class="panel-footer">
+                    <span class="footer-left">Workbench</span>
+                    <span class="footer-right" id="stage-footer-status">Ready</span>
+                </footer>
+            </section>
+
+            <!-- ======================================== -->
+            <!-- RIGHT RAIL — TOOLS -->
+            <!-- ======================================== -->
+            <section class="panel panel-right" id="panel-tools" data-panel="tools" aria-label="Tools">
+                <header class="panel-header" data-collapsible="true">
+                    <h2 class="panel-title">Tools</h2>
+                    <button class="collapse-btn" aria-label="Collapse the Tools panel" aria-expanded="true">
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                </header>
+                <div class="panel-content">
+
+                    <div class="tool-section" data-section="keypad">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="true" aria-controls="body-keypad">
+                            <h4 class="tool-title">Keypad</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-keypad">
+                            <div class="mm-mount" id="mount-keypad" data-empty="The Keypad did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="units">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-units">
+                            <h4 class="tool-title">Units</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-units">
+                            <div class="mm-mount" id="mount-units" data-empty="The Units converter did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="graph">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-graph">
+                            <h4 class="tool-title">Graph</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-graph">
+                            <div class="mm-mount" id="mount-graph" data-empty="The Graph tool did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="stats">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-stats">
+                            <h4 class="tool-title">Statistics</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-stats">
+                            <div class="mm-mount" id="mount-stats" data-empty="The Statistics tool did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="solver">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-solver">
+                            <h4 class="tool-title">Solver</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-solver">
+                            <div class="mm-mount" id="mount-solver" data-empty="The Solver did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="numtheory">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-numtheory">
+                            <h4 class="tool-title">Number Theory</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-numtheory">
+                            <div class="mm-mount" id="mount-numtheory" data-empty="The Number Theory tool did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="percent">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-percent">
+                            <h4 class="tool-title">Percentages</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-percent">
+                            <div class="mm-mount" id="mount-percent" data-empty="The Percentages tool did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section" data-section="finance">
+                        <header class="tool-header" tabindex="0" role="button" aria-expanded="false" aria-controls="body-finance">
+                            <h4 class="tool-title">Finance</h4>
+                            <span class="tool-collapse" aria-hidden="true">
+                                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </span>
+                        </header>
+                        <div class="tool-body" id="body-finance">
+                            <div class="mm-mount" id="mount-finance" data-empty="The Finance tool did not load. Reload the page to try again."></div>
+                        </div>
+                    </div>
+
+                </div>
+                <footer class="panel-footer">
+                    <span class="footer-left">Tools</span>
+                    <span class="footer-right" id="tools-stats">8 tools</span>
+                </footer>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SETTINGS MODAL -->
+    <!-- ============================================ -->
+    <div class="modal-backdrop" id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="modal-panel">
+            <header class="modal-header">
+                <h3 class="modal-title" id="settings-title">Settings</h3>
+                <button class="modal-close" aria-label="Close settings">×</button>
+            </header>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label id="theme-heading">Theme</label>
+                    <div class="radio-group" role="radiogroup" aria-labelledby="theme-heading" aria-describedby="help-theme">
+                        <label class="radio-label"><input type="radio" name="theme-pref" value="light"> <span>Light</span></label>
+                        <label class="radio-label"><input type="radio" name="theme-pref" value="dark"> <span>Dark</span></label>
+                        <label class="radio-label"><input type="radio" name="theme-pref" value="system" checked> <span>System</span></label>
+                    </div>
+                    <p class="help-text" id="help-theme">System follows your device's light or dark setting. Applies across every toolMan tool.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="setting-angle">Angle unit</label>
+                    <select class="select-input" id="setting-angle" data-setting="angle" aria-describedby="help-angle">
+                        <option value="deg">Degrees — a full turn is 360</option>
+                        <option value="rad">Radians — a full turn is 2π</option>
+                    </select>
+                    <p class="help-text" id="help-angle">How sin, cos, tan, and their inverses read plain numbers. A unit you type always wins: sin(30 deg) is 0.5 either way. The DEG / RAD button above the worksheet switches it too.</p>
+                </div>
+
+                <div class="form-group">
+                    <div class="field-row">
+                        <span class="mini-label" id="precision-heading">Significant digits</span>
+                        <div class="stepper" data-stepper="precision" data-min="4" data-max="16" data-step="1" role="group" aria-labelledby="precision-heading" aria-describedby="precision-preview">
+                            <button type="button" class="stepper-btn" data-dir="down" aria-label="Show one fewer significant digit">&minus;</button>
+                            <span class="stepper-value" data-display="precision" aria-live="polite">10 digits</span>
+                            <button type="button" class="stepper-btn" data-dir="up" aria-label="Show one more significant digit">+</button>
+                        </div>
+                    </div>
+                    <input type="hidden" data-setting="precision" data-type="number" value="10">
+                    <p class="help-text mm-preview" id="precision-preview" data-display="precisionPreview" aria-live="polite">π shows as 3.141592654</p>
+                    <p class="help-text">Results are rounded to this many significant digits, with trailing zeros dropped. Exact fractions are never rounded.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="setting-notation">Number notation</label>
+                    <select class="select-input" id="setting-notation" data-setting="notation" aria-describedby="notation-preview">
+                        <option value="auto">Automatic — e-notation when needed</option>
+                        <option value="fixed">Fixed — always plain digits</option>
+                        <option value="scientific">Scientific — 1.2345e+4</option>
+                        <option value="engineering">Engineering — 12.345e+3</option>
+                    </select>
+                    <p class="help-text mm-preview" id="notation-preview" data-display="notationPreview" aria-live="polite">12345.678 shows as 12,345.678</p>
+                    <p class="help-text">Automatic switches to e-notation only beyond 10^15 or below 0.000001. Engineering keeps exponents in steps of three, like k, M, and G.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="setting-thousands">Thousands separator</label>
+                    <select class="select-input" id="setting-thousands" data-setting="thousands" aria-describedby="help-thousands">
+                        <option value="comma">Comma — 1,234,567</option>
+                        <option value="space">Space — 1 234 567</option>
+                        <option value="none">None — 1234567</option>
+                    </select>
+                    <p class="help-text" id="help-thousands">Only changes how results look. Copying a result never includes the separator.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="setting-fractions">Exact fractions</label>
+                    <select class="select-input" id="setting-fractions" data-setting="fractions" aria-describedby="help-fractions">
+                        <option value="auto">Show them — 1/3 beside 0.3333333333</option>
+                        <option value="off">Decimals only</option>
+                    </select>
+                    <p class="help-text" id="help-fractions">mathMan keeps + − × ÷ exact, so 1/3 + 1/6 is exactly 1/2 and 0.1 + 0.2 is exactly 0.3.</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="check-row"><input type="checkbox" data-setting="implicitMult" aria-describedby="help-implicit"> <span>Implicit multiplication</span></label>
+                    <p class="help-text" id="help-implicit">2x means 2 × x and 3(4 + 1) means 3 × (4 + 1). Turn it off to require * between every pair of factors.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="setting-currency">Currency</label>
+                    <select class="select-input" id="setting-currency" data-setting="currency" aria-describedby="help-currency">
+                        <option value="USD">USD — US dollar ($)</option>
+                        <option value="EUR">EUR — Euro (€)</option>
+                        <option value="GBP">GBP — British pound (£)</option>
+                        <option value="JPY">JPY — Japanese yen (¥)</option>
+                        <option value="CAD">CAD — Canadian dollar ($)</option>
+                        <option value="AUD">AUD — Australian dollar ($)</option>
+                        <option value="CHF">CHF — Swiss franc</option>
+                        <option value="CNY">CNY — Chinese yuan (¥)</option>
+                        <option value="INR">INR — Indian rupee (₹)</option>
+                        <option value="MXN">MXN — Mexican peso ($)</option>
+                        <option value="BRL">BRL — Brazilian real (R$)</option>
+                        <option value="KRW">KRW — South Korean won (₩)</option>
+                        <option value="SEK">SEK — Swedish krona (kr)</option>
+                        <option value="NZD">NZD — New Zealand dollar ($)</option>
+                        <option value="ZAR">ZAR — South African rand (R)</option>
+                    </select>
+                    <p class="help-text" id="help-currency">How the Finance and Percentages tools label money. mathMan never converts between currencies.</p>
+                </div>
+
+                <div class="form-group">
+                    <div class="field-row">
+                        <span class="mini-label" id="history-size-heading">Results to keep in History</span>
+                        <div class="stepper" data-stepper="historySize" data-min="20" data-max="500" data-step="20" role="group" aria-labelledby="history-size-heading" aria-describedby="history-trim-note">
+                            <button type="button" class="stepper-btn" data-dir="down" aria-label="Keep 20 fewer results">&minus;</button>
+                            <span class="stepper-value" data-display="historySize" aria-live="polite">100 results</span>
+                            <button type="button" class="stepper-btn" data-dir="up" aria-label="Keep 20 more results">+</button>
+                        </div>
+                    </div>
+                    <input type="hidden" data-setting="historySize" data-type="number" value="100">
+                    <p class="help-text">Ctrl + Enter adds the current line's result to History. The oldest results go first when it is full.</p>
+                    <p class="help-text mm-note-warn" id="history-trim-note" role="status" aria-live="polite" hidden></p>
+                </div>
+
+                <p class="error-text" id="settings-error" role="alert" hidden></p>
+
+                <div class="form-group">
+                    <label>Backup &amp; restore</label>
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-secondary" data-settings-export>Download backup</button>
+                        <button type="button" class="btn btn-secondary" data-settings-import>Import &amp; merge backup</button>
+                    </div>
+                    <p class="help-text">A backup holds your sheets, History, and settings. Importing adds the backup's sheets and History to what is here and never deletes or overwrites anything; if its settings differ, mathMan asks before using them.</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Local storage</label>
+                    <div class="usage-meter" title="mathMan's share of this browser's storage"><div class="usage-fill" data-usage-fill></div></div>
+                    <div class="usage-row"><span data-usage-label>0 bytes used</span><span data-usage-percent>&lt;1%</span></div>
+                    <p class="help-text">Of roughly 5 MB. Everything stays in this browser; nothing is uploaded.</p>
+                </div>
+
+                <section class="danger-zone" aria-labelledby="danger-title">
+                    <h4 class="danger-zone-title" id="danger-title">Danger zone</h4>
+                    <div class="danger-zone-action">
+                        <div class="danger-zone-copy">
+                            <p class="danger-zone-heading">Reset mathMan</p>
+                            <p class="help-text">Deletes your sheets, History, and settings in this browser, then brings back the Welcome sheet. Panel layout is kept.</p>
+                        </div>
+                        <button type="button" class="btn btn-danger-outline" data-settings-reset>Reset</button>
+                    </div>
+                </section>
+            </div>
+            <footer class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btn-save-settings" data-settings-save disabled>Save</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- HELP MODAL -->
+    <!-- ============================================ -->
+    <div class="modal-backdrop" id="modal-help" role="dialog" aria-modal="true" aria-labelledby="help-title">
+        <div class="modal-panel modal-panel--wide">
+            <header class="modal-header">
+                <h3 class="modal-title" id="help-title">Help &amp; Shortcuts</h3>
+                <button class="modal-close" aria-label="Close help">×</button>
+            </header>
+            <div class="modal-body">
+                <section class="help-section">
+                    <h4>Layout</h4>
+                    <dl class="help-list">
+                        <dt>Library (left)</dt><dd>Your sheets, the variables and functions the current sheet defines, a reference of every function, constant, and unit, and the results you saved to History.</dd>
+                        <dt>Workbench (center)</dt><dd>The worksheet: type one calculation per line and each answer appears beside it. The Result card shows the line the caret is on in full, with its exact fraction and a copy button.</dd>
+                        <dt>Tools (right)</dt><dd>A keypad, a unit converter, a graph, statistics, an equation solver, number theory, percentages, and finance. Most tools can send their answer to the worksheet as a new line.</dd>
+                    </dl>
+                    <p>Click a pane's title to open it; one pane per side is open at a time. Drag a title to reorder the panes. On a phone, the two buttons at the top right slide each side in.</p>
+                </section>
+
+                <section class="help-section">
+                    <h4>Operators, from loosest to tightest</h4>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th scope="col">Operator</th><th scope="col">Meaning</th><th scope="col">Example</th></tr></thead>
+                            <tbody>
+                                <tr><td class="mono">to · as · in</td><td>Convert the result (last of all)</td><td class="mono">100 km/h to mph</td></tr>
+                                <tr><td class="mono">== != &lt; &lt;= &gt; &gt;=</td><td>Compare; the answer is true or false</td><td class="mono">2^10 &gt; 1000</td></tr>
+                                <tr><td class="mono">+ -</td><td>Add and subtract</td><td class="mono">5 km + 300 m</td></tr>
+                                <tr><td class="mono">* / mod</td><td>Multiply, divide, remainder; implicit multiplication sits here too</td><td class="mono">17 mod 5</td></tr>
+                                <tr><td class="mono">-x</td><td>Negative</td><td class="mono">-2^2 = -4</td></tr>
+                                <tr><td class="mono">^</td><td>Power, grouped from the right</td><td class="mono">2^3^2 = 512</td></tr>
+                                <tr><td class="mono">! %</td><td>Factorial and percent, right after a number</td><td class="mono">5! · 15%</td></tr>
+                                <tr><td class="mono">( ) f(a, b)</td><td>Grouping and function calls, first of all</td><td class="mono">max(3, 7)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p>Operators of equal rank work left to right, so <code>1/2x</code> is (1/2) × x and <code>8 / 2 / 2</code> is 2. Use parentheses whenever you want a different order.</p>
+                </section>
+
+                <section class="help-section">
+                    <h4>Implicit multiplication</h4>
+                    <p>Leave out the <code>*</code> when the meaning is clear: <code>2x</code>, <code>2(3 + 4)</code>, <code>(1 + 2)(3 + 4)</code>, <code>2pi</code>, <code>3 sqrt(4)</code>, and <code>x y</code> all multiply. A function name followed by <code>(</code> is a call; a variable followed by <code>(</code> multiplies. Turn this off in Settings to require <code>*</code> every time.</p>
+                </section>
+
+                <section class="help-section">
+                    <h4>Percentages</h4>
+                    <dl class="help-list">
+                        <dt><code>15%</code></dt><dd>0.15</dd>
+                        <dt><code>200 + 15%</code></dt><dd>230 — adds 15% of 200</dd>
+                        <dt><code>200 - 25%</code></dt><dd>150 — takes 25% off</dd>
+                        <dt><code>15% of 80</code></dt><dd>12</dd>
+                        <dt><code>0.35 to %</code></dt><dd>35% — shows a number as a percentage</dd>
+                    </dl>
+                </section>
+
+                <section class="help-section">
+                    <h4>Units and conversion</h4>
+                    <p>Write a unit after a number: <code>5 km</code>, <code>3 feet</code>, <code>2.5 kWh</code>. Units mix when they measure the same thing (<code>5 km + 300 m</code> is 5.3 km), build up from expressions (<code>3 ft * 2 ft</code> is an area, <code>100 kg * 9.8 m/s^2 to N</code> is a force), and convert with <code>to</code>, <code>as</code>, or <code>in</code>. On its own, <code>in</code> means inches; after a complete quantity and before a unit, as in <code>100 km in miles</code>, it converts.</p>
+                    <p>Covered: length, area, volume, mass, time, speed, acceleration, force, pressure, energy, power, temperature, data, angle, frequency, and electric units, with SI prefixes, long names, and plurals. Temperatures convert and add to the same unit, but °C × °C is refused. The Reference pane lists every unit.</p>
+                </section>
+
+                <section class="help-section">
+                    <h4>Variables and functions</h4>
+                    <dl class="help-list">
+                        <dt><code>price = 80</code></dt><dd>Defines a variable; later lines can use <code>price</code>. Names use letters, digits, and _, and can't reuse a function, constant, or unit name.</dd>
+                        <dt><code>f(x) = x^2 + 1</code></dt><dd>Defines a function; <code>f(3)</code> on a later line gives 10. Functions can take several inputs: <code>g(x, y) = x y</code>.</dd>
+                        <dt>Built in</dt><dd>sqrt, cbrt, root, abs, round, floor, ceil, min, max, sum, avg, median, stdev, gcd, lcm, nCr, ln, log, sin, cos, tan, if, and more — the Reference pane lists them all. Constants: <code>pi</code> (π), <code>tau</code>, <code>e</code>, <code>phi</code>.</dd>
+                    </dl>
+                </section>
+
+                <section class="help-section">
+                    <h4>Labels, notes, and headings</h4>
+                    <dl class="help-list">
+                        <dt><code>Rent: 1200</code></dt><dd>Words before a colon label the line; the value is 1200.</dd>
+                        <dt><code>// a note</code></dt><dd>Everything after <code>//</code> is ignored, on a line of its own or after a calculation. Ctrl + / adds or removes it on the current lines.</dd>
+                        <dt><code># Groceries</code></dt><dd>A heading. It also ends the block that <code>total</code> adds up.</dd>
+                    </dl>
+                </section>
+
+                <section class="help-section">
+                    <h4>Line references and totals</h4>
+                    <dl class="help-list">
+                        <dt><code>ans</code></dt><dd>The value of the nearest line above that has one.</dd>
+                        <dt><code>line3</code></dt><dd>The value on line 3, counting from 1.</dd>
+                        <dt><code>total</code> or <code>sum</code></dt><dd>Adds the run of value lines directly above, up to the nearest blank line or heading. Their units must match.</dd>
+                        <dt><code>average</code> or <code>avg</code></dt><dd>The mean of that same run of lines.</dd>
+                    </dl>
+                </section>
+
+                <section class="help-section">
+                    <h4>Numbers, bases, and conversion targets</h4>
+                    <p>Write <code>42</code>, <code>3.14</code>, <code>.5</code>, <code>1e-3</code>, <code>1_000_000</code>, or other bases: <code>0xFF</code> (hex), <code>0b1010</code> (binary), <code>0o17</code> (octal). End a line with <code>to hex</code>, <code>to bin</code>, <code>to oct</code>, <code>to dec</code>, <code>to sci</code>, <code>to fraction</code>, <code>to %</code>, or <code>to</code> a unit to change how its answer is shown.</p>
+                    <p>Adding, subtracting, multiplying, dividing, and whole-number powers stay exact, so <code>1/3 + 1/6</code> is exactly 1/2 and <code>0.1 + 0.2</code> is exactly 0.3. Square roots, logarithms, and trigonometry use ordinary floating point.</p>
+                </section>
+
+                <section class="help-section">
+                    <h4>Limits</h4>
+                    <p>A sheet holds up to 2,000 lines of up to 2,000 characters each (200,000 characters in all), and you can keep 200 sheets. Exact whole numbers stay exact up to about 6,000 digits and factorials up to 1000!; beyond that mathMan switches to floating point, and a result too large even for that, such as <code>9^9^9</code>, shows an error instead of freezing the page. Functions can call themselves up to 64 levels deep.</p>
+                </section>
+
+                <section class="help-section">
+                    <h4>Keyboard shortcuts</h4>
+                    <dl class="help-list">
+                        <dt><kbd data-key="C" data-shift="true">Ctrl + Shift + C</kbd></dt><dd>Copy the current line's result</dd>
+                        <dt><kbd data-key="/">Ctrl + /</kbd></dt><dd>Turn the current line or selected lines into notes, or back</dd>
+                        <dt><kbd data-key="Enter">Ctrl + Enter</kbd></dt><dd>Add the current line's result to History</dd>
+                        <dt><kbd data-key="N" data-alt="true">Ctrl + Alt + N</kbd></dt><dd>New sheet</dd>
+                        <dt><kbd data-key="D" data-alt="true">Ctrl + Alt + D</kbd></dt><dd>Switch angles between degrees and radians</dd>
+                        <dt><kbd data-key="S">Ctrl + S</kbd></dt><dd>Save now (mathMan also saves on its own)</dd>
+                        <dt><kbd data-key=",">Ctrl + ,</kbd></dt><dd>Open Settings</dd>
+                        <dt><kbd data-key="[">Ctrl + [</kbd></dt><dd>Show or hide the Library panel</dd>
+                        <dt><kbd data-key="]">Ctrl + ]</kbd></dt><dd>Show or hide the Tools panel</dd>
+                        <dt><kbd data-key="\">Ctrl + \</kbd></dt><dd>Focus mode: hide both side panels; press again to bring them back</dd>
+                        <dt><kbd data-key="?" data-mod="false">?</kbd></dt><dd>Open this help (when you are not typing in a field)</dd>
+                        <dt><kbd data-key="Esc" data-mod="false">Esc</kbd></dt><dd>Close a dialog or a phone drawer</dd>
+                    </dl>
+                </section>
+
+                <section class="help-section">
+                    <h4>Your data</h4>
+                    <p>mathMan saves to this browser as you work; the dot above the worksheet shows when it has. Use Settings → Download backup to keep a copy or move it to another browser. Import &amp; merge backup adds the backup's sheets and History without replacing anything here, and asks before using its settings.</p>
+                </section>
+            </div>
+            <footer class="modal-footer">
+                <button type="button" class="btn btn-primary modal-cancel">Got it</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Shared libraries -->
+    <script src="../../shared/js/dom.js"></script>
+    <script src="../../shared/js/storage.js"></script>
+    <script src="../../shared/js/loader.js"></script>
+    <script src="../../shared/js/workbench.js"></script>
+    <script src="../../shared/js/dialogs.js"></script>
+    <script src="../../shared/js/toolapp.js"></script>
+
+    <!-- Math engines (pure, no DOM) + state -->
+    <script src="js/engine.js"></script>
+    <script src="js/numerics.js"></script>
+    <script src="js/finance.js"></script>
+    <script src="js/state.js"></script>
+
+    <!-- UI modules -->
+    <script src="js/ui/worksheet.js"></script>
+    <script src="js/ui/library.js"></script>
+    <script src="js/ui/keypad.js"></script>
+    <script src="js/ui/units.js"></script>
+    <script src="js/ui/graph.js"></script>
+    <script src="js/ui/stats.js"></script>
+    <script src="js/ui/solver.js"></script>
+    <script src="js/ui/numtheory.js"></script>
+    <script src="js/ui/percent.js"></script>
+    <script src="js/ui/money.js"></script>
+
+    <!-- Boot -->
+    <script src="js/app.js"></script>
+</body>
+</html>

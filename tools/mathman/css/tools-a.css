@@ -1,0 +1,913 @@
+/*
+ * ============================================================================
+ * ✒ Metadata
+ *     - Title: ToolsAStyles (mathMan Edition - v1.0)
+ *     - File Name: tools-a.css
+ *     - Relative Path: tools/mathman/css/tools-a.css
+ *     - Artifact Type: stylesheet
+ *     - Version: 1.0.0
+ *     - Date: 11/18/2026
+ *     - Update: Wednesday, November 18, 2026
+ *     - Author: Dennis 'dendogg' Smaltz
+ *     - A.I. Acknowledgement: Anthropic - Claude
+ *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Description:
+ *     The mathMan-specific styling for three Tools-rail panes: Keypad,
+ *     Units, and Graph. Tool tiles, chips, buttons, readouts, tables, and
+ *     feedback lines come from the shared workbench kit; this file adds only
+ *     what these panes need beyond it, with tight spacing so a narrow rail
+ *     shows as much as possible.
+ *
+ * ✒ Key Features:
+ *     - .ta-pane rhythm shared by the three panes: one small gap between
+ *       blocks, kit margins reset, [hidden] always wins, and a visually
+ *       hidden .ta-sr class for live announcements
+ *     - Keypad display: the line, its answer in large mono, its exact
+ *       fraction, and an error state marked in words as well as colour
+ *     - Keypad keys built on the kit's sheen tool tiles: digits, operators
+ *       in gold, function keys, edit keys, and a gold-filled = key; 40px
+ *       minimum targets, a 2nd marker, and type that grows with the rail
+ *       (container queries)
+ *     - Units: From and To rows (value field plus unit select), a centred
+ *       Swap, the result sentence with copy, and a compact "show all" table
+ *       whose value cells are buttons
+ *     - Graph: numbered series swatches that carry the series colour and
+ *       its line style, hollow when hidden; "y =" rows with inline errors
+ *     - Graph canvas frame (4:3, capped height) with a focus ring, a
+ *       grabbing cursor while panning, and no browser touch gestures
+ *     - Graph toolbar, Window form grid, trace readout with numbered chips
+ *     - Coarse pointers (touch) get 40px icon buttons and chips
+ *
+ * ✒ Usage Instructions:
+ *     Load after mathman.css, worksheet.css, and library.css, before
+ *     tools-b.css, as index.html already does. js/ui/keypad.js, units.js,
+ *     and graph.js write the markup into #mount-keypad, #mount-units, and
+ *     #mount-graph; series colours come from data-series="1".."4", which
+ *     maps each graph to a house palette token.
+ *
+ * ✒ Examples:
+ *     <div class="ta-pane kp"> … </div>                        → keypad pane rhythm
+ *     <button class="tool-action-btn kp-key" data-kind="equals"> → gold = key
+ *     <div class="kp-display" data-state="error">               → danger-ruled display
+ *     <button class="gr-swatch" data-series="2" aria-pressed="false"> → hollow blue swatch
+ *     <div class="gr-frame"><canvas class="gr-canvas"></canvas></div>
+ *
+ * ✒ Other Important Information:
+ *     - Dependencies: shared/css/tokens.css, panels.css, workbench.css;
+ *       css/mathman.css (.mm-mount)
+ *     - Compatible platforms: all evergreen browsers; container queries
+ *       scale the keypad (without them it keeps the base size)
+ *     - Limitations: no literal theme colours; the canvas reads the same
+ *       tokens through getComputedStyle in js/ui/graph.js
+ * ----------------------------------------------------------------------------
+ */
+
+/* ═══════════════════════════════════════════════════════════
+   PANE KIT — shared by Keypad, Units, and Graph
+   ═══════════════════════════════════════════════════════════ */
+
+.ta-pane {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+/* Shared classes set display values that beat the [hidden] attribute. */
+.ta-pane [hidden] {
+    display: none !important;
+}
+
+.ta-pane .mini-label {
+    margin-bottom: 0;
+}
+
+.ta-pane .section-label {
+    margin: var(--space-xs) 0 0;
+}
+
+.ta-pane .chip-row {
+    margin-bottom: 0;
+}
+
+.ta-pane .pane-hint {
+    margin: 0;
+    line-height: var(--leading-normal);
+}
+
+.ta-pane .empty-state {
+    padding: var(--space-md);
+}
+
+.ta-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.ta-field--inline {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.ta-field--inline > .mini-label {
+    flex-shrink: 0;
+}
+
+.ta-field--inline > .ta-select {
+    flex: 0 1 68%;
+    min-width: 0;
+}
+
+.ta-input,
+.ta-select {
+    height: 34px;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-sm);
+}
+
+.ta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.ta-actions .btn {
+    gap: var(--space-xs);
+}
+
+.ta-actions .btn svg {
+    flex-shrink: 0;
+}
+
+.ta-error {
+    margin: 0;
+}
+
+.ta-error:empty {
+    display: none;
+}
+
+/* Visually hidden, still read by screen readers. */
+.ta-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   KEYPAD — display, modes, key grids, unit chips
+   ═══════════════════════════════════════════════════════════ */
+
+.kp {
+    container: kp / inline-size;
+}
+
+.kp-display {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-md);
+    background: var(--bg-input);
+    border: var(--border-width) solid var(--border-muted);
+    border-left: var(--border-width-thick) solid var(--color-identity-gold);
+    border-radius: var(--radius-md);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.kp-display[data-state="error"] {
+    border-left-color: var(--color-danger);
+}
+
+.kp-display[data-state="empty"] {
+    border-left-color: var(--border-default);
+}
+
+.kp-display-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    min-height: 26px;
+}
+
+.kp-display-meta {
+    font-size: 0.6875rem;
+    font-weight: var(--font-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-subtle);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.kp-copy {
+    width: 26px;
+    height: 26px;
+}
+
+.kp-display-expr {
+    min-height: 1.2em;
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--fg-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.kp-display-value {
+    font-family: var(--font-mono);
+    font-size: var(--font-lg);
+    font-weight: var(--font-semibold);
+    line-height: var(--leading-tight);
+    color: var(--fg-default);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+    max-height: 6.5em;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.kp-display[data-state="empty"] .kp-display-value {
+    font-family: var(--font-sans);
+    font-size: var(--font-xs);
+    font-weight: var(--font-normal);
+    color: var(--fg-subtle);
+    font-style: italic;
+    text-align: left;
+}
+
+.kp-display[data-state="error"] .kp-display-value {
+    font-family: var(--font-sans);
+    font-size: var(--font-xs);
+    font-weight: var(--font-medium);
+    color: var(--color-danger);
+    text-align: left;
+}
+
+.kp-display-exact {
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--color-brand);
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.kp-display-exact:empty {
+    display: none;
+}
+
+.kp-modes {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.kp-mode {
+    min-height: 28px;
+    padding: 2px var(--space-md);
+    font-family: var(--font-mono);
+    font-weight: var(--font-semibold);
+    letter-spacing: 0.06em;
+}
+
+.kp-mode-note {
+    margin-left: auto;
+    font-size: 0.6875rem;
+    color: var(--fg-subtle);
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.kp-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 5px;
+}
+
+/* A keypad key on the kit's tool tile: same surface, border, and sheen. */
+.tool-action-btn.kp-key {
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 2px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    font-weight: var(--font-medium);
+    color: var(--fg-default);
+    text-align: center;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+.tool-action-btn.kp-key:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.tool-action-btn.kp-key:active {
+    transform: translateY(0) scale(0.96);
+}
+
+.kp-key-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.kp-key[data-kind="digit"] {
+    background: var(--bg-card);
+    font-size: var(--font-base);
+    font-weight: var(--font-semibold);
+}
+
+.kp-key[data-kind="op"] {
+    color: var(--color-brand);
+    font-size: var(--font-base);
+    font-weight: var(--font-semibold);
+}
+
+.kp-key[data-kind="fn"] {
+    color: var(--fg-body);
+    font-size: var(--font-xs);
+}
+
+.kp-key[data-kind="fn"][data-alt="true"] {
+    color: var(--color-brand);
+    border-color: var(--border-default);
+}
+
+/* 2nd functions carry a small corner mark, not just a colour change. */
+.kp-key[data-alt="true"]::after {
+    content: '2';
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 0.5625rem;
+    line-height: 1;
+    color: var(--fg-subtle);
+}
+
+.kp-key[data-kind="edit"] {
+    color: var(--fg-muted);
+    font-size: var(--font-sm);
+}
+
+.kp-key-label svg {
+    display: block;
+}
+
+.kp-key[data-kind="edit"][data-key="clear"]:hover {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+.tool-action-btn.kp-key[data-kind="equals"] {
+    background: var(--color-brand);
+    border-color: var(--color-brand);
+    color: var(--fg-on-emphasis);
+    font-size: var(--font-lg);
+    font-weight: var(--font-bold);
+}
+
+.tool-action-btn.kp-key[data-kind="equals"]:hover {
+    background: var(--color-brand-emphasis);
+    box-shadow: var(--glow-brand);
+}
+
+.kp-units {
+    gap: var(--space-xs);
+}
+
+.kp-unit {
+    min-height: 28px;
+    padding: 2px var(--space-sm);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+}
+
+/* Wider rails: bigger type, roomier keys. */
+@container kp (min-width: 300px) {
+    .kp-grid {
+        gap: 6px;
+    }
+
+    .tool-action-btn.kp-key {
+        min-height: 44px;
+    }
+
+    .kp-key[data-kind="fn"] {
+        font-size: var(--font-sm);
+    }
+
+    .kp-display-value {
+        font-size: var(--font-xl);
+    }
+}
+
+/* Very narrow rails: drop the hint beside the mode chips. */
+@container kp (max-width: 219px) {
+    .kp-mode-note {
+        display: none;
+    }
+
+    .kp-grid {
+        gap: 4px;
+    }
+
+    .kp-mode {
+        padding: 2px var(--space-sm);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UNITS — two-way converter
+   ═══════════════════════════════════════════════════════════ */
+
+.un {
+    container: un / inline-size;
+}
+
+.un-sides {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.un-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.un-side-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    gap: var(--space-xs);
+}
+
+.un-value[aria-invalid="true"] {
+    border-color: var(--color-danger);
+}
+
+.un-swap-row {
+    display: flex;
+    justify-content: center;
+    padding-top: var(--space-xs);
+}
+
+.un-swap {
+    gap: var(--space-xs);
+}
+
+.un-result {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 0;
+    padding: var(--space-sm) var(--space-xs) var(--space-sm) var(--space-md);
+    background: var(--bg-input);
+    border: var(--border-width) solid var(--border-muted);
+    border-left: var(--border-width-thick) solid var(--color-identity-gold);
+    border-radius: var(--radius-md);
+}
+
+.un-sentence {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    font-weight: var(--font-semibold);
+    color: var(--fg-default);
+    overflow-wrap: anywhere;
+}
+
+.un-sentence[data-state="empty"] {
+    font-family: var(--font-sans);
+    font-size: var(--font-xs);
+    font-weight: var(--font-normal);
+    font-style: italic;
+    color: var(--fg-subtle);
+}
+
+.un-all {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.un-table-wrap {
+    max-height: 340px;
+}
+
+.un-table th,
+.un-table td {
+    padding: var(--space-xs) var(--space-sm);
+    vertical-align: middle;
+}
+
+.un-table tbody tr {
+    cursor: pointer;
+}
+
+.un-row-name {
+    color: var(--fg-body);
+}
+
+.un-row-sym {
+    font-family: var(--font-mono);
+    color: var(--fg-subtle);
+}
+
+.un-mark {
+    padding: 0 6px;
+    font-size: 0.625rem;
+}
+
+.un-cell-btn {
+    max-width: 100%;
+    padding: 2px var(--space-xs);
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: inherit;
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    text-align: right;
+    overflow-wrap: normal;
+    cursor: pointer;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.un-cell-btn:hover:not(:disabled) {
+    color: var(--color-brand);
+    border-color: var(--border-default);
+}
+
+.un-cell-btn:focus-visible {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--bg-active);
+}
+
+.un-cell-btn:disabled {
+    color: var(--fg-subtle);
+    cursor: default;
+}
+
+.un-cell-btn[data-copied="true"] {
+    color: var(--color-success);
+}
+
+/* A narrow rail: each side's value takes its own row above the unit. */
+@container un (max-width: 239px) {
+    .un-side-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .un-table th,
+    .un-table td {
+        padding: var(--space-xs);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GRAPH — series rows, canvas, toolbar, window, readout
+   ═══════════════════════════════════════════════════════════ */
+
+.gr {
+    container: gr / inline-size;
+}
+
+.gr [data-series="1"] { --gr-c: var(--color-brand); }
+.gr [data-series="2"] { --gr-c: var(--color-info); }
+.gr [data-series="3"] { --gr-c: var(--color-math); }
+.gr [data-series="4"] { --gr-c: var(--color-success); }
+
+.gr-series {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.gr-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.gr-row-main {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.gr-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.gr-row[data-hidden="true"] .gr-input {
+    color: var(--fg-subtle);
+    text-decoration: line-through;
+}
+
+.gr-y {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--fg-subtle);
+}
+
+.gr-swatch {
+    position: relative;
+    flex-shrink: 0;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    width: 34px;
+    height: 34px;
+    border: var(--border-width-thick) solid var(--gr-c, var(--border-default));
+    border-radius: var(--radius-md);
+    background: var(--gr-c, var(--bg-tag));
+    color: var(--fg-on-emphasis);
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.gr-swatch:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.gr-swatch:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--bg-active), 0 0 0 1px var(--border-focus);
+}
+
+.gr-swatch-num {
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    font-weight: var(--font-bold);
+    line-height: 1;
+}
+
+.gr-dash {
+    width: 22px;
+    height: 6px;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+/* Hidden: hollow, with the number in the series colour and a slash. */
+.gr-swatch[aria-pressed="false"] {
+    background: transparent;
+    color: var(--gr-c, var(--fg-muted));
+}
+
+.gr-swatch[aria-pressed="false"]::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    top: 50%;
+    height: 2px;
+    background: var(--fg-muted);
+    transform: rotate(-35deg);
+    border-radius: var(--radius-full);
+}
+
+.gr-error {
+    padding-left: calc(34px + var(--space-xs));
+}
+
+.gr-add-row {
+    justify-content: flex-start;
+}
+
+.gr-chips {
+    align-items: center;
+}
+
+.gr-chips-label {
+    margin-right: var(--space-xs);
+}
+
+.gr-chips .chip-btn {
+    font-family: var(--font-mono);
+}
+
+.gr-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    min-height: 200px;
+    max-height: 440px;
+    border: var(--border-width) solid var(--border-default);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--bg-input);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.gr-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.gr-canvas[data-dragging="true"] {
+    cursor: grabbing;
+}
+
+.gr-canvas:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: -2px;
+}
+
+.gr-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+.gr-view-label {
+    flex-shrink: 0;
+}
+
+.gr-summary {
+    min-height: 1.5em;
+    margin: calc(var(--space-xs) * -1) 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: var(--leading-normal);
+    color: var(--fg-meta);
+    overflow-wrap: anywhere;
+}
+
+.gr-tools {
+    display: flex;
+    flex-shrink: 0;
+    gap: 2px;
+}
+
+.gr-tool[data-active="true"] {
+    color: var(--color-brand);
+    border-color: var(--color-brand);
+    background: var(--bg-active);
+}
+
+.gr-window {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+    background: var(--bg-surface-alt);
+    border: var(--border-width) solid var(--border-muted);
+    border-radius: var(--radius-md);
+}
+
+.gr-window-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-xs) var(--space-sm);
+}
+
+.gr-readout .readout {
+    grid-template-columns: minmax(48px, auto) minmax(0, 1fr);
+    min-height: 32px;
+    padding-right: var(--space-md);
+}
+
+.gr-readout .readout-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    text-transform: none;
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+}
+
+.gr-readout .readout-value {
+    font-size: var(--font-xs);
+    text-align: right;
+}
+
+.gr-key-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-sm);
+    background: var(--gr-c, var(--bg-tag));
+    color: var(--fg-on-emphasis);
+    font-size: 0.625rem;
+    font-weight: var(--font-bold);
+}
+
+.gr-readout-empty {
+    margin: 0;
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-xs);
+    font-style: italic;
+    color: var(--fg-subtle);
+}
+
+/* A narrow rail: drop the "y =" prefix so the expression keeps its room. */
+@container gr (max-width: 239px) {
+    .gr-y {
+        display: none;
+    }
+
+    .gr-view-label {
+        display: none;
+    }
+}
+
+.gr-notes {
+    padding: var(--space-xs) var(--space-sm);
+    border-left: var(--border-width-thick) solid var(--color-warning);
+    border-radius: var(--radius-sm);
+    background: var(--wash-warning);
+    color: var(--fg-default);
+    font-style: normal;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOUCH — bigger targets on coarse pointers
+   ═══════════════════════════════════════════════════════════ */
+
+@media (pointer: coarse) {
+    .ta-pane .icon-action {
+        width: 40px;
+        height: 40px;
+    }
+
+    .kp-copy {
+        width: 36px;
+        height: 36px;
+    }
+
+    .kp-mode,
+    .kp-unit,
+    .gr-chips .chip-btn {
+        min-height: 36px;
+    }
+
+    .gr-swatch {
+        width: 40px;
+        height: 40px;
+    }
+
+    .gr-error {
+        padding-left: calc(40px + var(--space-xs));
+    }
+
+    .ta-input,
+    .ta-select {
+        height: 40px;
+    }
+
+    .un-cell-btn {
+        min-height: 32px;
+    }
+}
