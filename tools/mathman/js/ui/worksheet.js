@@ -830,9 +830,13 @@
         if (l.exact) fact('Exact', l.exact, true);
         if (l.unit) fact('Unit', l.unit);
         const plain = String(l.plain || '');
-        if (plain && plain !== display) fact('Plain', plain.length > 120 ? `${plain.slice(0, 117)}…` : plain);
+        // Only when it says more than the display (all digits of a big number), not just no separators.
+        if (plain && plain !== display.replace(/[, ]/g, '')) {
+            fact('Digits', plain.length > 120 ? `${plain.slice(0, 117)}…` : plain);
+        }
         const calc = sourceWithoutComment(l.source);
-        if (calc) fact('Line', l.label ? calc : calc);
+        // A labelled line ("Rent: 1200") shows only the calculation after the colon.
+        if (calc) fact('Input', l.label && calc.includes(':') ? calc.slice(calc.indexOf(':') + 1).trim() : calc);
         box.appendChild(facts);
 
         const digits = (valueOnly(l).match(/\d/g) || []).length;
