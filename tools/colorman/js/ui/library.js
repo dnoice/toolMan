@@ -26,10 +26,15 @@
  *       Duplicate, Download (.json), Delete (confirmed, with Undo)
  *     - The card linked to the working palette is marked "Editing", plus
  *       "unsaved" when the working copy differs
- *     - Import from pasted text or a file (.txt .css .json .gpl .hex and
- *       SCSS/LESS variables): hex lists, any CSS color per line, CSS custom
- *       properties, JSON arrays or maps, GIMP palettes; a live count while
- *       pasting, and a plain message when nothing is found
+ *     - Import from pasted text or a file (.txt .css .json .gpl .hex .csv
+ *       and SCSS/LESS variables): hex lists, any CSS color per line, CSS
+ *       custom properties, JSON arrays or maps, CSV tables with a hex or
+ *       r/g/b column (colorMan's own CSV export reads back cleanly), GIMP
+ *       palettes; a live count while pasting, and a plain message when
+ *       nothing is found
+ *     - Values that only look like hex are refused: 100, 600, or 'face' in
+ *       a stylesheet or JSON map are not colors, so a design-token file
+ *       imports only its real colors and reports how many values it skipped
  *     - Drop a palette file on the Palettes pane to import it; drop an image
  *       and it goes to the working palette's image extraction
  *     - Saved Colors: filter, a "current color" row to save, rename, or
@@ -57,6 +62,8 @@
  *     LibraryUI.parseImport(':root { --gold: #C9A84C; }') → { colors: [{ hex: '#C9A84C', name: 'gold' }], format: 'css' }
  *     LibraryUI.parseImport('GIMP Palette\nName: Sea\n0 105 148 Deep') → name 'Sea', one color
  *     LibraryUI.parseImport('[{"name":"Navy","hex":"#1B2A4A"}]')    → format 'json'
+ *     LibraryUI.parseImport(':root{--z:100;--gold:#C9A84C}')  → one color, skipped: 1 (unit 'value')
+ *     LibraryUI.parseImport('name,hex\nnavy,#1B2A4A')        → format 'csv', named 'navy'
  *     await LibraryUI.importFile(file)                    → the new palette, or null
  *     await LibraryUI.openPalette(id)                     → true once it is in the working palette
  *     LibraryUI.setNearest(true)                          → Named Colors shows the 24 closest names
@@ -83,9 +90,9 @@
     const IMAGE_EXT = /\.(png|jpe?g|gif|webp|bmp|svg|avif|ico|tiff?)$/i;
     const COLOR_LIMIT = (window.State && State.LIMITS && State.LIMITS.colors) || 256;
     const UNDO_MS = 8000;
-    const NO_COLORS_HELP = 'Paste hex codes (#C9A84C), CSS colors one per line, CSS variables (--gold: #C9A84C;), a JSON list, or GIMP palette lines.';
+    const NO_COLORS_HELP = 'Paste hex codes (#C9A84C), CSS colors one per line, CSS variables (--gold: #C9A84C;), a JSON list, a CSV table with a hex column, or GIMP palette lines.';
 
-    const FORMAT_LABELS = { json: 'JSON', gpl: 'GIMP palette', css: 'CSS variables', text: 'color list' };
+    const FORMAT_LABELS = { json: 'JSON', gpl: 'GIMP palette', css: 'CSS variables', csv: 'CSV table', text: 'color list' };
 
     const TRASH_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
 
@@ -222,15 +229,53 @@
         'text-decoration-color', 'column-rule-color', 'box-shadow', 'text-shadow', 'value', 'hex'
     ]);
 
-    function colorHex(raw) {
-        const s = String(raw == null ? '' : raw).trim().replace(/^["'`]|["'`]$/g, '').replace(/\s*!important$/i, '');
-        if (!s || s.length > 120) return null;
-        return State.hexOf(s);
+    const COLOR_FN_RE = /^(?:rgba?|hsla?|hwb|hsv|lab|lch|oklab|oklch|color|device-cmyk|cmyk)\(/i;
+    const BARE_HEX_RE = /^[0-9a-f]{6}(?:[0-9a-f]{2})?$/i;
+    const NUMBER_RE = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:%|[a-z]{1,4})?$/i;
+
+    function unquote(raw) {
+        return String(raw == null ? '' : raw).trim()
+            .replace(/^["'`]|["'`]$/g, '')
+            .replace(/\s*!important$/i, '')
+            .trim();
     }
 
-    function rgbHex(r, g, b) {
+    /** A CSS color name ("goldenrod", "dark red") or transparent; own keys only. */
+    function isColorName(s) {
+        if (!/^[a-z][a-z ]*$/i.test(s)) return false;
+        const k = s.toLowerCase().replace(/\s+/g, '');
+        if (k === 'transparent') return true;
+        return Boolean(window.Color && Color.NAMED && Object.prototype.hasOwnProperty.call(Color.NAMED, k));
+    }
+
+    /**
+     * A value that clearly names a color, as '#RRGGBB' / '#RRGGBBAA', or null.
+     * Every mode takes '#' or 0x hex, a CSS color function, and a CSS name.
+     * Bare hex without '#' depends on where the value came from:
+     *   'strict' (CSS custom properties) — never: 100, 600, or 'add' there
+     *            are z-indexes, weights, and words, not colors
+     *   'list'   (a plain list line, a JSON list, a "hex" field or column) —
+     *            6 or 8 hex digits
+     *   'map'    (JSON maps, "label: value" lines) — 6 or 8 hex digits that
+     *            mix digits and letters (1b2a4a), never a number or a word
+     */
+    function colorHex(raw, mode = 'strict') {
+        const s = unquote(raw);
+        if (!s || s.length > 120) return null;
+        if (s.startsWith('#')) return State.hexOf(s);
+        if (/^0x[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(s)) return State.hexOf(`#${s.slice(2)}`);
+        if (/^[a-z-]+\(/i.test(s)) return COLOR_FN_RE.test(s) ? State.hexOf(s) : null;
+        if (isColorName(s)) return State.hexOf(s);
+        if (!BARE_HEX_RE.test(s)) return null;
+        if (mode === 'list') return State.hexOf(`#${s}`);
+        if (mode === 'map' && /\d/.test(s) && /[a-f]/i.test(s)) return State.hexOf(`#${s}`);
+        return null;
+    }
+
+    function rgbHex(r, g, b, a = 1) {
         if (![r, g, b].every((v) => Number.isFinite(v) && v >= 0 && v <= 255)) return null;
-        return State.hexOf({ r: r / 255, g: g / 255, b: b / 255, a: 1 });
+        const alpha = Number.isFinite(a) && a >= 0 && a <= 1 ? a : 1;
+        return State.hexOf({ r: r / 255, g: g / 255, b: b / 255, a: alpha });
     }
 
     function tidyName(s) {
@@ -238,30 +283,45 @@
     }
 
     function fromJson(data, out, push) {
-        const entry = (item, key = '') => {
+        out.unit = 'value';
+        const entry = (item, key = '', mode = 'map') => {
             if (typeof item === 'string') {
-                push(colorHex(item), key);
+                const hex = colorHex(item, mode);
+                if (hex) push(hex, key);
+                else out.skipped += 1;
             } else if (Array.isArray(item)) {
                 if (item.length >= 3 && item.length <= 4 && item.every((n) => typeof n === 'number')) {
                     const scale = item.slice(0, 3).some((v) => v > 1) ? 255 : 1;
                     const a = item.length === 4 ? (item[3] > 1 ? item[3] / 255 : item[3]) : 1;
                     push(State.hexOf({ r: item[0] / scale, g: item[1] / scale, b: item[2] / scale, a }), key);
+                } else {
+                    out.skipped += 1;
                 }
             } else if (item && typeof item === 'object') {
-                const value = ['hex', 'color', 'colour', 'value', 'code', 'css', 'rgb'].map((k) => item[k]).find((v) => typeof v === 'string');
+                const field = ['hex', 'color', 'colour', 'value', 'code', 'css', 'rgb'].find((k) => typeof item[k] === 'string');
                 const name = ['name', 'label', 'title'].map((k) => item[k]).find((v) => typeof v === 'string') || key;
-                if (value) push(colorHex(value), name);
+                const hex = field ? colorHex(item[field], field === 'hex' ? 'list' : 'map') : null;
+                if (hex) push(hex, name);
+                else out.skipped += 1;
+            } else if (item !== null && item !== undefined) {
+                out.skipped += 1;
             }
         };
 
+        // A colorMan backup file: read its palettes.
+        if (data && typeof data === 'object' && !Array.isArray(data) && data.state
+            && typeof data.state === 'object' && Array.isArray(data.state.palettes)) {
+            data = data.state;
+        }
+
         if (Array.isArray(data)) {
-            data.forEach((item) => entry(item));
+            data.forEach((item) => entry(item, '', 'list'));
             return;
         }
         if (!data || typeof data !== 'object') return;
         if (typeof data.name === 'string') out.name = data.name;
         if (Array.isArray(data.colors)) {
-            data.colors.forEach((item) => entry(item));
+            data.colors.forEach((item) => entry(item, '', 'list'));
             return;
         }
         if (Array.isArray(data.palettes)) {
@@ -269,7 +329,7 @@
             const first = data.palettes.find((p) => p && Array.isArray(p.colors) && p.colors.length);
             if (first) {
                 if (typeof first.name === 'string') out.name = first.name;
-                first.colors.forEach((item) => entry(item));
+                first.colors.forEach((item) => entry(item, '', 'list'));
                 if (data.palettes.length > 1) out.note = 'only the first palette in the file was imported';
             }
             return;
@@ -279,12 +339,83 @@
             if (key === 'name') return;
             const v = data[key];
             if (typeof v === 'string' || Array.isArray(v)) {
-                entry(v, key);
+                entry(v, key, 'map');
             } else if (v && typeof v === 'object') {
-                if (['hex', 'color', 'value'].some((k) => typeof v[k] === 'string')) entry(v, key);
-                else Object.keys(v).forEach((sub) => { if (typeof v[sub] === 'string') entry(v[sub], `${key}-${sub}`); });
+                if (['hex', 'color', 'value'].some((k) => typeof v[k] === 'string')) entry(v, key, 'map');
+                else Object.keys(v).forEach((sub) => entry(v[sub], `${key}-${sub}`, 'map'));
+            } else if (v !== null && v !== undefined) {
+                out.skipped += 1;
             }
         });
+    }
+
+    /** One CSV line into trimmed cells; "quoted, fields" and "" escapes are honoured. */
+    function csvCells(line, delim) {
+        const cells = [];
+        let cur = '';
+        let quoted = false;
+        for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (quoted) {
+                if (ch === '"' && line[i + 1] === '"') {
+                    cur += '"';
+                    i += 1;
+                } else if (ch === '"') {
+                    quoted = false;
+                } else {
+                    cur += ch;
+                }
+            } else if (ch === '"') {
+                quoted = true;
+            } else if (ch === delim) {
+                cells.push(cur.trim());
+                cur = '';
+            } else {
+                cur += ch;
+            }
+        }
+        cells.push(cur.trim());
+        return cells;
+    }
+
+    const CSV_HEADS = {
+        hex: ['hex', 'color', 'colour', 'code', 'css', 'value'],
+        name: ['name', 'label', 'title', 'token', 'variable'],
+        r: ['r', 'red'],
+        g: ['g', 'green'],
+        b: ['b', 'blue'],
+        a: ['a', 'alpha', 'opacity']
+    };
+
+    /**
+     * A CSV (or TSV / semicolon) table with a header row naming a hex or
+     * r, g, b column, such as colorMan's own export (name,hex,r,g,b,a).
+     * Returns false when the first line is not such a header.
+     */
+    function fromCsv(lines, out, push) {
+        const rows = lines.map((l) => l.trim()).filter(Boolean);
+        if (rows.length < 2) return false;
+        const head = rows[0];
+        const delim = [',', '\t', ';'].map((d) => [d, head.split(d).length - 1]).sort((x, y) => y[1] - x[1])[0];
+        if (!delim[1]) return false;
+        const cells = csvCells(head, delim[0]).map((c) => c.toLowerCase());
+        const col = {};
+        Object.keys(CSV_HEADS).forEach((k) => { col[k] = cells.findIndex((c) => CSV_HEADS[k].includes(c)); });
+        const hasRgb = col.r >= 0 && col.g >= 0 && col.b >= 0;
+        if (col.hex < 0 && !hasRgb) return false;
+
+        out.unit = 'row';
+        rows.slice(1).forEach((row) => {
+            const v = csvCells(row, delim[0]);
+            let hex = col.hex >= 0 ? colorHex(v[col.hex], 'list') : null;
+            if (!hex && hasRgb) {
+                const a = col.a >= 0 && v[col.a] !== '' ? Number(v[col.a]) : 1;
+                hex = rgbHex(Number(v[col.r]), Number(v[col.g]), Number(v[col.b]), a);
+            }
+            if (hex) push(hex, col.name >= 0 ? v[col.name] : '');
+            else out.skipped += 1;
+        });
+        return true;
     }
 
     function fromGpl(lines, out, push) {
@@ -307,13 +438,31 @@
         });
     }
 
+    /** The label left on a line once its one color is taken out. */
+    function lineName(line, t) {
+        const before = line.slice(0, t.i);
+        const after = line.slice(t.i + t.s.length);
+        if (/[,;\t|]/.test(`${before}${after}`)) {
+            // A table row ("color-navy,#1B2A4A,27,42,74,1"): the first text field, not the numbers.
+            const field = `${before}\u0000${after}`.split(/[,;\t|\u0000]/)
+                .map((f) => f.replace(/^[\s"'`:=$@\-–—•*.]+|[\s"'`:=;{}()[\]<>]+$/g, ''))
+                .find((f) => f && !NUMBER_RE.test(f));
+            return field || '';
+        }
+        return `${before} ${after}`.replace(/[:=,;"'`{}()[\]<>]/g, ' ')
+            .replace(/^[\s$@\-–—•*.]+|[\s\-–—•*.]+$/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
     function fromLine(line, out, push) {
         const bare = line.replace(/[;,]+$/, '').trim();
 
         // "Navy: #1B2A4A", "--gold: …", "$gold: …", "accent = …" keep their label as the name.
         const labelled = bare.match(/^((?:--|[$@])?[A-Za-z][\w .-]{0,60}?)\s*[:=]\s*(.+)$/);
         if (labelled) {
-            const hex = colorHex(labelled[2]);
+            const variable = /^(?:--|[$@])/.test(labelled[1]);
+            const hex = colorHex(labelled[2], variable ? 'strict' : 'map');
             if (hex) {
                 const name = labelled[1].replace(/^(?:--|[$@])/, '').trim();
                 push(hex, PROPERTY_WORDS.has(name.toLowerCase()) ? '' : name);
@@ -321,7 +470,7 @@
             }
         }
 
-        const whole = colorHex(bare);
+        const whole = colorHex(bare, 'list');
         if (whole) {
             push(whole);
             return;
@@ -346,11 +495,7 @@
 
         if (found.length === 1) {
             const { t, hex } = found[0];
-            let rest = `${line.slice(0, t.i)} ${line.slice(t.i + t.s.length)}`;
-            rest = rest.replace(/[:=,;"'`{}()[\]<>]/g, ' ')
-                .replace(/^[\s$@\-–—•*.]+|[\s\-–—•*.]+$/g, '')
-                .replace(/\s+/g, ' ')
-                .trim();
+            let rest = lineName(line, t);
             if (PROPERTY_WORDS.has(rest.toLowerCase()) || rest.length > 60 || !/[a-z]/i.test(rest)) rest = '';
             push(hex, rest);
             return;
@@ -360,12 +505,12 @@
             return;
         }
 
-        // "red, green, blue" or tab / pipe separated values.
+        // "1B2A4A, C9A84C" or tab / pipe separated values: a plain hex list.
         const pieces = bare.split(/\s*[,;\t|]\s*/).filter(Boolean);
         let any = false;
         if (pieces.length > 1) {
             pieces.forEach((p) => {
-                const hex = colorHex(p);
+                const hex = colorHex(p, 'list');
                 if (hex) {
                     push(hex);
                     any = true;
@@ -377,10 +522,11 @@
 
     /**
      * Read colors out of pasted text or a file's contents.
-     * Returns { name, colors: [{ hex, name }], format, skipped, truncated, note }.
+     * Returns { name, colors: [{ hex, name }], format, skipped, unit, truncated, note }:
+     * skipped counts the values, lines, or rows (unit) that held no color.
      */
     function parseImport(text, filename = '') {
-        const out = { name: '', colors: [], format: 'text', skipped: 0, truncated: false, note: '' };
+        const out = { name: '', colors: [], format: 'text', skipped: 0, unit: 'line', truncated: false, note: '' };
         const src = String(text == null ? '' : text).replace(/^﻿/, '').replace(/\r\n?/g, '\n');
         const trimmed = src.trim();
         if (!trimmed) return out;
@@ -393,6 +539,13 @@
             }
             out.colors.push({ hex, name: tidyName(name) });
         };
+        const restart = () => {
+            out.colors = [];
+            out.skipped = 0;
+            out.unit = 'line';
+            out.truncated = false;
+            out.note = '';
+        };
 
         if (/^[[{]/.test(trimmed)) {
             let data;
@@ -404,6 +557,7 @@
                     out.format = 'json';
                     return out;
                 }
+                restart();
             }
         }
 
@@ -416,6 +570,14 @@
             return out;
         }
 
+        if (fromCsv(lines, out, push)) {
+            if (out.colors.length) {
+                out.format = 'csv';
+                return out;
+            }
+            restart();
+        }
+
         const noComments = src.replace(/\/\*[\s\S]*?\*\//g, '\n');
 
         // In a stylesheet, custom properties are the palette; other declarations are noise.
@@ -424,11 +586,17 @@
             ? Array.from(noComments.matchAll(/(?:^|[\s{;])--([A-Za-z0-9_-]+)\s*:\s*([^;{}\n]+)/g))
             : [];
         if (props.length) {
-            props.forEach((m) => push(colorHex(m[2]), m[1]));
+            out.unit = 'value';
+            props.forEach((m) => {
+                const hex = colorHex(m[2], 'strict');
+                if (hex) push(hex, m[1]);
+                else out.skipped += 1;
+            });
             if (out.colors.length) {
                 out.format = 'css';
                 return out;
             }
+            restart();
         }
 
         noComments.split('\n').slice(0, IMPORT_MAX_LINES).forEach((raw) => {
@@ -440,6 +608,13 @@
             fromLine(line, out, push);
         });
         return out;
+    }
+
+    /** "3 values without a color were skipped" (or "will be skipped" in a preview). */
+    function skippedText(r, preview = false) {
+        const n = r.skipped;
+        const verb = preview ? 'will be' : (n === 1 ? 'was' : 'were');
+        return `${n} ${r.unit || 'line'}${n === 1 ? '' : 's'} without a color ${verb} skipped`;
     }
 
     /* ── Shared library actions ────────────────────────────── */
@@ -731,7 +906,7 @@
         const extra = [];
         if (r.note) extra.push(r.note);
         if (r.truncated) extra.push(`only the first ${COLOR_LIMIT} colors were kept`);
-        if (r.skipped) extra.push(`${plural(r.skipped, 'line')} without a color ${r.skipped === 1 ? 'was' : 'were'} skipped`);
+        if (r.skipped) extra.push(skippedText(r));
         notify(`Imported ‘${pal.name}’ with ${plural(pal.colors.length, 'color')}${extra.length ? ` (${extra.join('; ')})` : ''}`, 'success', 3600);
         if (window.Workbench) Workbench.openSection('palettes');
         return pal;
@@ -783,7 +958,7 @@
             }
             return lastResult;
         };
-        const baseHint = 'Hex codes, any CSS color one per line, CSS variables, a JSON list, or GIMP .gpl lines. Ctrl + Enter imports.';
+        const baseHint = 'Hex codes, any CSS color one per line, CSS variables, a JSON list, a CSV table, or GIMP .gpl lines. Ctrl + Enter imports.';
         const pending = Dialogs.prompt({
             title: 'Import a palette',
             label: 'Paste colors',
@@ -818,9 +993,10 @@
                         return;
                     }
                     const r = parse(field.value);
+                    const skipped = r.skipped ? `; ${skippedText(r, true)}` : '';
                     hint.textContent = r.colors.length
-                        ? `Found ${plural(r.colors.length, 'color')} (${FORMAT_LABELS[r.format] || 'color list'}). Ctrl + Enter imports.`
-                        : 'No colors found yet. Hex codes, CSS colors, CSS variables, JSON, or GIMP lines work.';
+                        ? `Found ${plural(r.colors.length, 'color')} (${FORMAT_LABELS[r.format] || 'color list'}${skipped}). Ctrl + Enter imports.`
+                        : 'No colors found yet. Hex codes, CSS colors, CSS variables, JSON, CSV, or GIMP lines work.';
                 }, 150));
             }
         }

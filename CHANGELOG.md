@@ -44,6 +44,7 @@ first, under the file's path.
 
 ## `shared/css/panels.css`
 
+- 2.4.1 (2026-07-23) [Anthropic - Claude Opus 4.8] — Removed the stale .tool-section { flex: 0 0 auto } override in the <=768px block — a leftover from the pre-accordion equal-panes layout that fought the accordion's own sizing (open = 1 1 auto, collapsed = 0 0 auto) on mobile. The accordion now governs pane height at every width.
 - 2.4.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Glitch-free sheen (owner complaint #2): the reflection sweep is now a one-shot sheenSweep keyframe played on hover-in — leaving mid-sweep snaps it invisible instead of replaying it backwards; suppressed on dragging sections. Narrowed every transition:all in the hot paths to named properties.
 - 2.3.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Accordion pane sizing: sections are grid rows (header auto + body 0fr↔1fr) with an animated reveal; the open section takes the sidebar's remaining height and scrolls internally, closed sections shrink to their headers. Removed the empty-state min-height that inflated unpopulated panes past the viewport; added scrollbar-gutter so opening a scrolling pane never shifts layout.
 - 2.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Collapsed-rail redesign (audit finding F3): a collapsed panel's header becomes a true 48px vertical rail — zero horizontal padding, vertical-writing title, centered chevron, full-height click-to-expand target with hover affordance. Previously the 24px paddings left a 0px content box that clipped the expand button entirely off-canvas.
@@ -109,12 +110,14 @@ first, under the file's path.
 
 ## `index.html`
 
+- 1.3.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Theme toggle carries both sun and moon icons (CSS swaps by data-theme). Card icons come from shared/js/hub.js, where textMan now uses its real pen mark.
 - 1.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Hub QoL batch: tool-search input in the header, "Continue where you left off" hero slot, and the version + GitHub footer line (grid enrichments live in shared/js/hub.js 1.1.0).
 - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Replaced the fountain-pen mark (textMan's identity) with the placeholder toolbox mark (logo-toolMan.svg) in the loader, header, hero, and favicon.
 - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial hub page: loading screen, registry-driven tool grid, theme toggle.
 
 ## `shared/css/hub.css`
 
+- 1.3.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Viewport-fit landing page: the hub used to overflow on any monitor shorter than ~1536px tall (the footer and part of the grid pushed off-screen — 126px clipped at 1440x900, 306px at 1280x720). Added a height-keyed breakpoint ladder — 900px compresses the hero, 780px tightens card density and drops the subtitle, 680px sheds the logo and tagline — so the grid and footer stay in view as the viewport shrinks, while a tall reference monitor keeps the full spacing. The footer now anchors to the viewport bottom (margin-top:auto, collapsing to 0 under overflow), and the base main/hero paddings dropped 2xl->xl. Verified 0 overflow from 2560x1440 down to 1024x600. (Also folds in the earlier search- field shrink at <=480 from the media-query pass.)
 - 1.2.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Hub QoL batch: header tool-search field, continue chip, card overlay launch link (cards are now articles), pin/reset card actions, stored-data and last-used badges, empty-filter message, and the footer meta line.
 - 1.1.1 (2026-07-22) [Anthropic - Claude Opus 4.8] — Narrowed the tool-card transition:all to named properties (motion-polish pass).
 - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Tool cards now ride the theme depth tokens (card gradient, inset edge highlight, layered shadows, stronger hover elevation) for real figure/ground contrast on the Sentinel canvas; icon tiles gain a hairline border.
@@ -137,8 +140,10 @@ first, under the file's path.
 
 ## `shared/js/toolman.js`
 
+- 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Ecosystem usage layer: stampLastUsed/getLastUsed (per-tool timestamps), pinned-tool persistence (getPinned/togglePinned), getToolDataInfo (stored bytes plus textMan snippet/template counts), and clearToolData — all consumed by the hub's card ordering, badges, and reset actions.
 - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial kernel: registry, theme management, toasts.
 
 ## `shared/js/hub.js`
 
+- 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Hub QoL batch: type-ahead tool search ('/' focuses it), arrow-key navigation across launch links, a "Continue where you left off" hero chip, card ordering by pinned → last-used → registry, per-card stored-data badges, pin and confirm-guarded data-reset actions, and the version + GitHub footer line. Cards are now <article> elements with an overlay launch link (valid markup with interactive children).
 - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial hub boot: registry-driven cards, theme toggle, loader handoff.

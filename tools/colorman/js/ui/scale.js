@@ -26,7 +26,8 @@
  *     - Steps stepper, 3 to 15 (per side for Tints + shades); disabled with
  *       an explanation for Tailwind, which always has 11 steps
  *     - Vertical list: swatch, step label, hex, and ratios against white and
- *       black, each marked when it reaches AA (4.5:1)
+ *       black (two decimals, truncated like every colorMan ratio), each
+ *       marked when it reaches AA (4.5:1)
  *     - The step that is the active color is marked "Base" with a gold rule,
  *       not by color alone
  *     - Click a step to make it the active color; copy any single hex
@@ -51,9 +52,10 @@
  *     ScaleUI.addAll()                     → appends every step to the working palette
  *
  * ✒ Other Important Information:
- *     - Dependencies: js/color.js (Color.scale, Color.contrast), js/state.js
- *       (State), shared/js/dom.js, dialogs.js (Dialogs.confirm), toolapp.js
- *       (ToolApp.copy, ToolApp.flash), toolman.js; js/ui/working.js
+ *     - Dependencies: js/color.js (Color.scale, Color.contrast,
+ *       Color.formatRatio), js/state.js (State), shared/js/dom.js,
+ *       dialogs.js (Dialogs.confirm), toolapp.js (ToolApp.copy,
+ *       ToolApp.flash), toolman.js; js/ui/working.js
  *       (WorkingUI.confirmReplace) when present
  *     - Compatible platforms: all evergreen browsers
  *     - Limitations: the Tailwind-style ramp is fitted from OKLCH lightness
@@ -94,7 +96,7 @@
     const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
     const engineReady = () => Boolean(window.Color && typeof Color.scale === 'function'
-        && typeof Color.contrast === 'function');
+        && typeof Color.contrast === 'function' && typeof Color.formatRatio === 'function');
 
     const hexOf = (c) => State.hexOf(c) || '';
 
@@ -103,9 +105,8 @@
         return State.settings().hexUpper === false ? hex.toLowerCase() : hex;
     }
 
-    function ratioText(r) {
-        return (Math.floor(r * 10 + 1e-9) / 10).toFixed(1);
-    }
+    /** The shared truncating formatter, so a ratio here matches the Picker and Contrast panes. */
+    const ratioText = (r) => Color.formatRatio(r);
 
     function prefs() {
         const p = State.pane(PANE);

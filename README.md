@@ -1,10 +1,10 @@
 <!--
 ✒ Metadata
-    - Title: ReadMe (toolMan Edition - v1.2)
+    - Title: ReadMe (toolMan Edition - v1.3)
     - File Name: README.md
     - Relative Path: README.md
     - Artifact Type: docs
-    - Version: 1.2.0
+    - Version: 1.3.0
     - Date: 11/17/2026
     - Update: Tuesday, November 17, 2026
     - Author: Dennis 'dendogg' Smaltz
@@ -12,6 +12,10 @@
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 1.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — colorMan is live:
+      ecosystem row, a full colorMan section (workbench, library, tools,
+      shortcuts), its storage key, and its add-only backup import; svgMan
+      joins the ecosystem table and roadmap.
     - 1.2.0 (11/17/2026) [dendogg + Anthropic - Claude] — Themes section
       rewritten for Light, Dark, and System (the default, following the device
       live); the Parchment Dossier / Sentinel Obsidian names are retired.
@@ -59,6 +63,7 @@ works — from a static host or straight off your disk.
 - [Highlights](#highlights)
 - [The ecosystem](#the-ecosystem)
 - [textMan](#textman)
+- [colorMan](#colorman)
 - [Design system](#design-system)
 - [Your data stays local](#your-data-stays-local)
 - [Running toolMan](#running-toolman)
@@ -92,10 +97,11 @@ with its live/upcoming status, last-used time, and a pin control.
 | Tool | Tagline | What it does | Status |
 | --- | --- | --- | --- |
 | **textMan** | Bend text to your will | A three-panel text workspace: templates, snippets, transforms, search & replace, encoding, and formatting. | Live |
-| **colorMan** | Command the spectrum | Palettes, conversions, contrast checks, and gradient building. | Coming soon |
+| **colorMan** | Command the spectrum | Pick, convert, and check colors; build palettes, harmonies, scales, and gradients; preview color vision; export anywhere. | Live |
 | **mathMan** | Numbers, tamed | Calculators, expression evaluation, and unit-aware math. | Coming soon |
 | **convertMan** | From anything, to anything | Units, timestamps, data formats, and file-friendly conversions. | Coming soon |
 | **devMan** | A toolbelt for builders | JSON tools, regex testing, UUIDs, hashes, and dev utilities. | Coming soon |
+| **svgMan** | Vectors on demand | Generated blobs, waves, patterns, mazes, charts, and diagrams; fill and stroke comparisons; clean, safe SVG export. | Coming soon |
 
 Every tool shares the same theme, storage conventions, and toast notifications
 through the ecosystem kernel, so moving between them feels like one product.
@@ -187,6 +193,63 @@ Modifier is `Ctrl` on Windows and Linux, `Cmd` on macOS.
 | `Ctrl/Cmd + ,` | Open Settings |
 | `Esc` | Close any dialog, or exit Zen mode |
 
+## colorMan
+
+colorMan is a workbench for one color at a time and the palettes you build from
+it. The left rail is your **Library**, the center **Workbench** holds the active
+color, and the right rail is a set of **Tools** that check, adjust, and extend
+it.
+
+### Workbench
+
+- **Color field** — type or paste any CSS color, including hex, `rgb()`,
+  `hsl()`, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, `color()`, CMYK, a
+  CSS name, or a pasted declaration such as `--brand: #C9A84C;`. It applies as
+  you type, the whole edit is one undo step, and anything unreadable gets a
+  plain-language note instead of a change.
+- **Picker** — an HSV, HSL, or OKLCH color area with hue and opacity bars, full
+  keyboard control, a Before/Now comparison, and number fields for RGB, HSL,
+  HWB, OKLCH, or Lab.
+- **Formats** — the color as HEX, RGB, HSL, HWB, HSV, CMYK, Lab, LCH, OKLab,
+  OKLCH, and its nearest CSS name, each one click to copy, plus black and white
+  text samples with their contrast.
+- **Working palette** — the palette you're building. Reorder it by drag or by
+  keyboard, rename, sort (with Undo), save it to the library, or drop an image
+  on it to pull out its main colors.
+
+### Library
+
+**Palettes** (open, rename, duplicate, download, and import from hex lists,
+CSS/SCSS variables, JSON, CSV, or GIMP `.gpl`), **Saved Colors**, **Recent**,
+and all 148 **Named Colors** with a nearest-match filter.
+
+### Tools
+
+| Tool | What it does |
+| --- | --- |
+| **Adjust** | Lighten, darken, saturate, desaturate, rotate, invert, grey out, or complement in perceptual OKLCH steps — on the active color or the whole working palette |
+| **Contrast** | WCAG 2 ratio and APCA Lc with pass/fail per level, a live text preview, a suggested passing color, and a palette grid of every pair |
+| **Harmonies** | Complementary, analogous, triadic, split, tetradic, square, and monochromatic sets in OKLCH or HSL hues |
+| **Shades & Tints** | A Tailwind-style 50–950 scale or even tint/shade steps, each with its contrast, copyable as CSS variables |
+| **Mix** | Blends two colors in the color space you choose, with every step between |
+| **Gradient** | Linear, radial, or conic gradients with editable stops, copied as CSS or downloaded as SVG |
+| **Color Vision** | Previews protanopia, deuteranopia, tritanopia, their milder forms, and achromatopsia, and flags colors that become hard to tell apart |
+| **Export** | The working palette or saved colors as CSS variables, SCSS, Less, Tailwind config, JSON, hex list, CSV, GIMP `.gpl`, SVG, or PNG |
+
+### colorMan shortcuts
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl/Cmd + K` | Focus the color field |
+| `C` | Copy the active color |
+| `R` | Random color |
+| `E` | Pick a color from the screen (Chrome and Edge on desktop) |
+| `F` | Save the color to Saved Colors (again to remove) |
+| `A` | Add the color to the working palette |
+| `Ctrl/Cmd + Z` · `Ctrl/Cmd + Y` | Undo · redo a color change |
+| `Ctrl/Cmd + ,` · `?` | Settings · help |
+| `Ctrl/Cmd + [` · `]` · `\` | Toggle the Library rail · Tools rail · Focus mode |
+
 ## Design system
 
 The look is driven entirely by CSS custom properties in
@@ -226,6 +289,7 @@ parsing, quota-recovery, and versioned migrations.
 | --- | --- |
 | `toolman.theme` | The active theme, shared across all tools |
 | `toolman.textman.state` | textMan's document, templates, snippets, history, favorites, and settings |
+| `toolman.colorman.state` | colorMan's palettes, saved and recent colors, working palette, gradient, pane choices, and settings |
 | `toolman.lastUsed` | Per-tool last-opened timestamps (powers the hub's recents) |
 | `toolman.pinned` | The tools you've pinned on the hub |
 
@@ -234,9 +298,11 @@ collide.
 
 ### Backup and restore
 
-From textMan's Settings you can **download a JSON backup** of your workspace and
-**import** one back in. Imports are validated and *merged* into your existing
-state — never blindly overwritten — so restoring on a new machine is safe.
+From a tool's Settings you can **download a JSON backup** and **import** one
+back in. Imports are validated and *merged* into your existing state — never
+blindly overwritten — so restoring on a new machine is safe. colorMan's import
+only adds: palettes and colors you don't already have come in, your current
+work stays put, and it asks before any setting changes.
 
 ### Autosave
 
@@ -361,10 +427,12 @@ the entrance polish). There is no support for Internet Explorer.
 
 The next tools are already stubbed in the hub registry:
 
-- **colorMan** — palettes, conversions, contrast checks, gradient building
 - **mathMan** — calculators, expression evaluation, unit-aware math
 - **convertMan** — units, timestamps, data formats, file-friendly conversions
 - **devMan** — JSON tools, regex testing, UUIDs, hashes, dev utilities
+- **svgMan** — generated blobs, waves, patterns, mazes, charts, and diagrams,
+  fill and stroke comparisons, and clean SVG export, with every imported SVG
+  cleaned before it is shown
 
 Each will plug into the same kernel, tokens, and storage conventions described
 above.

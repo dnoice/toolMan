@@ -1,10 +1,10 @@
 <!--
 ✒ Metadata
-    - Title: ContributingGuide (toolMan Edition - v1.1)
+    - Title: ContributingGuide (toolMan Edition - v1.2)
     - File Name: CONTRIBUTING.md
     - Relative Path: CONTRIBUTING.md
     - Artifact Type: docs
-    - Version: 1.1.0
+    - Version: 1.2.0
     - Date: 11/17/2026
     - Update: Tuesday, November 17, 2026
     - Author: Dennis 'dendogg' Smaltz
@@ -12,6 +12,9 @@
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 1.2.0 (11/17/2026) [dendogg + Anthropic - Claude] — Registering a tool
+      documents the optional data descriptor (holds, summarize) behind the
+      hub's data badge and reset wording.
     - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Design-system
       guidance uses the light / dark theme names and points JS-painted
       surfaces at the toolman:theme event; documents the theme browser
@@ -135,9 +138,17 @@ Add an entry to the `tools` array in `shared/js/toolman.js`:
     tagline: 'Command the spectrum',
     description: 'Palettes, conversions, contrast checks, and gradients.',
     status: 'soon',                      // 'live' once it ships
-    path: null                           // 'tools/colorman/index.html' once live
+    path: null,                          // 'tools/colorman/index.html' once live
+    data: {                              // optional: the hub's data badge + reset wording
+        holds: 'palettes, saved colors, and layout',
+        summarize: (state) => [`${state.palettes.length} palettes`]
+    }
 }
 ```
+
+`data.holds` finishes the hub's "Clear colorMan's local data? This removes
+its …" confirmation. `data.summarize(state)` receives the tool's saved state
+and returns short count strings for the card's badge. Both are optional.
 
 ### 2. Lay out the page
 

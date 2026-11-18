@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: EcosystemCore (toolMan Edition - v1.3)
+ *     - Title: EcosystemCore (toolMan Edition - v1.4)
  *     - File Name: toolman.js
  *     - Relative Path: shared/js/toolman.js
  *     - Artifact Type: library
- *     - Version: 1.3.0
+ *     - Version: 1.4.0
  *     - Date: 11/17/2026
  *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,11 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.4.0 (11/17/2026) [dendogg + Anthropic - Claude] — colorMan goes
+ *       live and svgMan joins the registry as coming soon. Registry entries
+ *       can carry a data descriptor (holds, summarize), so getToolDataInfo
+ *       returns per-tool counts and the hub's badges and reset copy fit every
+ *       tool, not only textMan.
  *     - 1.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — On Dennis's
  *       direction the themes are now simply Light, Dark, and System (the
  *       default, which follows the device live); the Parchment Dossier /
@@ -23,11 +28,6 @@
  *       direction the ecosystem returns to the 07/23 Parchment/Sentinel
  *       design; getTheme() now bridges the light/dark values the interim
  *       1.0.0 build stored, so returning visitors keep the theme they chose.
- *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Ecosystem usage
- *       layer: stampLastUsed/getLastUsed (per-tool timestamps), pinned-tool
- *       persistence (getPinned/togglePinned), getToolDataInfo (stored bytes
- *       plus textMan snippet/template counts), and clearToolData — all
- *       consumed by the hub's card ordering, badges, and reset actions.
  *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
@@ -39,7 +39,9 @@
  *
  * ✒ Key Features:
  *     - Tool registry: id, name, tagline, description, status, and path for
- *       every tool in the ecosystem
+ *       every tool in the ecosystem, plus an optional data descriptor
+ *       (holds, summarize) that drives the hub's per-tool data badge and
+ *       reset wording via getToolDataInfo()
  *     - Theme management: Light, Dark, or System, saved under
  *       'toolman.theme' and painted on <html data-theme="light|dark">
  *       immediately on parse
@@ -103,6 +105,10 @@
 
     const darkQuery = () => (window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null);
 
+    /** "3 palettes", "1 snippet" — for the hub's data badges. */
+    const count = (n, one, many) => `${n} ${n === 1 ? one : (many || `${one}s`)}`;
+    const list = (value) => (Array.isArray(value) ? value : null);
+
     const TOOLMAN = {
         VERSION: '1.0.0',
         THEME_KEY,
@@ -121,15 +127,29 @@
                 tagline: 'Bend text to your will',
                 description: 'A three-panel text workspace: templates, snippets, transforms, search & replace, encoding, and formatting tools.',
                 status: 'live',
-                path: 'tools/textman/index.html'
+                path: 'tools/textman/index.html',
+                data: {
+                    holds: 'saved document, snippets, templates, history, and layout',
+                    summarize: (s) => [
+                        list(s.snippets) && count(s.snippets.length, 'snippet'),
+                        list(s.templates) && count(s.templates.filter((t) => t && !t.isSeed).length, 'custom', 'custom')
+                    ].filter((part, i) => part && (i === 0 || !part.startsWith('0 ')))
+                }
             },
             {
                 id: 'colorman',
                 name: 'colorMan',
                 tagline: 'Command the spectrum',
-                description: 'Palettes, conversions, contrast checks, and gradient building. Coming soon.',
-                status: 'soon',
-                path: null
+                description: 'Pick, convert, and check colors; build palettes, harmonies, scales, and gradients; preview color vision; export to CSS, Tailwind, and more.',
+                status: 'live',
+                path: 'tools/colorman/index.html',
+                data: {
+                    holds: 'palettes, saved colors, working palette, recent colors, gradient, and layout',
+                    summarize: (s) => [
+                        list(s.palettes) && count(s.palettes.filter((p) => p && p.id !== 'pal-toolman-house').length, 'palette'),
+                        list(s.swatches) && count(s.swatches.length, 'saved color')
+                    ].filter((part) => part && !part.startsWith('0 '))
+                }
             },
             {
                 id: 'mathman',
@@ -152,6 +172,14 @@
                 name: 'devMan',
                 tagline: 'A toolbelt for builders',
                 description: 'JSON tools, regex testing, UUIDs, hashes, and dev utilities. Coming soon.',
+                status: 'soon',
+                path: null
+            },
+            {
+                id: 'svgman',
+                name: 'svgMan',
+                tagline: 'Vectors on demand',
+                description: 'Generate blobs, waves, patterns, mazes, charts, and diagrams; compare fill and stroke combos; export clean, safe SVG. Coming soon.',
                 status: 'soon',
                 path: null
             }
@@ -298,14 +326,16 @@
                 const raw = window.localStorage.getItem(`toolman.${toolId}.state`);
                 if (!raw) return null;
 
-                const info = { bytes: new Blob([raw]).size, snippets: null, templates: null };
+                const info = { bytes: new Blob([raw]).size, counts: [] };
+                const tool = this.tools.find((t) => t.id === toolId);
                 try {
-                    const state = JSON.parse(raw).state || {};
-                    if (Array.isArray(state.snippets)) info.snippets = state.snippets.length;
-                    if (Array.isArray(state.templates)) {
-                        info.templates = state.templates.filter((t) => t && !t.isSeed).length;
+                    const parsed = JSON.parse(raw);
+                    const state = parsed && typeof parsed === 'object' && parsed.state && typeof parsed.state === 'object'
+                        ? parsed.state : {};
+                    if (tool && tool.data && typeof tool.data.summarize === 'function') {
+                        info.counts = tool.data.summarize(state).filter((part) => typeof part === 'string');
                     }
-                } catch (_err) { /* counts stay null; size still reports */ }
+                } catch (_err) { /* counts stay empty; size still reports */ }
                 return info;
             } catch (_err) { return null; }
         },

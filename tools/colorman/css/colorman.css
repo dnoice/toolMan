@@ -30,11 +30,11 @@
  *     - Color field sized for long CSS values; its note takes its own line
  *       under the field and collapses when empty
  *     - .tool-count: mono pill between a rail section title and its chevron
- *     - .swatch button primitive: 32px default, --sm 20px, --lg 56px, color
- *       from the inline --c property, hover lift, focus ring
+ *     - .swatch button primitive (32px default, --sm 20px, --lg 56px) with
+ *       its color from the inline --c property, hover lift, and focus ring,
+ *       laid out by .swatch-grid, .swatch-strip, or a joined palette bar
  *     - Selected swatch: gold ring plus a check mark in black or white
  *       (--on), so selection never relies on color alone
- *     - .swatch-grid, .swatch-strip, and a joined strip for palette bars
  *     - .checker utility for any surface that previews alpha
  *     - Mount fallback text when a pane module did not load
  *     - Narrow center pane (under 640px): the toolbar wraps and the color
