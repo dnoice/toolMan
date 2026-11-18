@@ -477,7 +477,7 @@
 
         const left = list.length - matching.size;
         els.note.textContent = left > 0
-            ? `To lists only units that measure the same thing as ${unitName(model.category, model.from)}s; ${left} other ${left === 1 ? 'unit is' : 'units are'} a different kind of quantity.`
+            ? `To lists only units of the same kind as ${unitName(model.category, model.from)} (${model.from}). The other ${left} ${left === 1 ? 'unit here measures' : 'units here measure'} something else.`
             : '';
         els.note.hidden = !left;
 
@@ -509,8 +509,8 @@
             els.send.title = 'Type a number to convert first';
             els.send.setAttribute('aria-label', 'Send the conversion to the worksheet');
         }
-        els.fromValue.placeholder = model.anchor === 'to' ? 'Worked out from To' : 'Type a number';
-        els.toValue.placeholder = model.anchor === 'from' ? 'Worked out from From' : 'Type a number';
+        els.fromValue.placeholder = model.anchor === 'to' ? 'Converted' : 'Type a number';
+        els.toValue.placeholder = model.anchor === 'from' ? 'Converted' : 'Type a number';
 
         els.toggleAll.setAttribute('aria-expanded', String(model.showAll));
         els.toggleLabel.textContent = model.showAll ? 'Hide table' : `Show all ${matching.size}`;
@@ -590,10 +590,10 @@
         if (which === 'from') {
             model.from = symbol;
             if (!compatibleWith(model.category, symbol).has(model.to)) {
-                const prev = unitName(model.category, model.to);
+                const prev = model.to;
                 const options = [...compatibleWith(model.category, symbol)];
                 model.to = options.find((s) => s !== symbol) || symbol;
-                notify(`To changed to ${unitName(model.category, model.to)}: ${prev}s measure something else.`, 'info', 3000);
+                notify(`To is now ${unitName(model.category, model.to)} (${model.to}), because ${prev} and ${symbol} measure different things.`, 'info', 3200);
             }
         } else {
             if (!compatibleWith(model.category, model.from).has(symbol)) return false;

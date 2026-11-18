@@ -992,7 +992,7 @@
             // Headings, notes, and definitions have no single result to show.
             if (!/^\s*(#|\/\/)/.test(example) && !/^[\p{L}_][\p{L}\d_]*\s*\([^)]*\)\s*=/u.test(example)) {
                 const r = MathEngine.evaluate(example, opts);
-                if (r && r.kind === 'value' || (r && r.kind === 'assignment')) text = r.display || r.plain || '';
+                if (r && (r.kind === 'value' || r.kind === 'assignment')) text = r.display || r.plain || '';
             }
         } catch (_err) {
             text = '';

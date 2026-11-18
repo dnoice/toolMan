@@ -831,8 +831,12 @@
         els.summary = DOM.create('p', { id: 'gr-summary', className: 'gr-summary', attrs: { 'aria-live': 'polite' } });
         root.appendChild(DOM.create('div', {
             className: 'gr-toolbar',
-            children: [els.summary, DOM.create('div', { className: 'gr-tools', children: [els.zoomIn, els.zoomOut, els.reset, els.windowBtn, els.png] })]
+            children: [
+                DOM.create('span', { className: 'mini-label gr-view-label', text: 'View' }),
+                DOM.create('div', { className: 'gr-tools', attrs: { role: 'group', 'aria-label': 'Graph view' }, children: [els.zoomIn, els.zoomOut, els.reset, els.windowBtn, els.png] })
+            ]
         }));
+        root.appendChild(els.summary);
 
         // Window form
         els.winError = DOM.create('p', { id: 'gr-win-error', className: 'error-text ta-error', attrs: { role: 'alert' } });

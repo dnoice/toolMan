@@ -227,7 +227,8 @@
         metrics: { lh: 24, pt: 8 },
         frame: 0,
         cardKey: '',
-        tipFor: null
+        tipFor: null,
+        warnedLines: false
     };
 
     /* ── DOM construction ──────────────────────────────────── */
@@ -645,6 +646,8 @@
                 const caret = Math.min(el.ta.selectionEnd, stored.text.length);
                 el.ta.value = stored.text;
                 el.ta.setSelectionRange(caret, caret);
+                S.lineCount = countLines(stored.text);
+                syncGutter(S.lineCount);
                 notify(State.lastError || 'The sheet was too long, so the end was left out.', 'warning', 5000);
             }
         }
