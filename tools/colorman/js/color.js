@@ -25,14 +25,18 @@
  *       hsl(), hwb(), lab(), lch(), oklab(), oklch(), color(srgb |
  *       srgb-linear | display-p3 | xyz-d65 | xyz-d50), cmyk(), hsv(), all 148
  *       named colors, transparent, bare "201 168 76" triples, and pasted
- *       declarations such as "--brand: #C9A84C;"
+ *       declarations such as "--brand: #C9A84C;"; a bare OKLab/OKLCH
+ *       lightness above 2 reads as a percentage, up to 2 it is clamped
  *     - CSS Color 4 math: exact sRGB matrices, Bradford D65 to D50 for
  *       Lab/LCH, OKLab matrices, and the CSS gamut-mapping algorithm
  *       (OKLCH chroma reduction) with a clipped flag on out-of-gamut input
  *     - format() for hex, hex8, rgb, hsl, hwb, hsv, cmyk, lab, lch, oklab,
- *       oklch, Display P3, color(srgb) and exact CSS names
+ *       oklch, Display P3, color(srgb) and exact CSS names; at precision 2
+ *       or more, oklab() and oklch() text reads back as the same 8-bit color
  *     - WCAG 2.x contrast with alpha compositing, the five pass/fail levels,
- *       APCA 0.0.98G-4g lightness contrast, and best text color
+ *       APCA 0.0.98G-4g lightness contrast, best text color, and display
+ *       formatters that truncate, so a shown ratio or Lc never crosses the
+ *       threshold its verdict uses
  *     - ensureContrast(): nudges OKLCH lightness until a target ratio passes
  *       even after the result is rounded to 8-bit hex
  *     - CIEDE2000 (Sharma et al.) and OKLab color difference, nearest name
@@ -57,6 +61,7 @@
  *     Color.parse('#C9A84C')                    → { r: 0.788, g: 0.659, b: 0.298, a: 1 }
  *     Color.format(Color.parse('gold'), 'oklch') → 'oklch(0.8868 0.1822 95.33)'
  *     Color.contrast('#777777', '#FFFFFF')      → 4.478 (passes AA large only)
+ *     Color.formatRatio(4.4989)                 → '4.49' (never rounded up to 4.50)
  *     Color.mix('#000', '#FFF', 0.5, 'srgb')    → mid grey #808080
  *     Color.harmony('#C9A84C', 'triadic')       → [input, +120°, +240°]
  *     Color.scale('#3B82F6', { mode: 'tailwind' }) → 11 steps labelled 50…950
@@ -483,10 +488,14 @@
         return { color: make(vals, alpha), clipped: vals.some((v) => outside(v, 0, 1)) };
     }
 
-    /** Forgiving OKLab/OKLCH lightness: 0..1, a percentage, or 0..100 typed bare. */
+    /**
+     * Forgiving OKLab/OKLCH lightness: 0..1, a percentage, or 0..100 typed
+     * bare. A bare value just above 1 (up to 2) is an overshoot that CSS
+     * clamps to 1, not a percentage, so only values above 2 are read as 0-100.
+     */
     function okLightness(t) {
         let v = scalar(t, 1);
-        if (t.unit === '' && v > 1 && v <= 100) v /= 100;
+        if (t.unit === '' && v > 2 && v <= 100) v /= 100;
         return v;
     }
 
@@ -562,19 +571,21 @@
                 return { color: out.color, format: 'lch', clipped: out.clipped };
             }
             case 'oklab': case 'oklch': {
-                const L = clamp01(okLightness(t0));
+                const rawL = okLightness(t0);
+                const L = clamp01(rawL);
+                const overL = outside(rawL, 0, 1);
                 if (name === 'oklab') {
                     const a = scalar(t1, 0.4);
                     const b = scalar(t2, 0.4);
                     if ([L, a, b].some(Number.isNaN)) return null;
                     const out = fromXyz65Detailed(oklabToXyz65([L, a, b]), alpha);
-                    return { color: out.color, format: 'oklab', clipped: out.clipped };
+                    return { color: out.color, format: 'oklab', clipped: out.clipped || overL };
                 }
                 const C = Math.max(0, scalar(t1, 0.4));
                 const H = hueOfToken(t2);
                 if ([L, C, H].some(Number.isNaN)) return null;
                 const out = fromOklchDetailed(L, C, H, alpha);
-                return { color: out.color, format: 'oklch', clipped: out.clipped };
+                return { color: out.color, format: 'oklch', clipped: out.clipped || overL };
             }
             default:
                 return null;
@@ -869,6 +880,35 @@
     ]);
 
     /**
+     * oklab() / oklch() text. Their channels carry two extra decimals; at
+     * precision 2 or more the text is also guaranteed to read back as the
+     * same 8-bit color, so a value copied and pasted never shifts by one
+     * step (#06F5F5 needs a fifth decimal, for example). Up to two more
+     * decimals are added only for the colors that need them.
+     */
+    function okText(c, fmt, p, ap, hue) {
+        const build = (extra) => {
+            const fine = Math.min(p + 2 + extra, 6);
+            if (fmt === 'oklab') {
+                const o = toOklab(c);
+                return `oklab(${fmtNum(o.l, fine)} ${fmtNum(o.a, fine)} ${fmtNum(o.b, fine)}${ap})`;
+            }
+            const o = toOklch(c);
+            const hp = Math.min(p + extra, 6);
+            return `oklch(${fmtNum(o.l, fine)} ${fmtNum(o.c, fine)} ${hue(o.h, o.c, fine, hp)}${ap})`;
+        };
+        let out = build(0);
+        if (p < 2) return out;
+        const want = toHex(c, { alpha: 'never' });
+        for (let extra = 1; extra <= 2; extra++) {
+            const back = parseDetailed(out);
+            if (back && toHex(back.color, { alpha: 'never' }) === want) break;
+            out = build(extra);
+        }
+        return out;
+    }
+
+    /**
      * Format a color as text. fmt: hex hex8 rgb hsl hwb hsv cmyk lab lch oklab
      * oklch p3 srgb name. opts: { precision = 2, upper = true }. Alpha appears
      * only when a < 1. Returns '' when the color cannot be read.
@@ -882,7 +922,7 @@
         const alphaPct = fmtNum(c.a * 100, Math.min(p, 2));
         const ap = c.a < 1 && alphaPct !== '100' ? ` / ${alphaPct}%` : '';
         // Hue reads 0 whenever the colorfulness rounds away.
-        const hue = (h, strength, sp) => (fmtNum(strength, sp) === '0' ? '0' : fmtNum(normHue(Number(fmtNum(h, p))), p));
+        const hue = (h, strength, sp, hp = p) => (fmtNum(strength, sp) === '0' ? '0' : fmtNum(normHue(Number(fmtNum(h, hp))), hp));
 
         switch (fmt) {
             case 'hex8': return toHex(c, { alpha: 'always', upper });
@@ -914,14 +954,9 @@
                 const o = toLch(c);
                 return `lch(${fmtNum(o.l, p)} ${fmtNum(o.c, p)} ${hue(o.h, o.c, p)}${ap})`;
             }
-            case 'oklab': {
-                const o = toOklab(c);
-                return `oklab(${fmtNum(o.l, fine)} ${fmtNum(o.a, fine)} ${fmtNum(o.b, fine)}${ap})`;
-            }
-            case 'oklch': {
-                const o = toOklch(c);
-                return `oklch(${fmtNum(o.l, fine)} ${fmtNum(o.c, fine)} ${hue(o.h, o.c, fine)}${ap})`;
-            }
+            case 'oklab':
+            case 'oklch':
+                return okText(c, fmt, p, ap, hue);
             case 'p3': {
                 const v = mul3(XYZ_TO_LIN_P3, rgbToXyz65([c.r, c.g, c.b])).map(linearToSrgb);
                 return `color(display-p3 ${v.map((x) => fmtNum(clamp01(x), fine)).join(' ')}${ap})`;
@@ -994,6 +1029,30 @@
             out = sapc > -0.1 ? 0 : sapc + 0.027;
         }
         return out * 100;
+    }
+
+    /**
+     * A WCAG ratio as display text, truncated (never rounded up) to `places`
+     * decimals with the same tolerance wcag() uses, so the number shown can
+     * never cross the threshold its verdict is based on: 4.4989 → '4.49'.
+     */
+    function formatRatio(ratio, places = 2) {
+        const dp = clamp(Math.round(num(places, 2)), 0, 4);
+        const f = Math.pow(10, dp);
+        return (Math.floor((num(ratio, 1) + 1e-9) * f) / f).toFixed(dp);
+    }
+
+    /**
+     * An APCA Lc as display text, truncated toward zero to `places` decimals
+     * with a real minus sign: 44.96 → '44.9', -107.88 → '−107.8'. The
+     * magnitude never rounds up past a guidance threshold (45, 60, 75).
+     */
+    function formatLc(lc, places = 1) {
+        const dp = clamp(Math.round(num(places, 1)), 0, 3);
+        const f = Math.pow(10, dp);
+        const v = num(lc);
+        const mag = Math.floor((Math.abs(v) + 1e-9) * f) / f;
+        return `${v < 0 && mag > 0 ? '\u2212' : ''}${mag.toFixed(dp)}`;
     }
 
     /** '#000000' or '#FFFFFF', whichever reads with more contrast on c. */
@@ -1297,7 +1356,7 @@
      */
     function harmony(color, kind = 'complementary', opts = {}) {
         const c = norm(color);
-        const def = HARMONIES[kind];
+        const def = Object.prototype.hasOwnProperty.call(HARMONIES, kind) ? HARMONIES[kind] : null;
         if (!def) throw new RangeError(`Color.harmony: unknown kind "${kind}"`);
         const hsl = opts && opts.space === 'hsl';
         if (!def.offsets) return monochrome(c, hsl);
@@ -1556,7 +1615,7 @@
         toRgb255, fromRgb, inGamutOklch, maxChroma, oklchToRgbRaw,
 
         // contrast
-        luminance, composite, contrast, wcag, apca, textOn, isDark, ensureContrast,
+        luminance, composite, contrast, wcag, apca, textOn, isDark, ensureContrast, formatRatio, formatLc,
 
         // difference and names
         deltaE2000, deltaE2000Lab, deltaEOK, nearestName,

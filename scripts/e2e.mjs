@@ -2,16 +2,22 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: BrowserTestRunner (toolMan Edition - v1.0)
+ *     - Title: BrowserTestRunner (toolMan Edition - v1.1)
  *     - File Name: e2e.mjs
  *     - Relative Path: scripts/e2e.mjs
  *     - Artifact Type: CLI
- *     - Version: 1.0.0
+ *     - Version: 1.1.0
  *     - Date: 11/17/2026
  *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Themes are light
+ *       / dark / system: t.open() takes theme (null saves none) and
+ *       colorScheme (the device setting to emulate); the default seeded theme
+ *       is dark.
  *
  * ✒ Description:
  *     Runs toolMan's browser suites in headless Chromium against the real
@@ -24,8 +30,9 @@
  * ✒ Key Features:
  *     - Suite discovery: tests/e2e/*.e2e.mjs and tools/<id>/tests/*.e2e.mjs
  *     - file:// pages, exactly as a downloaded copy runs
- *     - Theme seeding (parchment / sentinel) and loader skip before first
- *       paint, applied once per browser context so reload tests persist
+ *     - Theme seeding (light / dark / system, plus an emulated device color
+ *       scheme) and loader skip before first paint, applied once per browser
+ *       context so reload tests persist
  *     - Network guard: every http(s) / ws(s) request is recorded and blocked
  *       — toolMan promises to work offline, so any attempt is a failure
  *     - Console guard: console errors, warnings, and uncaught exceptions are
@@ -46,7 +53,7 @@
  *     that receives the harness `t`:
  *         export const name = 'colorMan';
  *         export default async function (t) {
- *             const s = await t.open('tools/colorman/index.html', { theme: 'parchment' });
+ *             const s = await t.open('tools/colorman/index.html', { theme: 'light' });
  *             t.check('picker renders', await s.page.isVisible('#color-input'));
  *             t.assertClean(s, 'colorMan');
  *             await s.close();
@@ -147,17 +154,20 @@ function createHarness(browser, opts) {
         /**
          * Open a page in a fresh browser context.
          * @param {string} rel  repository-relative page path
-         * @param {object} [o]  { theme, viewport, mobile, seed, waitForLoader }
+         * @param {object} [o]  { theme, colorScheme, viewport, mobile, seed, waitForLoader }
+         *   theme: the saved preference — 'light' | 'dark' | 'system' (null: none saved)
+         *   colorScheme: the device setting to emulate — 'light' | 'dark'
          *   seed: { localStorageKey: value } written once before first paint
          */
         async open(rel, o = {}) {
-            const theme = o.theme || 'sentinel';
+            const theme = o.theme === undefined ? 'dark' : o.theme;
             const viewport = o.viewport || (o.mobile ? PHONE : DESKTOP);
             const context = await browser.newContext({
                 viewport,
                 deviceScaleFactor: 1,
                 isMobile: Boolean(o.mobile),
-                hasTouch: Boolean(o.mobile)
+                hasTouch: Boolean(o.mobile),
+                colorScheme: o.colorScheme || 'light'
             });
             const errors = [];
             const external = [];
@@ -170,7 +180,7 @@ function createHarness(browser, opts) {
                     if (sessionStorage.getItem('toolman.e2e.seeded') === '1') return;
                     sessionStorage.setItem('toolman.e2e.seeded', '1');
                     sessionStorage.setItem('toolman.loaderSeen', '1');
-                    localStorage.setItem('toolman.theme', th);
+                    if (th) localStorage.setItem('toolman.theme', th);
                     Object.entries(seed || {}).forEach(([k, v]) => {
                         localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
                     });

@@ -22,9 +22,11 @@
  * ✒ Key Features:
  *     - No dependencies: node:assert plus a twelve-line runner
  *     - Reference values: #C9A84C channels, OKLCH and Lab of pure red,
- *       white in OKLCH, contrast 21 and 4.48, APCA ±106/108
+ *       white in OKLCH, contrast 21 and 4.48, APCA ±106/108, and ratio and
+ *       Lc display text that never rounds up past a threshold
  *     - Sharma et al. CIEDE2000 pairs checked to four decimals
- *     - Every named color and every output format round-trips
+ *     - Every named color and every output format round-trips, and 6,000
+ *       sampled colors read back exactly through oklab() and oklch()
  *     - Parser coverage: legacy and modern syntax, units, none, percent
  *       forms, wide-gamut input with the clipped flag, and garbage input
  *     - Mixing, adjustment, harmonies, scales and color vision checks
@@ -158,6 +160,15 @@ test('parse: lab / lch / oklab / oklch', () => {
     eq(Color.parse('oklch(0.5 0.1 120 / 0.3)').a, 0.3);
 });
 
+test('parse: OKLab / OKLCH lightness just above 1 clamps to white', () => {
+    ['oklch(1 0 0)', 'oklch(1.0001 0 0)', 'oklch(1.2 0 0)', 'oklab(1.5 0 0)', 'oklch(2 0.1 90)']
+        .forEach((s) => eq(hex(Color.parse(s)), '#FFFFFF', s));
+    ok(Color.parseDetailed('oklch(1.2 0 0)').clipped, 'an overshoot is flagged as mapped');
+    eq(Color.parseDetailed('oklch(1 0 0)').clipped, false, 'exactly 1 is in range');
+    eq(hex(Color.parse('oklch(50 0.1 90)')), hex(Color.parse('oklch(0.5 0.1 90)')), 'bare 50 still reads as 50%');
+    eq(hex(Color.parse('oklab(74.3 0.001 0.117)')), hex(Color.parse('oklab(0.743 0.001 0.117)')), 'bare 0-100 OKLab lightness');
+});
+
 test('parse: color() spaces and wide-gamut flag', () => {
     eq(hex(Color.parse('color(srgb 1 0 0)')), '#FF0000');
     eq(hex(Color.parse('color(srgb 100% 50% 0%)')), '#FF8000');
@@ -250,6 +261,23 @@ test('format: every format round-trips through parse', () => {
             eq(hex(back), h, `${h} via ${f} (${text})`);
         });
     });
+});
+
+test('format: oklab() / oklch() read back as the same 8-bit color', () => {
+    eq(hex(Color.parse(Color.format('#06F5F5', 'oklch'))), '#06F5F5', Color.format('#06F5F5', 'oklch'));
+    eq(hex(Color.parse(Color.format('#05C5D5', 'oklab'))), '#05C5D5', Color.format('#05C5D5', 'oklab'));
+    eq(Color.format('#C9A84C', 'oklch'), 'oklch(0.7432 0.1171 89.51)', 'common colors keep four decimals');
+    let failures = 0;
+    for (let i = 0; i < 6000; i++) {
+        const n = (i * 1103515245 + 12345) % 16777216;
+        const h = `#${n.toString(16).padStart(6, '0').toUpperCase()}`;
+        ['oklab', 'oklch'].forEach((f) => {
+            if (hex(Color.parse(Color.format(h, f))) !== h) failures++;
+        });
+    }
+    eq(failures, 0, 'every sampled color round-trips at the default precision');
+    ok(Color.format('#06F5F5', 'oklch', { precision: 0 }).length <= Color.format('#06F5F5', 'oklch').length,
+        'lower precisions stay short');
 });
 
 test('format: oklch() round trips with alpha', () => {
@@ -385,6 +413,23 @@ test('contrast: APCA 0.0.98G-4g', () => {
     near(Color.apca('#FFFFFF', '#000000'), -107.88, 0.5, 'white on black');
     eq(Color.apca('#777777', '#777777'), 0);
     ok(Color.apca('#777777', '#FFFFFF') > 60, 'grey on white is readable');
+});
+
+test('contrast: display formatters never round up past a threshold', () => {
+    eq(Color.formatRatio(4.4989), '4.49', 'just under AA stays under');
+    eq(Color.formatRatio(Color.contrast('#0078D7', '#FFFFFF')), '4.49');
+    eq(Color.wcag(Color.contrast('#0078D7', '#FFFFFF')).aaNormal, false, 'and the verdict agrees');
+    eq(Color.formatRatio(Color.contrast('#C9A84C', '#FFFFFF')), '2.28');
+    eq(Color.formatRatio(21), '21.00');
+    eq(Color.formatRatio(Color.contrast('#000', '#FFF')), '21.00');
+    eq(Color.formatRatio(4.5 - 1e-12), '4.50', 'float noise at a threshold matches wcag()');
+    eq(Color.wcag(4.5 - 1e-12).aaNormal, true);
+    eq(Color.formatRatio(12.6789, 1), '12.6', 'one decimal for tight cells');
+    eq(Color.formatLc(44.96), '44.9');
+    eq(Color.formatLc(Color.apca('#C9A84C', '#FFFFFF')), '44.9');
+    eq(Color.formatLc(-107.88), '\u2212107.8');
+    eq(Color.formatLc(0), '0.0');
+    eq(Color.formatLc(-0.04), '0.0', 'no minus sign on zero');
 });
 
 test('contrast: textOn / isDark', () => {
@@ -539,6 +584,8 @@ test('harmony: counts, input first, both spaces', () => {
     const tri = Color.harmony('#FF0000', 'triadic', { space: 'hsl' }).map(hex);
     eq(tri, ['#FF0000', '#00FF00', '#0000FF']);
     throws(() => Color.harmony('#C9A84C', 'pentagram'), RangeError);
+    throws(() => Color.harmony('#C9A84C', 'toString'), RangeError, 'inherited keys are not kinds');
+    throws(() => Color.harmony('#C9A84C', 'constructor'), RangeError);
 });
 
 test('scale: tailwind has 11 monotonic steps with the input anchored', () => {

@@ -28,9 +28,10 @@
     - Tools rail: Adjust, Contrast, Harmonies, Shades & Tints, Mix,
       Gradient, Color Vision, Export
     - Collapsible, reorderable accordion rails and mobile drawers
-    - Settings: theme, primary format, hex case, decimal places, recent
-      colors, contrast target, export prefix, picker model, backup and
-      restore, storage meter, and a guarded reset
+    - Settings: theme (Light, Dark, or System, which follows the device),
+      primary format, hex case, decimal places, recent colors, contrast
+      target, export prefix with an inline check, picker model, a backup
+      import that only adds, storage meter, and a guarded reset
     - Help: layout, a short how-to for every pane, accepted color formats,
       and every keyboard shortcut
     - Loader with the palette mark and the "Command the spectrum" tagline
@@ -51,7 +52,7 @@
 ---------
 -->
 <!DOCTYPE html>
-<html lang="en" data-theme="parchment">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -121,7 +122,7 @@
                 <button class="icon-btn" id="btn-settings" title="Settings (Ctrl+,)" aria-label="Open settings">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
-                <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Toggle light/dark theme">
+                <button class="icon-btn" id="btn-theme" title="Switch between light and dark theme" aria-label="Switch between light and dark theme">
                     <svg class="theme-icon theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
                     <svg class="theme-icon theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
                 </button>
@@ -409,11 +410,12 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label id="theme-heading">Theme</label>
-                    <div class="radio-group" role="radiogroup" aria-labelledby="theme-heading">
-                        <label class="radio-label"><input type="radio" name="theme-pref" value="parchment"> <span>Parchment Dossier (light)</span></label>
-                        <label class="radio-label"><input type="radio" name="theme-pref" value="sentinel"> <span>Sentinel Obsidian (dark)</span></label>
+                    <div class="radio-group" role="radiogroup" aria-labelledby="theme-heading" aria-describedby="help-theme">
+                        <label class="radio-label"><input type="radio" name="theme-pref" value="light"> <span>Light</span></label>
+                        <label class="radio-label"><input type="radio" name="theme-pref" value="dark"> <span>Dark</span></label>
+                        <label class="radio-label"><input type="radio" name="theme-pref" value="system" checked> <span>System</span></label>
                     </div>
-                    <p class="help-text">Applies across every toolMan tool.</p>
+                    <p class="help-text" id="help-theme">System follows your device's light or dark setting. Applies across every toolMan tool.</p>
                 </div>
 
                 <div class="form-group">
@@ -479,8 +481,9 @@
 
                 <div class="form-group">
                     <label for="setting-export-prefix">Export name prefix</label>
-                    <input type="text" class="text-input mono" id="setting-export-prefix" data-setting="exportPrefix" maxlength="32" spellcheck="false" autocomplete="off" aria-describedby="help-export-prefix">
+                    <input type="text" class="text-input mono" id="setting-export-prefix" data-setting="exportPrefix" maxlength="32" spellcheck="false" autocomplete="off" aria-describedby="help-export-prefix export-prefix-error">
                     <p class="help-text" id="help-export-prefix">Names exported variables, e.g. --color-1 or $color-1. Start with a letter; spaces become dashes.</p>
+                    <p class="error-text" id="export-prefix-error" role="status" aria-live="polite" hidden></p>
                 </div>
 
                 <div class="form-group">
@@ -489,7 +492,7 @@
                         <button type="button" class="btn btn-secondary" data-settings-export>Download backup</button>
                         <button type="button" class="btn btn-secondary" data-settings-import>Import &amp; merge backup</button>
                     </div>
-                    <p class="help-text">A backup holds your palettes, saved and recent colors, gradient, and settings. Importing adds to what is here; it does not delete anything.</p>
+                    <p class="help-text">A backup holds your palettes, working palette, saved and recent colors, gradient, and settings. Importing adds the backup's palettes and colors to what is here and never deletes or overwrites anything: a different working palette in the backup is added to Palettes, and if its settings differ colorMan asks before using them.</p>
                 </div>
 
                 <div class="form-group">
@@ -512,7 +515,7 @@
             </div>
             <footer class="modal-footer">
                 <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
-                <button type="button" class="btn btn-primary" data-settings-save disabled>Save</button>
+                <button type="button" class="btn btn-primary" id="btn-save-settings" data-settings-save disabled>Save</button>
             </footer>
         </div>
     </div>
@@ -540,18 +543,18 @@
                 <section class="help-section">
                     <h4>Workbench</h4>
                     <dl class="help-list">
-                        <dt>Color field</dt><dd>Type or paste any color; it applies as you type. Enter keeps it and rewrites it in your primary format, Escape goes back to the color you had before the edit. If colorMan can't read it, a note under the field says why and nothing changes.</dd>
+                        <dt>Color field</dt><dd>Type or paste any color; it applies as you type. Enter keeps it and rewrites it in your primary format, Escape goes back to the color you had before the edit. The whole edit is one undo step, and the color joins Recent when you press Enter or leave the field. If colorMan can't read it, a note under the field says why and nothing changes.</dd>
                         <dt>Toolbar</dt><dd>Click the color chip to copy the color. The buttons pick from the screen, give a random color, undo or redo a color change, copy, save the color to Saved Colors (star), or add it to the working palette.</dd>
                         <dt>Picker</dt><dd>Drag in the color area or slide the hue and opacity bars. The HSV, HSL, and OKLCH chips in the card header change what the area shows. With a thumb focused, arrow keys move one step, Shift + arrow ten, and Home, End, Page Up, and Page Down jump to the edges. Click Before to go back to the color you started from. Edit as gives number fields for RGB, HSL, HWB, OKLCH, or Lab plus alpha.</dd>
                         <dt>Formats</dt><dd>The active color as HEX, RGB, HSL, HWB, HSV, CMYK, Lab, LCH, OKLab, OKLCH, and its CSS name. Each row has a copy button; Copy all copies every row. The tiles below show black and white text on the color with their contrast.</dd>
-                        <dt>Working palette</dt><dd>The palette you are building. Click a color to use it; hover or focus one to set it to the current color, rename it, or remove it. Drag to reorder, or press Alt + ← / → on a focused color; F2 renames and Delete removes. Sort, save to the library, or drop an image on the card (or use From image…) to pull its main colors.</dd>
+                        <dt>Working palette</dt><dd>The palette you are building. Click a color to use it; hover or focus one to set it to the current color, rename it, or remove it. Drag to reorder, or press Alt + ← / → on a focused color; F2 renames and Delete removes. Sort (Undo brings your own order back), save to the library, or drop an image on the card (or use From image…) to pull its main colors.</dd>
                     </dl>
                 </section>
 
                 <section class="help-section">
                     <h4>Library</h4>
                     <dl class="help-list">
-                        <dt>Palettes</dt><dd>Open a palette to edit it in the working palette; saving updates the palette it came from. Rename, duplicate, download, or delete from each card. Import… reads pasted text or a file (hex lists, CSS or SCSS variables, JSON, GIMP .gpl); you can also drop a palette file on this pane.</dd>
+                        <dt>Palettes</dt><dd>Open a palette to edit it in the working palette; saving updates the palette it came from. Rename, duplicate, download, or delete from each card. Import… reads pasted text or a file (hex lists, CSS or SCSS variables, JSON, CSV, GIMP .gpl) and tells you how many values were not colors; you can also drop a palette file on this pane.</dd>
                         <dt>Saved Colors</dt><dd>Colors you starred. Click one to use it; double-click or F2 renames it and Delete removes it.</dd>
                         <dt>Recent</dt><dd>Colors you settled on, newest first. Turn recording off or change how many are kept in Settings.</dd>
                         <dt>Named Colors</dt><dd>The 148 CSS color names. Filter by name or hex, or turn on Nearest to current to see the closest names, and click one to use it.</dd>
@@ -613,7 +616,7 @@
 
                 <section class="help-section">
                     <h4>Your data</h4>
-                    <p>colorMan saves to this browser as you work; the dot in the toolbar shows when it has. Use Settings → Download backup to keep a copy or move it to another browser.</p>
+                    <p>colorMan saves to this browser as you work; the dot in the toolbar shows when it has. Use Settings → Download backup to keep a copy or move it to another browser. Import &amp; merge backup adds the backup's palettes and colors without replacing anything here, and asks before using its settings.</p>
                 </section>
             </div>
             <footer class="modal-footer">

@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: PanelSystem (toolMan Edition - v2.5)
+ *     - Title: PanelSystem (toolMan Edition - v2.6)
  *     - File Name: panels.css
  *     - Relative Path: shared/css/panels.css
  *     - Artifact Type: stylesheet
- *     - Version: 2.5.0
+ *     - Version: 2.6.0
  *     - Date: 11/17/2026
  *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,6 +13,11 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 2.6.0 (11/17/2026) [dendogg + Anthropic - Claude] — Phone drawers
+ *       scroll as one column: below 769px the open rail pane keeps its
+ *       natural height (flex 1 0 auto, no inner scroll) instead of squeezing
+ *       into the space between headers, which hid most of colorMan's Contrast
+ *       pane behind a nested scroll. Desktop keeps fill-and-scroll.
  *     - 2.5.0 (11/17/2026) [dendogg + Anthropic - Claude] — Rail content,
  *       section gaps, and accordion header/body padding now read the density
  *       tokens in tokens.css 2.3.0, tightening the containers a tad on
@@ -22,11 +27,6 @@
  *       instead of a bright hold, on a slower 900ms ease-out glide (was
  *       650ms), so the reflection glides rather than flashes. Pairs with the
  *       lowered reflection-gradient alpha in tokens.css 2.1.1.
- *     - 2.4.1 (2026-07-23) [Anthropic - Claude Opus 4.8] — Removed the stale
- *       .tool-section { flex: 0 0 auto } override in the <=768px block — a
- *       leftover from the pre-accordion equal-panes layout that fought the
- *       accordion's own sizing (open = 1 1 auto, collapsed = 0 0 auto) on
- *       mobile. The accordion now governs pane height at every width.
  *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
@@ -663,7 +663,21 @@ textarea.text-input {
         font-size: var(--font-base);
     }
 
-    /* NOTE: no .tool-section flex override here — the accordion's own
-       flex rules (open = 1 1 auto, collapsed = 0 0 auto) must govern
-       sizing at every width so the open pane fills and scrolls. */
+    /* Phone drawers scroll as ONE column. On desktop the open pane fills
+       the rail and scrolls inside itself; in a drawer that left a tall
+       pane (colorMan's Contrast, 590px) squeezed into the ~230px between
+       eight headers — a scroll area inside a scroll area. Here the open
+       pane keeps its natural height (it may still grow to fill a short
+       rail, never shrink), and the drawer's .panel-content scrolls. The
+       collapsed rule (0 0 auto) is untouched, so the accordion still
+       governs which pane is open. */
+    .panel-left .tool-section:not([data-collapsed="true"]),
+    .panel-right .tool-section:not([data-collapsed="true"]) {
+        flex: 1 0 auto;
+    }
+
+    .panel-left .tool-section:not([data-collapsed="true"]) .tool-body,
+    .panel-right .tool-section:not([data-collapsed="true"]) .tool-body {
+        overflow-y: visible;
+    }
 }

@@ -23,13 +23,14 @@
  *     - Text color follows the active color, or stays put with "Pin
  *       foreground" while you try other colors
  *     - Background field takes any CSS color, plus Use current, Swap, and
- *       presets for White, Black, Parchment (#F5F0E8), and Obsidian (#0E1014)
+ *       presets for White, Black, Off-white (#F5F0E8), and Near-black (#0E1014)
  *     - Large ratio read-out ("4.62:1", never rounded up past a threshold)
  *       and a pass/fail verdict for the target set in Settings (AA or AAA)
  *     - Badges for AA normal, AA large, AAA normal, AAA large, and UI 3:1,
  *       each with a check or cross as well as a color
- *     - APCA Lc with plain guidance: body text, content text, headlines,
- *       large non-text, or insufficient
+ *     - APCA Lc, truncated like the ratio so it never lands in a higher
+ *       tier than it shows, with plain guidance: body text, content text,
+ *       headlines, large non-text, or insufficient
  *     - Preview: 14px regular text, 24px bold text, and a bordered UI chip
  *       on the background, over a checkerboard when it is translucent
  *     - "Suggest a passing color": the nearest passing text color (Use as
@@ -51,12 +52,12 @@
  *     ContrastUI.swap()                           → text and background trade places
  *     ContrastUI.pin(true)                        → text stays fixed while the picker moves
  *     ContrastUI.suggest()                        → shows the nearest passing colors
- *     ContrastUI.loadPair('#1B2A4A', '#F5F0E8')   → navy text on parchment, 12.53:1
+ *     ContrastUI.loadPair('#1B2A4A', '#F5F0E8')   → navy text on off-white, 12.53:1
  *
  * ✒ Other Important Information:
  *     - Dependencies: js/color.js (contrast, wcag, apca, ensureContrast,
- *       parseDetailed), js/state.js (State), js/ui/swatch.js (SwatchUI),
- *       shared/js/dom.js, toolapp.js, toolman.js
+ *       formatRatio, formatLc, parseDetailed), js/state.js (State),
+ *       js/ui/swatch.js (SwatchUI), shared/js/dom.js, toolapp.js, toolman.js
  *     - Compatible platforms: all evergreen browsers
  *     - Limitations: a translucent background is measured over white, as
  *       WCAG tools commonly do; APCA guidance uses the simplified Lc
@@ -74,8 +75,8 @@
     const PRESETS = [
         { id: 'white', label: 'White', hex: '#FFFFFF' },
         { id: 'black', label: 'Black', hex: '#000000' },
-        { id: 'parchment', label: 'Parchment', hex: '#F5F0E8' },
-        { id: 'obsidian', label: 'Obsidian', hex: '#0E1014' }
+        { id: 'offwhite', label: 'Off-white', hex: '#F5F0E8' },
+        { id: 'nearblack', label: 'Near-black', hex: '#0E1014' }
     ];
 
     const LEVELS = [
@@ -111,7 +112,8 @@
     }
 
     const engineReady = () => Boolean(window.Color && typeof Color.contrast === 'function'
-        && typeof Color.ensureContrast === 'function' && typeof Color.apca === 'function');
+        && typeof Color.ensureContrast === 'function' && typeof Color.apca === 'function'
+        && typeof Color.formatRatio === 'function' && typeof Color.formatLc === 'function');
 
     const hexOf = (c) => State.hexOf(c) || '';
 
@@ -120,11 +122,8 @@
         return State.settings().hexUpper === false ? hex.toLowerCase() : hex;
     }
 
-    /** WCAG ratios are never rounded up: 4.499 shows as 4.49, not 4.50. */
-    function ratioText(r, places = 2) {
-        const f = Math.pow(10, places);
-        return (Math.floor(r * f + 1e-9) / f).toFixed(places);
-    }
+    /** WCAG ratios are never rounded up: 4.499 shows as 4.49, not 4.50 (Color.formatRatio). */
+    const ratioText = (r, places = 2) => Color.formatRatio(r, places);
 
     function targetInfo() {
         const aaa = State.settings().contrastTarget === 'AAA';
@@ -518,8 +517,10 @@
 
         const lc = Color.apca(fg, bg);
         const abs = Math.abs(lc);
-        const tier = APCA_TIERS.find((tr) => abs >= tr.min);
-        const lcText = `${lc < 0 ? '−' : ''}${abs.toFixed(1)}`;
+        // Judged with the same tolerance the read-out truncates with, so
+        // "Lc 44.9" is never filed under the Lc 45 tier, nor 45.0 under 30.
+        const tier = APCA_TIERS.find((tr) => abs + 1e-9 >= tr.min);
+        const lcText = Color.formatLc(lc);
         els.apcaValue.textContent = `Lc ${lcText}`;
         els.apcaBadge.dataset.tone = tier.tone;
         els.apcaBadge.textContent = tier.label;

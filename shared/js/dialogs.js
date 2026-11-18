@@ -1,16 +1,21 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: DialogKit (toolMan Edition - v1.0)
+ *     - Title: DialogKit (toolMan Edition - v1.1)
  *     - File Name: dialogs.js
  *     - Relative Path: shared/js/dialogs.js
  *     - Artifact Type: library
- *     - Version: 1.0.0
+ *     - Version: 1.1.0
  *     - Date: 11/17/2026
  *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Settings theme
+ *       radios reflect the saved preference (Light, Dark, or System) rather
+ *       than the painted theme, so System stays selected.
  *
  * ✒ Description:
  *     The shared dialog layer for toolMan workbenches: open/close with focus
@@ -426,7 +431,9 @@
                 else el.value = String(v);
             });
 
-            const theme = window.TOOLMAN ? TOOLMAN.getTheme() : null;
+            // The saved choice (light / dark / system), not the painted theme,
+            // so System stays selected when it is what the visitor chose.
+            const theme = window.TOOLMAN ? TOOLMAN.getThemePreference() : null;
             DOM.$$('input[name="theme-pref"]', modal).forEach((r) => { r.checked = r.value === theme; });
 
             this._renderUsage(modal);

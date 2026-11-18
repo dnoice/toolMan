@@ -1,0 +1,88 @@
+# ==============================================================================
+# ✒ Metadata
+#     - Title: PagesDeploy (toolMan Edition - v1.0)
+#     - File Name: pages.yml
+#     - Relative Path: .github/workflows/pages.yml
+#     - Artifact Type: config
+#     - Version: 1.0.0
+#     - Date: 11/17/2026
+#     - Update: Tuesday, November 17, 2026
+#     - Author: Dennis 'dendogg' Smaltz
+#     - A.I. Acknowledgement: Anthropic - Claude
+#     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+#
+# ✒ Description:
+#     Publishes toolMan to GitHub Pages. Each time CI finishes green on main,
+#     this deploys exactly the commit CI tested; it can also be run by hand
+#     from the Actions tab. Only the runnable app is published: the same
+#     export-ignore rules that shape Download ZIP keep CI, scripts, and tests
+#     off the site.
+#
+# ✒ Key Features:
+#     - Deploys only after a successful CI run on main (workflow_run), and
+#       only the exact commit that run tested
+#     - Manual deploy from the Actions tab (workflow_dispatch)
+#     - Site built with git archive, so .gitattributes export-ignore decides
+#       what ships; no build step, no dependencies
+#     - Least privilege: contents read, pages write, id-token write
+#     - One deployment at a time; a newer one waits rather than cancelling
+#       a deploy midway
+#
+# ✒ Usage Instructions:
+#     One-time repository setting (owner): Settings → Pages → Build and
+#     deployment → Source: "GitHub Actions". After that, every green CI run
+#     on main publishes to https://dnoice.github.io/toolMan/.
+#
+# ✒ Other Important Information:
+#     - Dependencies: actions/checkout, actions/configure-pages,
+#       actions/upload-pages-artifact, actions/deploy-pages (major-pinned,
+#       kept current by .github/dependabot.yml); the CI workflow named "CI"
+#     - Compatible platforms: GitHub Actions + GitHub Pages
+#     - workflow_run triggers only fire from the copy of this file on the
+#       default branch, so deploys begin once this file is on main
+#     - Storage note: every Pages site of the same account shares the
+#       dnoice.github.io origin, and so its localStorage (see SECURITY.md)
+# ==============================================================================
+
+name: Deploy to GitHub Pages
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish the site
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/configure-pages@v6
+      - name: Assemble the site from the commit (export-ignore applies)
+        run: |
+          mkdir _site
+          git archive HEAD | tar -x -C _site
+          ls -la _site
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v5

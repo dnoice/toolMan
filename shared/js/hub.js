@@ -1,30 +1,30 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: HubLauncher (toolMan Edition - v1.1)
+ *     - Title: HubLauncher (toolMan Edition - v1.3)
  *     - File Name: hub.js
  *     - Relative Path: shared/js/hub.js
  *     - Artifact Type: javascript
- *     - Version: 1.1.1
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Version: 1.3.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
- *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — Data badges show
+ *       whatever counts a tool's registry entry summarizes (colorMan:
+ *       palettes, saved colors), escaped, on their own row above the card
+ *       footer; the reset confirmation names what that tool actually stores;
+ *       svgMan card icon.
+ *     - 1.2.0 (11/17/2026) [dendogg + Anthropic - Claude] — Theme toggle
+ *       toast reads "Light theme" / "Dark theme" via TOOLMAN.themeLabel(),
+ *       after the rename from Parchment Dossier / Sentinel Obsidian.
  *     - 1.1.1 (2026-07-23) [Anthropic - Claude Opus 4.8] — textMan's card
  *       icon now uses its real fountain-pen mark (fill-based, currentColor)
  *       instead of the placeholder "T" glyph.
- *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Hub QoL batch:
- *       type-ahead tool search ('/' focuses it), arrow-key navigation across
- *       launch links, a "Continue where you left off" hero chip, card
- *       ordering by pinned → last-used → registry, per-card stored-data
- *       badges, pin and confirm-guarded data-reset actions, and the version
- *       + GitHub footer line. Cards are now <article> elements with an
- *       overlay launch link (valid markup with interactive children).
- *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial hub boot:
- *       registry-driven cards, theme toggle, loader handoff.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     Boot script for the toolMan hub page. Renders the tool card grid from
@@ -87,7 +87,8 @@
         colorman: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="12.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="13.5" r="2.5"/><path d="M12 22a10 10 0 1 1 10-10c0 2-1.5 3-3 3h-2a2 2 0 0 0-2 2c0 .5.2 1 .5 1.5.3.5.5 1 .5 1.5 0 1-1 2-4 2z"/></svg>',
         mathman: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h6M8 4v6M14 6h5M14 16l5 5M19 16l-5 5M5 17h6"/></svg>',
         convertman: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg>',
-        devman: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg>'
+        devman: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg>',
+        svgman: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 19C8 7 16 17 19 5"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/><path d="M5 19h6M19 5h-6" stroke-dasharray="2 2"/></svg>'
     };
 
     const PIN_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
@@ -111,9 +112,9 @@
         const info = TOOLMAN.getToolDataInfo(tool.id);
         if (!info) return '';
         const kb = (info.bytes / 1024).toFixed(1);
-        const parts = [`${kb} KB`];
-        if (info.snippets !== null) parts.push(`${info.snippets} snippet${info.snippets === 1 ? '' : 's'}`);
-        if (info.templates !== null && info.templates > 0) parts.push(`${info.templates} custom`);
+        // Counts come from each registry entry's data.summarize(); escape
+        // them anyway, since they are derived from stored state.
+        const parts = [`${kb} KB`].concat(info.counts.map((part) => Text.escapeHtml(part)));
         return `<span class="tool-card-data" title="Data stored locally in this browser">${parts.join(' · ')}</span>`;
     }
 
@@ -169,10 +170,10 @@
                     </span>` : ''}
                 </div>
                 <p class="tool-card-desc">${Text.escapeHtml(tool.description)}</p>
+                ${isLive ? dataBadge(tool) : ''}
                 <div class="tool-card-footer">
                     <span class="tool-card-status">${isLive ? 'Live' : 'Coming soon'}</span>
                     <span class="tool-card-meta">
-                        ${isLive ? dataBadge(tool) : ''}
                         ${isLive && last ? `<span class="tool-card-last" title="Last opened">${relativeTime(last)}</span>` : ''}
                         ${isLive ? '<span class="tool-card-launch">Launch <span aria-hidden="true">→</span></span>' : ''}
                     </span>
@@ -276,10 +277,10 @@
                     TOOLMAN.notify(nowPinned ? `${tool.name} pinned` : `${tool.name} unpinned`, 'info', 1400);
                     this.renderGrid();
                 } else if (btn.dataset.action === 'reset') {
+                    const holds = (tool.data && tool.data.holds) || 'saved work and layout';
                     const sure = window.confirm(
-                        `Clear ${tool.name}'s local data?\n\nThis removes its saved document, `
-                        + 'snippets, templates, history, and layout from THIS browser. '
-                        + 'It cannot be undone.'
+                        `Clear ${tool.name}'s local data?\n\nThis removes its ${holds} `
+                        + 'from THIS browser. It cannot be undone.'
                     );
                     if (!sure) return;
                     TOOLMAN.clearToolData(id);
@@ -293,11 +294,7 @@
         wireHeader() {
             DOM.on('#btn-theme', 'click', () => {
                 const theme = TOOLMAN.toggleTheme();
-                TOOLMAN.notify(
-                    theme === 'sentinel' ? 'Sentinel Obsidian engaged' : 'Parchment Dossier engaged',
-                    'info',
-                    1600
-                );
+                TOOLMAN.notify(`${TOOLMAN.themeLabel(theme)} theme`, 'info', 1600);
             });
         },
 

@@ -118,7 +118,7 @@
         el.dataset.hex = hex;
     }
 
-    const SIZES = { sm: 'swatch--sm', md: '', lg: 'swatch--lg' };
+    const SIZES = Object.assign(Object.create(null), { sm: 'swatch--sm', md: '', lg: 'swatch--lg' });
 
     const SwatchUI = {
         normalize,

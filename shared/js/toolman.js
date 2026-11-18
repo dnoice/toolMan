@@ -1,11 +1,11 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: EcosystemCore (toolMan Edition - v1.2)
+ *     - Title: EcosystemCore (toolMan Edition - v1.4)
  *     - File Name: toolman.js
  *     - Relative Path: shared/js/toolman.js
  *     - Artifact Type: library
- *     - Version: 1.2.0
+ *     - Version: 1.4.0
  *     - Date: 11/17/2026
  *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
@@ -13,17 +13,22 @@
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
  *
  * ✒ Changelog:
+ *     - 1.4.0 (11/17/2026) [dendogg + Anthropic - Claude] — colorMan goes
+ *       live and svgMan joins the registry as coming soon. Registry entries
+ *       can carry a data descriptor (holds, summarize), so getToolDataInfo
+ *       returns per-tool counts and the hub's badges and reset copy fit every
+ *       tool, not only textMan.
+ *     - 1.3.0 (11/17/2026) [dendogg + Anthropic - Claude] — On Dennis's
+ *       direction the themes are now simply Light, Dark, and System (the
+ *       default, which follows the device live); the Parchment Dossier /
+ *       Sentinel Obsidian names are retired and stored legacy values migrate.
+ *       Adds getThemePreference, resolveTheme, themeLabel, a toolman:theme
+ *       event on every painted change, and cross-tab sync.
  *     - 1.2.0 (11/17/2026) [dendogg + Anthropic - Claude] — On Dennis's
  *       direction the ecosystem returns to the 07/23 Parchment/Sentinel
  *       design; getTheme() now bridges the light/dark values the interim
  *       1.0.0 build stored, so returning visitors keep the theme they chose.
- *     - 1.1.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Ecosystem usage
- *       layer: stampLastUsed/getLastUsed (per-tool timestamps), pinned-tool
- *       persistence (getPinned/togglePinned), getToolDataInfo (stored bytes
- *       plus textMan snippet/template counts), and clearToolData — all
- *       consumed by the hub's card ordering, badges, and reset actions.
- *     - 1.0.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Initial kernel:
- *       registry, theme management, toasts.
+ *     Earlier entries: see CHANGELOG.md
  *
  * ✒ Description:
  *     The toolMan ecosystem kernel. Owns the tool registry (which tools
@@ -34,11 +39,16 @@
  *
  * ✒ Key Features:
  *     - Tool registry: id, name, tagline, description, status, and path for
- *       every tool in the ecosystem
- *     - Theme management: parchment/sentinel, persisted under
- *       'toolman.theme', applied to <html data-theme> immediately on parse
- *     - System-preference fallback: honors prefers-color-scheme on first
- *       visit
+ *       every tool in the ecosystem, plus an optional data descriptor
+ *       (holds, summarize) that drives the hub's per-tool data badge and
+ *       reset wording via getToolDataInfo()
+ *     - Theme management: Light, Dark, or System, saved under
+ *       'toolman.theme' and painted on <html data-theme="light|dark">
+ *       immediately on parse
+ *     - System (the default) follows the device live as it switches; every
+ *       open toolMan tab stays on the same choice (storage event)
+ *     - 'toolman:theme' event on document whenever the painted theme changes
+ *     - Retired theme names (parchment, sentinel) migrate on first read
  *     - Safe storage access: every localStorage touch wrapped, private-mode
  *       safe
  *     - storageAvailable() probe so tools can test writability before use
@@ -55,14 +65,15 @@
  *         <script src="../../shared/js/toolman.js"></script>
  *     Then from any tool code:
  *         TOOLMAN.toggleTheme();
- *         TOOLMAN.setTheme('sentinel');
+ *         TOOLMAN.setTheme('system');
  *         TOOLMAN.notify('Copied to clipboard', 'success');
  *
  * ✒ Examples:
- *     TOOLMAN.getTheme()                       → 'parchment'
- *     TOOLMAN.setTheme('sentinel')             → persists + applies dark theme
- *     TOOLMAN.toggleTheme()                    → flips between the two themes
- *     TOOLMAN.applyTheme('parchment')          → applies without persisting
+ *     TOOLMAN.getThemePreference()             → 'system'
+ *     TOOLMAN.getTheme()                       → 'dark' (device is in dark mode)
+ *     TOOLMAN.setTheme('light')                → saves + paints the light theme
+ *     TOOLMAN.toggleTheme()                    → flips light ↔ dark, returns it
+ *     TOOLMAN.themeLabel('system')             → 'System'
  *     TOOLMAN.storageAvailable()               → true when localStorage writable
  *     TOOLMAN.tools.find(t => t.id === 'textman').status → 'live'
  *     TOOLMAN.notify('Invalid regex', 'error') → red toast, 3.5s
@@ -83,17 +94,26 @@
     'use strict';
 
     const THEME_KEY = 'toolman.theme';
-    const THEMES = ['parchment', 'sentinel'];
-    const DEFAULT_THEME = 'parchment';
+    const THEMES = ['light', 'dark'];                 // painted on <html data-theme>
+    const THEME_PREFS = ['light', 'dark', 'system'];  // what a visitor can choose
+    const DEFAULT_PREF = 'system';
+    const THEME_LABELS = { light: 'Light', dark: 'Dark', system: 'System' };
 
-    // The interim 1.0.0 build stored generic light/dark keys. Rewrite them on
-    // first read so a visitor who chose a theme then keeps that choice.
-    const THEME_BRIDGE = { light: 'parchment', dark: 'sentinel' };
+    // Earlier builds stored the retired theme names. Rewrite them on first
+    // read so a returning visitor keeps the theme they chose.
+    const LEGACY_THEMES = { parchment: 'light', sentinel: 'dark' };
+
+    const darkQuery = () => (window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null);
+
+    /** "3 palettes", "1 snippet" — for the hub's data badges. */
+    const count = (n, one, many) => `${n} ${n === 1 ? one : (many || `${one}s`)}`;
+    const list = (value) => (Array.isArray(value) ? value : null);
 
     const TOOLMAN = {
         VERSION: '1.0.0',
         THEME_KEY,
         THEMES,
+        THEME_PREFS,
 
         /**
          * Registry of every tool in the ecosystem.
@@ -107,15 +127,29 @@
                 tagline: 'Bend text to your will',
                 description: 'A three-panel text workspace: templates, snippets, transforms, search & replace, encoding, and formatting tools.',
                 status: 'live',
-                path: 'tools/textman/index.html'
+                path: 'tools/textman/index.html',
+                data: {
+                    holds: 'saved document, snippets, templates, history, and layout',
+                    summarize: (s) => [
+                        list(s.snippets) && count(s.snippets.length, 'snippet'),
+                        list(s.templates) && count(s.templates.filter((t) => t && !t.isSeed).length, 'custom', 'custom')
+                    ].filter((part, i) => part && (i === 0 || !part.startsWith('0 ')))
+                }
             },
             {
                 id: 'colorman',
                 name: 'colorMan',
                 tagline: 'Command the spectrum',
-                description: 'Palettes, conversions, contrast checks, and gradient building. Coming soon.',
-                status: 'soon',
-                path: null
+                description: 'Pick, convert, and check colors; build palettes, harmonies, scales, and gradients; preview color vision; export to CSS, Tailwind, and more.',
+                status: 'live',
+                path: 'tools/colorman/index.html',
+                data: {
+                    holds: 'palettes, saved colors, working palette, recent colors, gradient, and layout',
+                    summarize: (s) => [
+                        list(s.palettes) && count(s.palettes.filter((p) => p && p.id !== 'pal-toolman-house').length, 'palette'),
+                        list(s.swatches) && count(s.swatches.length, 'saved color')
+                    ].filter((part) => part && !part.startsWith('0 '))
+                }
             },
             {
                 id: 'mathman',
@@ -140,6 +174,14 @@
                 description: 'JSON tools, regex testing, UUIDs, hashes, and dev utilities. Coming soon.',
                 status: 'soon',
                 path: null
+            },
+            {
+                id: 'svgman',
+                name: 'svgMan',
+                tagline: 'Vectors on demand',
+                description: 'Generate blobs, waves, patterns, mazes, charts, and diagrams; compare fill and stroke combos; export clean, safe SVG. Coming soon.',
+                status: 'soon',
+                path: null
             }
         ],
 
@@ -159,56 +201,79 @@
         },
 
         /**
-         * Resolve the active theme: saved preference → system preference →
-         * default. Always returns a valid theme name.
+         * The visitor's saved choice: 'light', 'dark', or 'system' (the
+         * default, which follows the device). Legacy names are migrated.
          */
-        getTheme() {
+        getThemePreference() {
             let saved = null;
             try {
                 saved = window.localStorage.getItem(THEME_KEY);
             } catch (_err) { /* private mode — fall through */ }
 
-            if (saved && THEME_BRIDGE[saved]) {
-                saved = THEME_BRIDGE[saved];
+            if (saved && LEGACY_THEMES[saved]) {
+                saved = LEGACY_THEMES[saved];
                 try {
                     window.localStorage.setItem(THEME_KEY, saved);
                 } catch (_err) { /* non-fatal — the mapping still applies */ }
             }
+            return THEME_PREFS.includes(saved) ? saved : DEFAULT_PREF;
+        },
 
-            if (THEMES.includes(saved)) return saved;
+        /** Resolve a preference to the theme to paint: 'light' or 'dark'. */
+        resolveTheme(preference) {
+            if (preference === 'light' || preference === 'dark') return preference;
+            const mq = darkQuery();
+            return mq && mq.matches ? 'dark' : 'light';
+        },
 
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                return 'sentinel';
+        /** The theme painted right now, from the saved preference. */
+        getTheme() {
+            return this.resolveTheme(this.getThemePreference());
+        },
+
+        /**
+         * Paint a theme or preference without saving it. Fires a
+         * 'toolman:theme' event on document whenever the painted theme
+         * changes, so canvases and previews can redraw.
+         */
+        applyTheme(themeOrPreference) {
+            const preference = THEME_PREFS.includes(themeOrPreference) ? themeOrPreference : DEFAULT_PREF;
+            const theme = this.resolveTheme(preference);
+            const root = document.documentElement;
+            const previous = root.getAttribute('data-theme');
+            root.setAttribute('data-theme', theme);
+            if (previous && previous !== theme) {
+                document.dispatchEvent(new CustomEvent('toolman:theme', {
+                    detail: { theme, preference: this.getThemePreference() }
+                }));
             }
-            return DEFAULT_THEME;
+            return theme;
         },
 
         /**
-         * Apply a theme to the document without persisting it.
+         * Save a preference ('light', 'dark', or 'system') ecosystem-wide
+         * and paint it. Returns the painted theme.
          */
-        applyTheme(theme) {
-            const valid = THEMES.includes(theme) ? theme : DEFAULT_THEME;
-            document.documentElement.setAttribute('data-theme', valid);
-            return valid;
-        },
-
-        /**
-         * Persist and apply a theme ecosystem-wide.
-         */
-        setTheme(theme) {
-            const applied = this.applyTheme(theme);
+        setTheme(preference) {
+            const valid = THEME_PREFS.includes(preference) ? preference : DEFAULT_PREF;
             try {
-                window.localStorage.setItem(THEME_KEY, applied);
+                window.localStorage.setItem(THEME_KEY, valid);
             } catch (_err) { /* non-fatal: theme still applies this session */ }
-            return applied;
+            return this.applyTheme(valid);
         },
 
         /**
-         * Flip between parchment and sentinel.
+         * Flip between light and dark. This is an explicit choice, so the
+         * page stops following the device until System is chosen again.
          */
         toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme') || this.getTheme();
-            return this.setTheme(current === 'parchment' ? 'sentinel' : 'parchment');
+            return this.setTheme(current === 'dark' ? 'light' : 'dark');
+        },
+
+        /** Display name: themeLabel('dark') → 'Dark', themeLabel('system') → 'System'. */
+        themeLabel(value) {
+            return THEME_LABELS[value] || '';
         },
 
         /* ── Ecosystem usage layer ──────────────────── */
@@ -261,14 +326,16 @@
                 const raw = window.localStorage.getItem(`toolman.${toolId}.state`);
                 if (!raw) return null;
 
-                const info = { bytes: new Blob([raw]).size, snippets: null, templates: null };
+                const info = { bytes: new Blob([raw]).size, counts: [] };
+                const tool = this.tools.find((t) => t.id === toolId);
                 try {
-                    const state = JSON.parse(raw).state || {};
-                    if (Array.isArray(state.snippets)) info.snippets = state.snippets.length;
-                    if (Array.isArray(state.templates)) {
-                        info.templates = state.templates.filter((t) => t && !t.isSeed).length;
+                    const parsed = JSON.parse(raw);
+                    const state = parsed && typeof parsed === 'object' && parsed.state && typeof parsed.state === 'object'
+                        ? parsed.state : {};
+                    if (tool && tool.data && typeof tool.data.summarize === 'function') {
+                        info.counts = tool.data.summarize(state).filter((part) => typeof part === 'string');
                     }
-                } catch (_err) { /* counts stay null; size still reports */ }
+                } catch (_err) { /* counts stay empty; size still reports */ }
                 return info;
             } catch (_err) { return null; }
         },
@@ -324,7 +391,21 @@
 
     // Apply the saved/system theme immediately — this file loads in <head>,
     // so the correct palette is in place before first paint.
-    TOOLMAN.applyTheme(TOOLMAN.getTheme());
+    TOOLMAN.applyTheme(TOOLMAN.getThemePreference());
+
+    // While the choice is System, follow the device as it switches between
+    // light and dark; and keep every open toolMan tab on the same choice.
+    const mq = darkQuery();
+    if (mq) {
+        const follow = () => {
+            if (TOOLMAN.getThemePreference() === 'system') TOOLMAN.applyTheme('system');
+        };
+        if (mq.addEventListener) mq.addEventListener('change', follow);
+        else if (mq.addListener) mq.addListener(follow);
+    }
+    window.addEventListener('storage', (e) => {
+        if (e.key === THEME_KEY) TOOLMAN.applyTheme(TOOLMAN.getThemePreference());
+    });
 
     window.TOOLMAN = TOOLMAN;
 })();

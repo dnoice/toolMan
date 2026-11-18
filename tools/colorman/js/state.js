@@ -24,7 +24,8 @@
  *     - Event bus: State.on(evt, fn) returns an unsubscribe function; events
  *       are active, working, library, history, gradient, settings, reset
  *     - Active color with session undo/redo (cap 100); a drag gesture sent
- *       with coalesce:true collapses into one undo step (500ms window)
+ *       with coalesce:true collapses into one undo step (500ms window), and
+ *       a gesture key keeps a whole typing session as one step
  *     - Recent colors recorded 900ms after the color settles, de-duplicated,
  *       capped by settings.historySize, flushed when the page is hidden
  *     - Working palette: add, remove, move, recolor, rename, replace, clear,
@@ -36,7 +37,9 @@
  *     - Free-form per-pane preference objects (State.pane / State.setPane)
  *     - Validated settings with a list of rejected keys for friendly errors
  *     - Allowlisted restore: hex regex, size caps, name limits, and range
- *       checks; backups imported after boot merge instead of replacing
+ *       checks; a backup imported after boot only adds (palettes, saved and
+ *       recent colors, a differing working palette as a library copy) and
+ *       reports settings that differ instead of applying them
  *     - Works without the color engine: hex parsing, formatting, and the
  *       OKLCH sort math are built in, and window.Color is used when present
  *     - Failure reasons for the UI in State.lastError (plain sentences)
@@ -51,12 +54,14 @@
  * ✒ Examples:
  *     State.setActive('#C9A84C', { source: 'input' })     → true; emits 'active'
  *     State.setActive(color, { source: 'picker', coalesce: true })
+ *     State.setActive(typed, { source: 'input', coalesce: true, gesture: 'edit-4', record: false })
  *     State.undo()                                          → true when a step was undone
  *     State.addToWorking('#1B2A4A', 'Navy')                 → 0 (index), or -1 when full
  *     State.saveWorkingToLibrary()                          → { id, name, colors, ... }
  *     State.toggleSwatch(State.activeHex())                 → true when now saved
  *     State.on('library', ({ kind, action }) => render())   → unsubscribe function
  *     State.applySettings({ precision: 3 })                 → { applied: ['precision'], rejected: [] }
+ *     State.restore(backup.state, { merge: true })          → { palettesAdded: 2, settings: { … } | null, … }
  *
  * ✒ Other Important Information:
  *     - Dependencies: shared/js/storage.js (window.Storage), shared/js/
@@ -105,9 +110,12 @@
         { hex: '#2A3D5F', name: 'Navy mid' },
         { hex: '#C9A84C', name: 'Identity gold' },
         { hex: '#E8C878', name: 'Bright gold' },
-        { hex: '#F5F0E8', name: 'Parchment' },
-        { hex: '#0E1014', name: 'Obsidian' }
+        { hex: '#F5F0E8', name: 'Off-white' },
+        { hex: '#0E1014', name: 'Near-black' }
     ];
+
+    // Starter-palette color names from earlier builds, renamed on restore.
+    const RETIRED_SEED_NAMES = { '#F5F0E8': ['Parchment', 'Off-white'], '#0E1014': ['Obsidian', 'Near-black'] };
 
     /* ── Small helpers ─────────────────────────────────────── */
 
@@ -334,6 +342,7 @@
     const undoStack = [];
     const redoStack = [];
     let lastCoalesceAt = 0;
+    let lastGesture = null;
     let historyTimer = null;
     let pendingHistoryHex = null;
 
@@ -552,7 +561,9 @@
         }
     }
 
-    const validPaneName = (name) => typeof name === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(name);
+    const RESERVED_KEYS = ['__proto__', 'constructor', 'prototype'];
+    const validPaneName = (name) => typeof name === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(name)
+        && !RESERVED_KEYS.includes(name);
 
     function sanitizePanes(panes) {
         if (!isPlainObject(panes)) return null;
@@ -565,16 +576,141 @@
         return out;
     }
 
+    const sameEntries = (a, b) => a.length === b.length
+        && a.every((e, i) => e.hex === b[i].hex && e.name === b[i].name);
+    const sameHexes = (a, b) => a.length === b.length && a.every((e, i) => e.hex === b[i].hex);
+
+    /** Rename the starter palette's retired color names (earlier builds) in place. */
+    function renameRetiredSeedNames(palettes) {
+        const seed = palettes.find((p) => p.id === SEED_PALETTE_ID);
+        if (!seed) return;
+        seed.colors.forEach((entry) => {
+            const pair = Object.prototype.hasOwnProperty.call(RETIRED_SEED_NAMES, entry.hex) ? RETIRED_SEED_NAMES[entry.hex] : null;
+            if (pair && entry.name === pair[0]) entry.name = pair[1];
+        });
+    }
+
+    /** '{name} (from backup)', trimmed to the name limit. */
+    function backupCopyName(name) {
+        const suffix = ' (from backup)';
+        return `${cleanName(name, DEFAULT_NAME).slice(0, LIMITS.name - suffix.length)}${suffix}`;
+    }
+
+    /**
+     * Merge an imported backup without replacing anything this browser
+     * holds. Palettes, saved colors, and recent colors are added; a palette
+     * that is already here (same name and colors) is skipped, and one whose
+     * id is taken by a different palette is added as a copy. A working
+     * palette in the backup that differs from this one is added to the
+     * library. The active color, gradient, settings, pane preferences, and
+     * layout stay as they are; settings that differ are returned in
+     * report.settings so the caller can offer them.
+     */
+    function mergeBackup(saved) {
+        const report = {
+            palettesAdded: 0, palettesSkipped: 0, palettesFull: 0,
+            swatchesAdded: 0, historyAdded: 0, workingAdded: '', settings: null
+        };
+        const room = () => AppState.palettes.length < LIMITS.palettes;
+        const isHere = (p) => AppState.palettes.some((q) => q.name === p.name && sameEntries(q.colors, p.colors));
+
+        const palettes = sanitizePalettes(saved.palettes) || [];
+        renameRetiredSeedNames(palettes);
+        palettes.forEach((p) => {
+            if (isHere(p)) {
+                report.palettesSkipped++;
+                return;
+            }
+            if (!room()) {
+                report.palettesFull++;
+                return;
+            }
+            const taken = AppState.palettes.find((q) => q.id === p.id);
+            if (taken) {
+                p.id = uid('pal');
+                if (p.name === taken.name) p.name = backupCopyName(p.name);
+                if (isHere(p)) {
+                    report.palettesSkipped++;
+                    return;
+                }
+            }
+            AppState.palettes.push(p);
+            report.palettesAdded++;
+        });
+
+        const working = sanitizeWorking(saved.working);
+        if (working && working.colors.length) {
+            const local = AppState.working;
+            const known = sameHexes(local.colors, working.colors)
+                || AppState.palettes.some((q) => sameHexes(q.colors, working.colors));
+            if (!known) {
+                if (room()) {
+                    const at = nowIso();
+                    const name = backupCopyName(working.name);
+                    AppState.palettes.push({ id: uid('pal'), name, colors: working.colors, createdAt: at, updatedAt: at });
+                    report.workingAdded = name;
+                    report.palettesAdded++;
+                } else {
+                    report.palettesFull++;
+                }
+            }
+        }
+
+        const swatches = sanitizeSwatches(saved.swatches) || [];
+        const have = new Set(AppState.swatches.map((x) => x.hex));
+        const ids = new Set(AppState.swatches.map((x) => x.id));
+        swatches.forEach((x) => {
+            if (have.has(x.hex) || AppState.swatches.length >= LIMITS.swatches) return;
+            if (ids.has(x.id)) x.id = uid('sw');
+            AppState.swatches.push(x);
+            have.add(x.hex);
+            ids.add(x.id);
+            report.swatchesAdded++;
+        });
+
+        const history = sanitizeHistory(saved.history) || [];
+        const historyRoom = Math.max(0, AppState.settings.historySize - AppState.history.length);
+        const fresh = history.filter((h) => !AppState.history.includes(h)).slice(0, historyRoom);
+        AppState.history = AppState.history.concat(fresh);
+        report.historyAdded = fresh.length;
+
+        // Pane preferences: only panes this browser has never set.
+        const panes = sanitizePanes(saved.panes);
+        if (panes) {
+            Object.keys(panes).forEach((name) => {
+                const live = Object.prototype.hasOwnProperty.call(AppState.panes, name) ? AppState.panes[name] : undefined;
+                if (isPlainObject(live) && Object.keys(live).length) return;
+                if (isPlainObject(live)) Object.assign(live, panes[name]);
+                else AppState.panes[name] = panes[name];
+            });
+        }
+
+        if (isPlainObject(saved.settings)) {
+            const offered = {};
+            Object.keys(SETTING_RULES).forEach((key) => {
+                if (!Object.prototype.hasOwnProperty.call(saved.settings, key)) return;
+                const v = SETTING_RULES[key](saved.settings[key]);
+                if (v !== undefined && v !== AppState.settings[key]) offered[key] = v;
+            });
+            if (Object.keys(offered).length) report.settings = offered;
+        }
+
+        State.lastImport = report;
+        announceAll('import');
+        return report;
+    }
+
     /**
      * Allowlisted restore. At boot (ToolApp not yet initialized) saved data
-     * replaces the defaults; afterwards (Settings → Import) collections merge
-     * into what this browser already holds and every pane is told to redraw.
+     * replaces the defaults; afterwards (Settings → Import) the backup is
+     * merged by mergeBackup(), which adds and never replaces.
      */
     function restoreInto(saved, opts = {}) {
-        if (!isPlainObject(saved)) return;
+        if (!isPlainObject(saved)) return null;
         const merge = opts.merge !== undefined
             ? Boolean(opts.merge)
             : Boolean(window.ToolApp && ToolApp.initialized);
+        if (merge) return mergeBackup(saved);
 
         if (isPlainObject(saved.settings)) writeSettings(saved.settings);
 
@@ -585,61 +721,24 @@
         if (working) AppState.working = working;
 
         const palettes = sanitizePalettes(saved.palettes);
-        if (palettes) {
-            if (merge) {
-                const byId = new Map(AppState.palettes.map((p) => [p.id, p]));
-                palettes.forEach((p) => {
-                    if (byId.has(p.id)) Object.assign(byId.get(p.id), p);
-                    else if (AppState.palettes.length < LIMITS.palettes) AppState.palettes.push(p);
-                });
-            } else {
-                AppState.palettes = palettes;
-            }
-        }
+        if (palettes) AppState.palettes = palettes;
+        renameRetiredSeedNames(AppState.palettes);
 
         const swatches = sanitizeSwatches(saved.swatches);
-        if (swatches) {
-            if (merge) {
-                const have = new Set(AppState.swatches.map((s) => s.hex));
-                const ids = new Set(AppState.swatches.map((s) => s.id));
-                swatches.forEach((s) => {
-                    if (have.has(s.hex) || AppState.swatches.length >= LIMITS.swatches) return;
-                    if (ids.has(s.id)) s.id = uid('sw');
-                    AppState.swatches.push(s);
-                    have.add(s.hex);
-                    ids.add(s.id);
-                });
-            } else {
-                AppState.swatches = swatches;
-            }
-        }
+        if (swatches) AppState.swatches = swatches;
 
         const history = sanitizeHistory(saved.history);
-        if (history) {
-            const merged = merge ? AppState.history.concat(history.filter((h) => !AppState.history.includes(h))) : history;
-            AppState.history = merged.slice(0, AppState.settings.historySize);
-        } else {
-            AppState.history = AppState.history.slice(0, AppState.settings.historySize);
-        }
+        AppState.history = (history || AppState.history).slice(0, AppState.settings.historySize);
 
         const gradient = sanitizeGradient(saved.gradient);
         if (gradient) AppState.gradient = gradient;
 
         const panes = sanitizePanes(saved.panes);
-        if (panes) {
-            if (merge) {
-                Object.keys(panes).forEach((name) => {
-                    AppState.panes[name] = Object.assign(AppState.panes[name] || {}, panes[name]);
-                });
-            } else {
-                AppState.panes = panes;
-            }
-        }
+        if (panes) AppState.panes = panes;
 
         // Layout is a per-browser preference: only the boot restore applies it.
-        if (!merge && window.Workbench) Workbench.mergeUi(AppState.ui, saved.ui);
-
-        if (merge) announceAll('import');
+        if (window.Workbench) Workbench.mergeUi(AppState.ui, saved.ui);
+        return null;
     }
 
     function announceAll(source) {
@@ -664,6 +763,8 @@
         MIX_SPACES: MIX_SPACES.slice(),
         SETTING_LABELS: { ...SETTING_LABELS },
         lastError: '',
+        /** What the last backup import added: { palettesAdded, palettesSkipped, palettesFull, swatchesAdded, historyAdded, workingAdded, settings }. */
+        lastImport: null,
 
         on,
         emit,
@@ -682,11 +783,17 @@
         },
 
         /**
-         * Set the active color. opts: { source='api', record=true, coalesce=false }.
+         * Set the active color. opts: { source='api', record=true, coalesce=false, gesture }.
+         * coalesce merges changes less than 500ms apart into one undo step (a
+         * drag). With a gesture key as well, every coalesced change carrying
+         * that key is one step however long the pauses (typing in the color
+         * field), and returning to where the gesture began leaves no step.
          * Returns false (and changes nothing) for unreadable input or the same color.
          */
         setActive(color, opts = {}) {
             const { source = 'api', record = true, coalesce = false } = opts;
+            const gesture = coalesce && (typeof opts.gesture === 'string' || typeof opts.gesture === 'number')
+                ? opts.gesture : null;
             const next = toColor(color);
             if (!next) {
                 fail("That isn't a color colorMan can read.");
@@ -695,9 +802,20 @@
             if (sameColor(next, AppState.active)) return false;
 
             const now = Date.now();
-            const merging = coalesce && lastCoalesceAt && (now - lastCoalesceAt) <= COALESCE_MS;
-            if (!merging) pushUndo(AppState.active);
-            lastCoalesceAt = coalesce ? now : 0;
+            const merging = coalesce && (gesture !== null
+                ? gesture === lastGesture
+                : lastGesture === null && lastCoalesceAt && (now - lastCoalesceAt) <= COALESCE_MS);
+            const top = undoStack[undoStack.length - 1];
+            if (merging && gesture !== null && top && sameColor(top, next)) {
+                // Back where the gesture started: drop its step entirely.
+                undoStack.pop();
+                lastCoalesceAt = 0;
+                lastGesture = null;
+            } else {
+                if (!merging) pushUndo(AppState.active);
+                lastCoalesceAt = coalesce ? now : 0;
+                lastGesture = gesture;
+            }
             redoStack.length = 0;
 
             applyActive(next, source);
@@ -709,6 +827,7 @@
             if (!undoStack.length) return false;
             redoStack.push({ ...AppState.active });
             lastCoalesceAt = 0;
+            lastGesture = null;
             applyActive(undoStack.pop(), 'undo');
             return true;
         },
@@ -717,6 +836,7 @@
             if (!redoStack.length) return false;
             pushUndo(AppState.active);
             lastCoalesceAt = 0;
+            lastGesture = null;
             applyActive(redoStack.pop(), 'redo');
             return true;
         },
@@ -1184,6 +1304,11 @@
             return { ...AppState.settings };
         },
 
+        /** The value a setting would be saved as, or undefined when applySettings() would reject it. */
+        validSetting(key, value) {
+            return Object.prototype.hasOwnProperty.call(SETTING_RULES, key) ? SETTING_RULES[key](value) : undefined;
+        },
+
         /** Validated merge. Returns { applied, rejected, changed } (setting keys). */
         applySettings(values) {
             const result = writeSettings(values);
@@ -1201,9 +1326,12 @@
 
         /* ── Lifecycle ──────────────────────────── */
 
-        /** Restore a saved/imported payload. opts.merge forces merge (true) or replace (false). */
+        /**
+         * Restore a saved/imported payload. opts.merge forces merge (true: add
+         * only, returns the import report) or replace (false: returns null).
+         */
         restore(saved, opts) {
-            restoreInto(saved, opts);
+            return restoreInto(saved, opts);
         },
 
         /** Back to first-run data (starter palette, default settings). The rail layout is kept. */
@@ -1212,6 +1340,7 @@
             undoStack.length = 0;
             redoStack.length = 0;
             lastCoalesceAt = 0;
+            lastGesture = null;
             removedPaletteIndex.clear();
             removedSwatchIndex.clear();
             AppState.active = hexToColor('#C9A84C');

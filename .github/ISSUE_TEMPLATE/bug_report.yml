@@ -1,15 +1,19 @@
 # ==============================================================================
 # ✒ Metadata
-#     - Title: BugReportForm (toolMan Edition - v1.0)
+#     - Title: BugReportForm (toolMan Edition - v1.1)
 #     - File Name: bug_report.yml
 #     - Relative Path: .github/ISSUE_TEMPLATE/bug_report.yml
 #     - Artifact Type: config
-#     - Version: 1.0.0
+#     - Version: 1.1.0
 #     - Date: 11/17/2026
 #     - Update: Tuesday, November 17, 2026
 #     - Author: Dennis 'dendogg' Smaltz
 #     - A.I. Acknowledgement: Anthropic - Claude
 #     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+#
+# ✒ Changelog:
+#     - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Theme choices
+#       read Light, Dark, and System after the theme rename.
 #
 # ✒ Description:
 #     GitHub issue form for bug reports. It asks for exactly what a toolMan
@@ -86,9 +90,9 @@ body:
     attributes:
       label: Theme
       options:
-        - Parchment (light)
-        - Sentinel (dark)
-        - Both
+        - Light
+        - Dark
+        - System (follows my device)
         - Not sure
   - type: dropdown
     id: opened

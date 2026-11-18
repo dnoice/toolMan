@@ -1,15 +1,25 @@
 <!--
 ✒ Metadata
-    - Title: ContributingGuide (toolMan Edition - v1.0)
+    - Title: ContributingGuide (toolMan Edition - v1.2)
     - File Name: CONTRIBUTING.md
     - Relative Path: CONTRIBUTING.md
     - Artifact Type: docs
-    - Version: 1.0.0
+    - Version: 1.2.0
     - Date: 11/17/2026
     - Update: Tuesday, November 17, 2026
     - Author: Dennis 'dendogg' Smaltz
     - A.I. Acknowledgement: Anthropic - Claude
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+
+✒ Changelog:
+    - 1.2.0 (11/17/2026) [dendogg + Anthropic - Claude] — Registering a tool
+      documents the optional data descriptor (holds, summarize) behind the
+      hub's data badge and reset wording.
+    - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Design-system
+      guidance uses the light / dark theme names and points JS-painted
+      surfaces at the toolman:theme event; documents the theme browser
+      suite, the harness's theme / colorScheme options, and the GitHub
+      Pages deploy.
 
 ✒ Description:
     How to work on toolMan: setting up, the ground rules, how a tool is put
@@ -128,9 +138,17 @@ Add an entry to the `tools` array in `shared/js/toolman.js`:
     tagline: 'Command the spectrum',
     description: 'Palettes, conversions, contrast checks, and gradients.',
     status: 'soon',                      // 'live' once it ships
-    path: null                           // 'tools/colorman/index.html' once live
+    path: null,                          // 'tools/colorman/index.html' once live
+    data: {                              // optional: the hub's data badge + reset wording
+        holds: 'palettes, saved colors, and layout',
+        summarize: (state) => [`${state.palettes.length} palettes`]
+    }
 }
 ```
+
+`data.holds` finishes the hub's "Clear colorMan's local data? This removes
+its …" confirmation. `data.summarize(state)` receives the tool's saved state
+and returns short count strings for the card's badge. Both are optional.
 
 ### 2. Lay out the page
 
@@ -220,8 +238,10 @@ and phone width to the pull request.
   `--space-*` and the density tokens (`--pad-rail`, `--pad-card`, `--gap-card`,
   `--pad-stage`, …) for spacing, plus `--radius-*` and `--font-*`. A hard-coded
   hex value is a bug: it breaks one of the two themes.
-- **Both themes:** Parchment (`[data-theme="parchment"]`) and Sentinel
-  (`[data-theme="sentinel"]`). Check every change in both.
+- **Both themes:** light (`[data-theme="light"]`) and dark
+  (`[data-theme="dark"]`). Visitors can also choose System, which the
+  kernel resolves to one of the two. Check every change in both, and redraw
+  anything painted from JS (canvases, previews) on the `toolman:theme` event.
 - **The look:**
   - navy-gradient pane headers with gold titles;
   - raised card-gradient tool sections;
@@ -382,13 +402,20 @@ opening the real pages from disk:
 - `tests/e2e/smoke.e2e.mjs`:
   - the hub and every live tool, in both themes at desktop and phone size;
   - clean console, no network, theme applied, no sideways scroll.
+- `tests/e2e/theme.e2e.mjs`: Light / Dark / System.
+  - System follows the device live.
+  - Retired names migrate.
+  - The toggle and every live tool's Settings save the right choice.
+  - Open tabs stay in step.
 - `tools/<id>/tests/<id>.e2e.mjs`: that tool's own workflows.
 
 A suite exports a `name` and a default async function that receives the
 harness `t`:
 
-- `t.open(path, { theme, mobile, seed })` returns a session with `page`,
-  `errors`, `external`, and `close()`.
+- `t.open(path, { theme, colorScheme, mobile, seed })` returns a session
+  with `page`, `errors`, `external`, and `close()`. `theme` is the saved
+  choice (`'light'`, `'dark'`, `'system'`, or `null` for none);
+  `colorScheme` is the device setting to emulate.
 - `t.check(name, ok, detail)` records a check.
 - `t.step(name, fn)` reports an exception as a failure instead of crashing.
 - `t.assertClean(session, label)` asserts no console errors and no network
@@ -404,6 +431,10 @@ to `main`:
 2. The browser suites, with screenshots uploaded as an artifact.
 3. A `toolman-site` ZIP of the runnable app. `.gitattributes` export-ignore
    drops the dev-only paths from it.
+
+**Deploys** (`.github/workflows/pages.yml`): when CI finishes green on `main`,
+the same export-ignore'd tree is published to GitHub Pages. The owner sets
+this up once: Settings → Pages → Source: **GitHub Actions**.
 
 ## Commits and pull requests
 

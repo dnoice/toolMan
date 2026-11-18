@@ -1,16 +1,21 @@
 /*
  * ============================================================================
  * ✒ Metadata
- *     - Title: HeaderController (textMan Edition - v1.0)
+ *     - Title: HeaderController (textMan Edition - v1.1)
  *     - File Name: header.js
  *     - Relative Path: tools/textman/js/ui/header.js
  *     - Artifact Type: javascript
- *     - Version: 1.0.0
- *     - Date: 2026-07-22
- *     - Update: Wednesday, July 22, 2026
+ *     - Version: 1.1.0
+ *     - Date: 11/17/2026
+ *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
- *     - A.I. Acknowledgement: Anthropic - Claude Opus 4.8
+ *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.1.0 (11/17/2026) [dendogg + Anthropic - Claude] — Theme toggle
+ *       toast reads "Light theme" / "Dark theme" after the rename from
+ *       Parchment Dossier / Sentinel Obsidian.
  *
  * ✒ Description:
  *     Wires textMan's sticky header buttons: settings modal, ecosystem-wide
@@ -30,9 +35,9 @@
  * ✒ Examples:
  *     - HeaderUI.init() → wires #btn-settings, #btn-theme, and #btn-help
  *     - Clicking #btn-settings → ModalsUI.open('modal-settings')
- *     - Clicking #btn-theme → TOOLMAN.toggleTheme(); returning 'sentinel'
- *       shows the toast "Sentinel Obsidian engaged"
- *     - Toggling back to 'parchment' shows "Parchment Dossier engaged"
+ *     - Clicking #btn-theme → TOOLMAN.toggleTheme(); switching to dark
+ *       shows the toast "Dark theme"
+ *     - Switching back to light shows "Light theme"
  *     - Clicking #btn-help → ModalsUI.open('modal-help')
  *
  * ✒ Other Important Information:
@@ -54,11 +59,7 @@
 
             DOM.on('#btn-theme', 'click', () => {
                 const theme = TOOLMAN.toggleTheme();
-                TOOLMAN.notify(
-                    theme === 'sentinel' ? 'Sentinel Obsidian engaged' : 'Parchment Dossier engaged',
-                    'info',
-                    1600
-                );
+                TOOLMAN.notify(`${TOOLMAN.themeLabel(theme)} theme`, 'info', 1600);
             });
 
             DOM.on('#btn-help', 'click', () => {

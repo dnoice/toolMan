@@ -5,12 +5,16 @@
  *     - File Name: smoke.e2e.mjs
  *     - Relative Path: tests/e2e/smoke.e2e.mjs
  *     - Artifact Type: test
- *     - Version: 1.0.0
+ *     - Version: 1.0.1
  *     - Date: 11/17/2026
  *     - Update: Tuesday, November 17, 2026
  *     - Author: Dennis 'dendogg' Smaltz
  *     - A.I. Acknowledgement: Anthropic - Claude
  *     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
+ *
+ * ✒ Changelog:
+ *     - 1.0.1 (11/17/2026) [dendogg + Anthropic - Claude] — Matrix runs the
+ *       light and dark themes after the rename from parchment / sentinel.
  *
  * ✒ Description:
  *     The ecosystem-wide browser smoke test. It reads the live tools from the
@@ -21,7 +25,7 @@
  *
  * ✒ Key Features:
  *     - Registry-driven: no list of pages to maintain here
- *     - Matrix: every page × parchment / sentinel × desktop / phone
+ *     - Matrix: every page × light / dark × desktop / phone
  *     - Clean boot: loader hands off, no console errors or warnings, no
  *       uncaught exceptions, zero network requests
  *     - Theme applied before paint and the header toggle flips it
@@ -35,7 +39,7 @@
  *
  * ✒ Examples:
  *     node scripts/e2e.mjs --only smoke --shots e2e-shots
- *         → e2e-shots/textman-sentinel-phone.png and friends
+ *         → e2e-shots/textman-dark-phone.png and friends
  *
  * ✒ Other Important Information:
  *     - Dependencies: scripts/e2e.mjs (harness), Playwright with Chromium
@@ -46,7 +50,7 @@
 export const name = 'smoke';
 export const description = 'hub + every live tool: clean boot, offline, themed, responsive';
 
-const THEMES = ['parchment', 'sentinel'];
+const THEMES = ['light', 'dark'];
 
 export default async function smoke(t) {
     // The registry is the source of truth for which pages exist.

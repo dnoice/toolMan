@@ -39,7 +39,10 @@
  *     - Stray file drops outside the working card and the Palettes pane are
  *       refused with a hint, so the browser never navigates away to the file
  *     - Settings binder with live labels for decimal places and history
- *       size, rejected-value warnings, import refresh, and a guarded reset
+ *       size, an inline export-prefix check that holds Save until it is
+ *       fixed, and a guarded reset
+ *     - Backup import report: what was added, and a confirm before the
+ *       backup's differing settings replace the visitor's own
  *     - Loader messages in the colorMan voice
  *
  * ✒ Usage Instructions:
@@ -432,6 +435,111 @@
 
     /* ── Settings ──────────────────────────────────────────── */
 
+    /** Why an export prefix would be refused, or '' when State accepts it. */
+    function prefixProblem(raw) {
+        const typed = String(raw || '').trim();
+        if (State.validSetting('exportPrefix', typed) !== undefined) return '';
+        if (!typed) return 'Type a prefix, such as color or brand.';
+        if (!/[a-z]/i.test(typed)) return 'Use letters in the prefix, such as color or brand.';
+        return 'Start the prefix with a letter, such as color or brand.';
+    }
+
+    /**
+     * Inline check for the export prefix: the note under the field explains
+     * the problem and Save stays disabled until it is fixed. The listeners
+     * run after the kit's own (registered first), and a capturing click
+     * guard stops a save that would otherwise drop the typed prefix.
+     */
+    function wirePrefixCheck() {
+        const modal = DOM.id('modal-settings');
+        const input = DOM.id('setting-export-prefix');
+        const error = DOM.id('export-prefix-error');
+        const save = modal ? DOM.$('[data-settings-save]', modal) : null;
+        if (!modal || !input || !error || !save) return;
+
+        const show = (msg) => {
+            if (error.textContent !== msg) error.textContent = msg;
+            error.hidden = !msg;
+            if (msg) input.setAttribute('aria-invalid', 'true');
+            else input.removeAttribute('aria-invalid');
+        };
+        const refresh = () => {
+            const msg = prefixProblem(input.value);
+            show(msg);
+            if (msg) save.disabled = true;
+        };
+
+        DOM.on(modal, 'input', refresh);
+        DOM.on(modal, 'change', refresh);
+        DOM.on(modal, 'click', () => { if (prefixProblem(input.value)) save.disabled = true; });
+        modal.addEventListener('click', (e) => {
+            if (!e.target.closest('[data-settings-save]') || !prefixProblem(input.value)) return;
+            e.preventDefault();
+            e.stopPropagation();
+            refresh();
+            input.focus();
+        }, true);
+        modal.addEventListener('dialog:open', () => show(''));
+    }
+
+    function settingText(key, v) {
+        switch (key) {
+            case 'primaryFormat': return Object.prototype.hasOwnProperty.call(FORMAT_LABELS, v) ? FORMAT_LABELS[v] : String(v);
+            case 'hexUpper': return v ? 'uppercase' : 'lowercase';
+            case 'precision': return plural(Number(v), 'decimal place');
+            case 'recordHistory': return v ? 'on' : 'off';
+            case 'historySize': return `${v} colors`;
+            case 'pickerMode': return String(v).toUpperCase();
+            default: return String(v);
+        }
+    }
+
+    function joinList(parts) {
+        if (parts.length < 2) return parts.join('');
+        return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+    }
+
+    function importSummary(r) {
+        const parts = [];
+        if (r.palettesAdded) parts.push(plural(r.palettesAdded, 'palette'));
+        if (r.swatchesAdded) parts.push(plural(r.swatchesAdded, 'saved color'));
+        if (r.historyAdded) parts.push(plural(r.historyAdded, 'recent color'));
+        let text = parts.length ? `Added ${joinList(parts)} from the backup.` : 'Nothing new to add: everything in that backup is already here.';
+        if (r.workingAdded) text += ` Its working palette is in Palettes as “${r.workingAdded}”.`;
+        if (r.palettesFull) {
+            text += ` ${plural(r.palettesFull, 'palette')} did not fit; the library holds ${State.LIMITS.palettes}.`;
+        }
+        return text;
+    }
+
+    /**
+     * After Settings → Import: say what was added, and when the backup's
+     * settings differ, ask before using them. Nothing local was replaced.
+     */
+    async function reportImport(r) {
+        const summary = importSummary(r);
+        if (!r.settings) {
+            notify(`${summary} Your current color, working palette, gradient, and settings were kept.`, 'info', 6000);
+            return;
+        }
+        const now = State.settings();
+        const lines = Object.keys(r.settings).map((key) => (
+            `• ${State.SETTING_LABELS[key] || key}: ${settingText(key, r.settings[key])} (yours: ${settingText(key, now[key])})`
+        ));
+        const use = await Dialogs.confirm({
+            title: 'Use the backup’s settings too?',
+            message: `${summary}\n\nThe backup’s settings differ from yours:\n${lines.join('\n')}\n\nYour settings stay as they are unless you choose the backup’s.`,
+            confirmLabel: 'Use backup settings',
+            cancelLabel: 'Keep my settings'
+        });
+        if (!use) {
+            notify('Kept your settings', 'info', 1800);
+            return;
+        }
+        const result = State.applySettings(r.settings);
+        notify(result.changed.length ? `Now using the backup’s settings (${plural(result.changed.length, 'change')})` : 'Settings unchanged', 'success', 2400);
+    }
+
     function bindSettings() {
         Dialogs.bindSettings({
             getSettings: () => State.settings(),
@@ -448,7 +556,13 @@
                 historySize: (v) => `${v} colors`
             },
             onReset: () => State.reset(),
-            onImported: () => sync(),
+            onImported: () => {
+                sync();
+                const report = State.lastImport;
+                State.lastImport = null;
+                // After the kit's own "Backup merged" toast, so the detail reads second.
+                if (report) setTimeout(() => { reportImport(report).catch((err) => console.error('[colorMan] import report failed:', err)); }, 0);
+            },
             resetConfirm: {
                 title: 'Reset colorMan?',
                 message: 'This deletes your palettes, saved colors, recent colors, gradient, and settings in this browser, then brings back the starter palette.\n\nDownload a backup first if you might want them later. This cannot be undone.',
@@ -481,6 +595,7 @@
         ],
         onReady() {
             bindSettings();
+            wirePrefixCheck();
             guardFileDrops();
             wireToolbar();
             subscribeChrome();

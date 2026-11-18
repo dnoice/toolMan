@@ -33,8 +33,9 @@
  *     - Save to library, or "Update ‘{name}’" when the palette came from the
  *       library; the button disables itself when there is nothing to save
  *     - Link status line: not in the library, saved, or unsaved changes
- *     - Save as…, Sort (hue, light to dark, most vivid, reverse), Clear with
- *       confirmation and Undo
+ *     - Save as…, Sort (hue, light to dark, most vivid, reverse) with an
+ *       Undo strip that restores your own order, Clear with confirmation
+ *       and Undo
  *     - From image…: file picker or drop an image on the card; the image is
  *       scaled to 200px, the user picks 3–12 colors, and the engine's
  *       k-means extraction fills the palette
@@ -55,6 +56,7 @@
  *     WorkingUI.fromImage()                    → opens the image picker
  *     WorkingUI.fromImageFile(file)            → extracts colors from a File
  *     WorkingUI.save()                         → saves or updates the library copy
+ *     WorkingUI.sort('lightness')              → light to dark, with Undo for the old order
  *
  * ✒ Other Important Information:
  *     - Dependencies: js/state.js (State), js/ui/swatch.js (SwatchUI),
@@ -217,12 +219,7 @@
         DOM.on(els.sort, 'change', () => {
             const mode = els.sort.value;
             els.sort.value = '';
-            if (!mode) return;
-            if (State.sortWorking(mode)) {
-                const msg = `Sorted the working palette ${SORT_LABELS[mode]}`;
-                notify(msg, 'success', 1400);
-                announce(msg);
-            }
+            WorkingUI.sort(mode);
         });
     }
 
@@ -258,6 +255,7 @@
         });
 
         els.empty = DOM.create('div', { className: 'empty-state wp-empty' });
+        // check-allow: html-sink — fixed markup; the only interpolation is the constant ICONS.plus SVG, never user text
         els.empty.innerHTML = `
             <p class="empty-text">Your working palette is empty — add the current color, open a palette from the Library, or pull one from an image.</p>
             <div class="action-buttons wp-empty-actions">
@@ -346,6 +344,7 @@
             className: 'wp-add',
             attrs: { type: 'button' }
         });
+        // check-allow: html-sink — fixed markup; ICONS.plus is a constant SVG and the dot span has no text
         btn.innerHTML = `${ICONS.plus}<span class="wp-add-dot" aria-hidden="true"></span>`;
         const label = DOM.create('span', { className: 'wp-meta wp-add-label', text: 'Add current', attrs: { 'aria-hidden': 'true' } });
         li.append(btn, label);
@@ -986,6 +985,41 @@
                 pendingFocus = { index: 0, part: 'swatch' };
                 State.setWorking(before.colors, before.name, relink);
                 announce('Working palette restored');
+            });
+            return true;
+        },
+
+        /**
+         * Sort by 'hue', 'lightness', 'chroma', or 'reverse'. The order you
+         * had is kept for an Undo strip, since no sort can be reversed by
+         * another one. Returns true when the order changed.
+         */
+        sort(mode) {
+            if (!mode || !Object.prototype.hasOwnProperty.call(SORT_LABELS, mode)) return false;
+            const before = State.working();
+            if (before.colors.length < 2) {
+                notify('Add at least two colors before sorting.', 'info', 2000);
+                return false;
+            }
+            if (!State.sortWorking(mode)) {
+                notify(State.lastError || 'Could not sort the working palette.', 'warning', 3000);
+                return false;
+            }
+            const after = State.working();
+            const same = after.colors.every((c, i) => c.hex === before.colors[i].hex && c.name === before.colors[i].name);
+            if (same) {
+                const msg = `Already sorted ${SORT_LABELS[mode]}`;
+                notify(msg, 'info', 1600);
+                announce(msg);
+                return false;
+            }
+            const msg = `Sorted the working palette ${SORT_LABELS[mode]}`;
+            notify(msg, 'success', 1400);
+            announce(msg);
+            showUndo(`Sorted ${SORT_LABELS[mode]}.`, () => {
+                const relink = before.id && State.palette(before.id) ? before.id : null;
+                State.setWorking(before.colors, State.working().name, relink);
+                announce('Previous order restored');
             });
             return true;
         },

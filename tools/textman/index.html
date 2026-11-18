@@ -1,10 +1,10 @@
 <!--
 ✒ Metadata
-    - Title: TextManApp (textMan Edition - v2.6)
+    - Title: TextManApp (textMan Edition - v2.7)
     - File Name: index.html
     - Relative Path: tools/textman/index.html
     - Artifact Type: markup
-    - Version: 2.6.0
+    - Version: 2.7.0
     - Date: 11/17/2026
     - Update: Tuesday, November 17, 2026
     - Author: Dennis 'dendogg' Smaltz
@@ -12,6 +12,10 @@
     - Signature: ︻デ═─── ✦ ✦ ✦ | Aim Twice, Shoot Once!
 
 ✒ Changelog:
+    - 2.7.0 (11/17/2026) [dendogg + Anthropic - Claude] — Settings offer
+      Light, Dark, and System (the default, following the device) in place of
+      the Parchment Dossier / Sentinel Obsidian radios; theme toggle
+      relabelled; pre-paint default data-theme="light".
     - 2.6.0 (11/17/2026) [dendogg + Anthropic - Claude] — Re-ported the 1.0.0
       features onto the restored 07/23 design: staged Settings (Cancel/Save,
       Save enabled only when dirty), autosave-delay group with a seconds
@@ -21,9 +25,6 @@
     - 2.5.0 (2026-07-23) [Anthropic - Claude Opus 4.8] — Theme toggle carries
       both sun and moon icons, swapped by data-theme (moon in light, sun in
       dark).
-    - 2.4.0 (2026-07-22) [Anthropic - Claude Opus 4.8] — Tool-pane additions:
-      transform case family + strip-accents + smart/straight quotes, encoding
-      Base64URL/hex/JWT, and formatting code-fence + strip-markdown buttons.
     Earlier entries: see CHANGELOG.md
 
 ✒ Description:
@@ -53,7 +54,7 @@
 ---------
 -->
 <!DOCTYPE html>
-<html lang="en" data-theme="parchment">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -157,7 +158,7 @@
                     </svg>
                 </button>
 
-                <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Toggle parchment/sentinel theme">
+                <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Switch between light and dark theme">
                     <svg class="theme-icon theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>
@@ -765,18 +766,22 @@
             </header>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Theme preference</label>
-                    <div class="radio-group">
+                    <label id="theme-pref-label">Theme</label>
+                    <div class="radio-group" role="radiogroup" aria-labelledby="theme-pref-label">
                         <label class="radio-label">
-                            <input type="radio" name="theme-pref" value="parchment" checked>
-                            <span>Parchment Dossier (light)</span>
+                            <input type="radio" name="theme-pref" value="light">
+                            <span>Light</span>
                         </label>
                         <label class="radio-label">
-                            <input type="radio" name="theme-pref" value="sentinel">
-                            <span>Sentinel Obsidian (dark)</span>
+                            <input type="radio" name="theme-pref" value="dark">
+                            <span>Dark</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="theme-pref" value="system" checked>
+                            <span>System</span>
                         </label>
                     </div>
-                    <p class="help-text">Applies across every toolMan tool.</p>
+                    <p class="help-text">System follows your device's light or dark setting. Applies across every toolMan tool.</p>
                 </div>
 
                 <div class="form-group">

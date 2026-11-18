@@ -22,7 +22,9 @@
  * ✒ Key Features:
  *     - Color field: live parsing 150ms after typing stops, Enter commits
  *       and selects, Escape restores the color you started from, plain
- *       error text, and an "outside sRGB" note when input was mapped
+ *       error text, and an "outside sRGB" note when input was mapped; a
+ *       whole typing session is one undo step and reaches Recent only when
+ *       committed (Enter or leaving the field)
  *     - Picker models HSV, HSL, and OKLCH as a keyboard radio group; the
  *       choice is the Settings picker model, so it persists
  *     - 2D color area drawn on a HiDPI canvas that redraws on resize; the
@@ -37,7 +39,8 @@
  *     - Channel editor for RGB, HSL, HWB, OKLCH, and Lab plus alpha: arrows
  *       step, Shift steps ten, out-of-range values are limited with a note
  *     - Formats card: eleven copyable rows with the primary format marked,
- *       Copy all, and black/white text samples with contrast ratios
+ *       Copy all, and black/white text samples with contrast ratios that
+ *       are truncated, never rounded up past the level they report
  *     - Stat pills: luminance, contrast against white and black, OKLCH hue
  *       and lightness, and alpha
  *     - Hues survive greys, black, and white, so the area never jumps
@@ -69,7 +72,8 @@
  *       API (Chrome or Edge on a desktop) and its button hides elsewhere
  *     - Limitations: the chip, star, undo/redo, and footer text belong to
  *       app.js; the canvas uses neutral white and black to draw the HSV and
- *       HSL fields and theme tokens for the gamut edge; output is sRGB only
+ *       HSL fields and theme tokens for the gamut edge, redrawn on every
+ *       toolman:theme event; output is sRGB only
  * ----------------------------------------------------------------------------
  */
 
@@ -181,6 +185,8 @@
     let offscreen = null;
     let inputDirty = false;
     let editStart = null;
+    let editToken = null;       // one undo step per typing session in the color field
+    let editSeq = 0;
     let liveTimer = 0;
     let errorTimer = 0;
     let noteTimer = 0;
@@ -192,6 +198,8 @@
 
     const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
     const clamp01 = (v) => clamp(v, 0, 1);
+    /** Own keys only, so a saved value such as 'constructor' or 'toString' is never a match. */
+    const own = (obj, key) => typeof key === 'string' && Object.prototype.hasOwnProperty.call(obj, key);
     const hasEngine = () => Boolean(window.Color && window.State && typeof Color.parseDetailed === 'function');
 
     /** Short decimal: rounded to dp places, trailing zeros dropped, never "-0". */
@@ -220,7 +228,7 @@
     }
 
     function primaryLabel() {
-        return PRIMARY_LABEL[settings.primaryFormat] || 'HEX';
+        return own(PRIMARY_LABEL, settings.primaryFormat) ? PRIMARY_LABEL[settings.primaryFormat] : 'HEX';
     }
 
     /** 'goldenrod', 'goldenrod at 50% opacity', or '≈ goldenrod' (with ΔE in `detail`). */
@@ -239,12 +247,17 @@
         return { text: `≈ ${near.name} · ΔE ${near.deltaE.toFixed(1)}`, copy: near.name, label: `≈ ${near.name}` };
     }
 
+    /** The best WCAG level a ratio reaches, judged exactly as Color.wcag() does. */
     function wcagWord(ratio) {
-        if (ratio >= 7) return 'AAA';
-        if (ratio >= 4.5) return 'AA';
-        if (ratio >= 3) return 'AA large';
+        const lv = Color.wcag(ratio);
+        if (lv.aaaNormal) return 'AAA';
+        if (lv.aaNormal) return 'AA';
+        if (lv.aaLarge) return 'AA large';
         return 'fails';
     }
+
+    /** Ratio text that is never rounded up past a threshold (4.4989 → '4.49'). */
+    const ratioText = (ratio) => Color.formatRatio(ratio);
 
     /* ── Model ↔ color ─────────────────────────────────────── */
 
@@ -548,10 +561,10 @@
         // Read without creating the pane entry; setPane() creates it on first choice.
         const panes = window.AppState && AppState.panes;
         const pane = panes && panes.picker;
-        return pane && CHANNELS[pane.channelFormat] ? pane.channelFormat : 'rgb';
+        return pane && own(CHANNELS, pane.channelFormat) ? pane.channelFormat : 'rgb';
     }
 
-    const fieldsOf = (fmt) => CHANNELS[fmt].fields.concat([ALPHA_FIELD]);
+    const fieldsOf = (fmt) => CHANNELS[own(CHANNELS, fmt) ? fmt : 'rgb'].fields.concat([ALPHA_FIELD]);
     const rangeText = (f) => `${f.min}–${f.max}${f.unit === '%' ? '%' : f.unit === '°' ? '°' : ''}`;
 
     function channelValues(fmt, c) {
@@ -755,11 +768,11 @@
             tile.style.setProperty('--c', cssHex(c));
             const isBest = ink === best;
             const word = wcagWord(ratio);
-            tile._ratio.textContent = `${ratio.toFixed(2)}:1 · ${word}`;
+            tile._ratio.textContent = `${ratioText(ratio)}:1 · ${word}`;
             tile._best.hidden = !isBest;
             tile.dataset.best = String(isBest);
             const name = ink === 'black' ? 'Black' : 'White';
-            tile.setAttribute('aria-label', `${name} text on this color: contrast ${ratio.toFixed(2)} to 1, ${word === 'fails' ? 'fails WCAG' : `passes ${word}`}${isBest ? '. The better choice' : ''}`);
+            tile.setAttribute('aria-label', `${name} text on this color: contrast ${ratioText(ratio)} to 1, ${word === 'fails' ? 'fails WCAG' : `passes ${word}`}${isBest ? '. The better choice' : ''}`);
         });
     }
 
@@ -775,8 +788,8 @@
             if (title !== undefined) pill.title = title;
         };
         set('lum', `Luminance ${lum.toFixed(3)}`);
-        set('white', `vs white ${vsWhite.toFixed(2)}:1`, `Contrast with white: ${vsWhite.toFixed(2)}:1 (${wcagWord(vsWhite)})`);
-        set('black', `vs black ${vsBlack.toFixed(2)}:1`, `Contrast with black: ${vsBlack.toFixed(2)}:1 (${wcagWord(vsBlack)})`);
+        set('white', `vs white ${ratioText(vsWhite)}:1`, `Contrast with white: ${ratioText(vsWhite)}:1 (${wcagWord(vsWhite)})`);
+        set('black', `vs black ${ratioText(vsBlack)}:1`, `Contrast with black: ${ratioText(vsBlack)}:1 (${wcagWord(vsBlack)})`);
         set('hue', `OKLCH hue ${hueText}`, ok.c > 1e-4 ? 'Hue angle in OKLCH' : 'A grey has no hue');
         set('light', `Lightness ${Math.round(ok.l * 100)}%`);
         set('alpha', `Alpha ${Math.round(c.a * 100)}%`);
@@ -1402,9 +1415,22 @@
             else errorTimer = setTimeout(() => setInputMessage(MSG.bad, 'error'), ERROR_MS);
             return null;
         }
-        State.setActive(detail.color, { source: 'input', coalesce: kind === 'live' });
+        // The whole typing session is one undo step, and nothing reaches
+        // Recent until the edit is committed (Enter, or leaving the field).
+        if (!editToken) editToken = `edit-${++editSeq}`;
+        State.setActive(detail.color, { source: 'input', record: false, coalesce: true, gesture: editToken });
         setInputMessage(detail.clipped ? MSG.clipped : '', 'info');
         return detail;
+    }
+
+    /** End a typing session; a committed change is recorded in Recent once. */
+    function endEdit(commit) {
+        const start = editStart;
+        inputDirty = false;
+        editStart = null;
+        editToken = null;
+        const now = State.getActive();
+        if (commit && start && !Color.equals(start, now) && State.settings().recordHistory) State.addHistory(now);
     }
 
     function wireInput() {
@@ -1415,7 +1441,10 @@
         els.inputError = DOM.id('input-error');
 
         input.addEventListener('input', () => {
-            if (!inputDirty) editStart = State.getActive();
+            if (!inputDirty) {
+                editStart = State.getActive();
+                editToken = `edit-${++editSeq}`;
+            }
             inputDirty = true;
             clearTimeout(liveTimer);
             clearTimeout(errorTimer);
@@ -1426,8 +1455,7 @@
             if (e.key === 'Enter') {
                 e.preventDefault();
                 if (parseInput('commit')) {
-                    inputDirty = false;
-                    editStart = null;
+                    endEdit(true);
                     input.value = primaryText(State.getActive());
                     input.select();
                 }
@@ -1436,10 +1464,10 @@
                 clearTimeout(errorTimer);
                 const wasEditing = inputDirty || Boolean(els.inputError && els.inputError.textContent);
                 if (editStart && !Color.equals(editStart, State.getActive())) {
-                    State.setActive(editStart, { source: 'input', record: false });
+                    // Same gesture: going back to the start removes the session's undo step.
+                    State.setActive(editStart, { source: 'input', record: false, coalesce: true, gesture: editToken });
                 }
-                inputDirty = false;
-                editStart = null;
+                endEdit(false);
                 setInputMessage('');
                 input.value = primaryText(State.getActive());
                 e.preventDefault();
@@ -1457,10 +1485,10 @@
             clearTimeout(errorTimer);
             errorTimer = 0;
             if (!inputDirty) return;
-            inputDirty = false;
-            editStart = null;
             const raw = input.value.trim();
-            if (!raw || !readInput(raw)) setInputMessage('');
+            const readable = Boolean(raw && readInput(raw));
+            endEdit(readable);
+            if (!readable) setInputMessage('');
             input.value = primaryText(State.getActive());
         });
     }
@@ -1481,10 +1509,13 @@
         } else {
             window.addEventListener('resize', DOM.debounce(() => { if (sizeCanvas()) drawPlane(false); }, 120));
         }
-        if ('MutationObserver' in window) {
-            new MutationObserver(() => { planeKey = ''; schedule(); })
-                .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-        }
+        // The kernel fires this on every painted theme change, including a
+        // device switch under System: the gamut edge and halo use theme tokens.
+        document.addEventListener('toolman:theme', () => {
+            tokens = null;
+            planeKey = '';
+            schedule();
+        });
     }
 
     /* ── Public API ────────────────────────────────────────── */
